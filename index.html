@@ -59,6 +59,24 @@
       var stat = document.querySelector(".status");
       var chat = document.querySelector(".chat");
       var client = new LichatClient();
+
+      var fail = function(reason){
+          chat.style.display = "none";
+          stat.style.display = "block";
+          login.style.display = "block";
+          stat.innerHTML = reason;
+          window.onbeforeunload = ()=>{
+              return true;
+          };
+      };
+
+      client.handleFailure = (e)=>{
+          fail(e+"");
+      };
+
+      client.addHandler("DISCONNECT", (client,update)=>{
+          fail("Disconnected");
+      });
       
       client.addHandler("CONNECT", (client,update)=>{
           stat.style.display = "none";
@@ -67,13 +85,6 @@
           window.onbeforeunload = ()=>{
               return "Are you sure you want to leave?";
           };
-      });
-
-      client.addHandler("DISCONNECT", (client,update)=>{
-          chat.style.display = "none";
-          stat.style.display = "block";
-          login.style.display = "block";
-          stat.innerHTML = "Disconnected.";
       });
 
       login.addEventListener("submit", (ev)=>{
@@ -85,12 +96,7 @@
           client.port = parseInt(login.querySelector("input[name=port]").value);
           stat.style.display = "block";
           stat.innerHTML = "Connecting...";
-          try{
-              client.openConnection();
-          }catch(e){
-              stat.innerHTML = "Connection failed: "+e;
-              login.style.display = "block";
-          }
+          client.openConnection();
           return false;
       }, false);
     </script>

@@ -7,7 +7,7 @@ var LichatPrinter = function(){
             for(var i=0; i<list.length; i++){
                 self.printSexpr(list[i], stream);
                 if(i+1 < list.length){
-                    stream.writeChar(",");
+                    stream.writeChar(" ");
                 }
             }
         },()=>{
@@ -86,12 +86,10 @@ var LichatPrinter = function(){
 
     self.toWire = function(wireable, stream){
         if(wireable instanceof WireObject){
-            var list = [wireable.type];
-            for(var key in wireable){
-                if(key !== "type"){
-                    list.push(key);
-                    list.push(wireable[key]);
-                }
+            var list = [cl.findSymbol(wireable.type, "LICHAT-PROTOCOL")];
+            for(var key of wireable.fields){
+                list.push(cl.findSymbol(key.toUpperCase(), "KEYWORD"));
+                list.push(wireable[key]);
             }
             self.printSexpr(list, stream);
         }else{

@@ -9,6 +9,7 @@ var LichatClient = function(options){
     if(!options.password) options.password = null;
     if(!options.hostname) options.hostname = "ws://localhost";
     if(!options.port) options.port = LichatDefaultPort;
+    if(!options.handleFailure) options.handleFailure = function(){};
 
     for(var key in options){
         self[key] = options[key];
@@ -22,13 +23,19 @@ var LichatClient = function(options){
     var status = "STARTING";
 
     self.openConnection = function(){
-        self.socket = new WebSocket(self.hostname, "lichat");
+        self.socket = new WebSocket(self.hostname+":"+self.port, "lichat");
+        
         self.socket.onopen = ()=>{
-            self.s("CONNECT", {password: self.password,
+            self.s("CONNECT", {password: self.password || null,
                                version: LichatVersion});
         };
-        self.socket.onmessage = self.handleConnection;
-        self.socket.onclose = self.closeConnection;
+        self.socket.onmessage = self.handleMessage;
+        self.socket.onclose = function(e){
+            if(e.code !== 1000){
+                self.handleFailure("Error "+e.code+" "+e.reason);
+            }
+            self.closeConnection();
+        }
     };
 
     self.closeConnection = function(){
@@ -52,21 +59,27 @@ var LichatClient = function(options){
     self.s = function(type, args){
         var update = new Update(type);
         for(var key in args){
-            update[key] = args[key];
+            update.set(key, args[key]);
         }
-        if(!update.from) update.from = self.username;
+        if(!update.from) update.set("from", self.username);
         self.send(update);
     };
 
-    self.handleConnection = function(event){
+    self.handleMessage = function(event){
         try{
             var update = reader.fromWire(new LichatStream(event.data));
             switch(status){
             case "STARTING":
-                if(!(update instanceof Update))
-                    throw "Error during connection: non-Update message: "+update;
-                if(update.type !== "CONNECT")
-                    throw "Error during connection: non-CONNECT update: "+update;
+                try{
+                    if(!(update instanceof WireObject))
+                        throw "Error during connection: non-Update message: "+update;
+                    if(update.type !== "CONNECT")
+                        throw "Error during connection: non-CONNECT update: "+update;
+                }catch(e){
+                    self.handleFailure(e);
+                    self.closeConnection();
+                    throw e;
+                }
                 status = "RUNNING";
                 self.process(update);
                 break;

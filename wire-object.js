@@ -16,22 +16,18 @@ var WireObject = function(type){
     var self = this;
 
     self.type = type.toString();
+    self.fields = [];
 
     self.set = function(key, val){
+        var varname;
         if(key instanceof Symbol){
-            self[key.name.toLowerCase()] = val;
+            varname = key.name.toLowerCase();
         }else{
-            self[key.toString()] = val;
+            varname = key.toString();
         }
+        self[varname] = val;
+        self.fields.push(varname);
         return val;
-    }
-
-    self.get = function(key){
-        if(key instanceof Symbol){
-            return self[key.name.toLowerCase()];
-        }else{
-            return self[key.toString()];
-        }
     }
 
     return self;
@@ -41,8 +37,8 @@ var Update = function(type){
     var self = this;
     WireObject.call(self, type);
 
-    self.clock = cl.getUniversalTime();
-    self.id = nextID();
+    self.set("clock", cl.getUniversalTime());
+    self.set("id", nextID());
     
     return self;
 };

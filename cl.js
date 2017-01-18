@@ -102,7 +102,7 @@ var CL = function(){
     self.universalUnixOffset = 2208988800;
 
     self.getUniversalTime = function(){
-        return self.universalUnixOffset + new Date();
+        return  +new Date()+self.universalUnixOffset;
     }
 
     return self;
