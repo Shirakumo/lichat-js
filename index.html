@@ -1,10 +1,98 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset="utf-8" />
     <title>Lichat-JS Client Library</title>
+    <link rel="stylesheet" type="text/css" href="lichat.css" />
   </head>
   <body>
-    
+    <noscript>
+      JavaScript is required for this to work. Sorry!
+    </noscript>
+    <div class="status" style="display:none"></div>
+    <form class="login" action="#">
+      <h1>Log In to Lichat</h1>
+      <div><label>Username</label><input type="text" name="username" maxlength="32" placeholder="My Name" required /></div>
+      <div><label>Password (optional)</label><input type="password" name="password" placeholder="" /></div>
+      <div><label>Server Hostname</label><input type="url" name="hostname" value="ws://localhost" placeholder="ws://localhost" required /></div>
+      <div><label>Server Port</label><input type="number" name="port" min="1" max="65535" value="1113" placeholder="1113" required /></div>
+      <input type="submit" value="Connect" />
+    </form>
+    <main class="chat" style="display:none">
+      <div class="channels">
+        <h2>Channels</h2>
+        <div>
+          <a>Test</a>
+        </div>
+      </div>
+      <div class="chat-area">
+        <nav class="menu">
+          <a>Create</a>
+          <a>Join</a>
+          <a>Leave</a>
+        </nav>
+        <div class="output">
+          <div>
+            <time>00:00:00</time>
+            <a>Someone</a>:
+            <span>Yooo</span>
+          </div>
+          <div>
+            <time>00:00:00</time>
+            <a>Someone</a>:
+            <span>YoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYooo</span>
+          </div>
+        </div>
+        <textarea class="input"></textarea>
+        <input type="submit" value="Send" />
+      </div>
+      <div class="users">
+        <h2>Users</h2>
+        <div>
+          <a>Someone</a>
+        </div>
+      </div>
+    </main>
     <script type="text/javascript" src="lichat.js"></script>
+    <script type="text/javascript">
+      var login = document.querySelector(".login");
+      var stat = document.querySelector(".status");
+      var chat = document.querySelector(".chat");
+      var client = new LichatClient();
+      
+      client.addHandler("CONNECT", (client,update)=>{
+          stat.style.display = "none";
+          chat.style.display = "flex";
+          
+          window.onbeforeunload = ()=>{
+              return "Are you sure you want to leave?";
+          };
+      });
+
+      client.addHandler("DISCONNECT", (client,update)=>{
+          chat.style.display = "none";
+          stat.style.display = "block";
+          login.style.display = "block";
+          stat.innerHTML = "Disconnected.";
+      });
+
+      login.addEventListener("submit", (ev)=>{
+          ev.preventDefault()
+          login.style.display = "none";
+          client.username = login.querySelector("input[name=username]").value;
+          client.password = login.querySelector("input[name=password]").value;
+          client.hostname = login.querySelector("input[name=hostname]").value;
+          client.port = parseInt(login.querySelector("input[name=port]").value);
+          stat.style.display = "block";
+          stat.innerHTML = "Connecting...";
+          try{
+              client.openConnection();
+          }catch(e){
+              stat.innerHTML = "Connection failed: "+e;
+              login.style.display = "block";
+          }
+          return false;
+      }, false);
+    </script>
   </body>
 </html>

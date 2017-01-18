@@ -1,0 +1,84 @@
+(html
+ :min-height 100%
+ :position relative
+ (body
+  :font-family sans-serif
+  :font-size 12pt
+  :margin 0
+  :height 100%
+  ((:or noscript .status)
+   :background red
+   :padding 5px
+   :margin 5px
+   :color white
+   :font-weight bold
+   :text-align center)
+  (.login
+   :display flex
+   :flex-direction column
+   :margin 0 auto 0 auto
+   :max-width 400px
+   (h1 :text-align center)
+   (div
+    :display flex
+    :margin 5px
+    (label :min-width 200px
+           :display inline-block
+           :text-align left)
+    (input :flex-grow 1))
+   (input[type=submit]
+    :margin 5px 0 0 0
+    :width 100%))
+  (.chat
+   :height 100vh
+   :display flex
+   :max-width 100%
+   ((:or .channels .users)
+    :background "#EEE"
+    :list-style none
+    :margin 0
+    :padding 0
+    :min-width 100px
+    :width 10vw
+    (h2
+     :margin 0
+     :font-size 1.0em
+     :background (rgb 120 25 25)
+     :color white)
+    (>* :padding 5px))
+   (.channels
+    :border-right 1px solid (rgb 120 25 25))
+   (.chat-area
+    :min-width 0px
+    :flex-grow 1
+    :display flex
+    :flex-direction column
+    (.menu
+     :background "#EEE"
+     :display flex
+     (a :padding 5px))
+    (.output
+     :flex-grow 1
+     :overflow-y auto
+     :margin 2px
+     (div
+      :display flex
+      (>* :margin 2px)
+      (time :min-width 80px
+            :display inline-block
+            :font-size 0.9em
+            :text-align center
+            :vertical-align middle)
+      (a :min-width 100px
+         :display inline-block
+         :overflow hidden
+         :white-space nowrap
+         :text-overflow ellipsis)
+      (span :word-wrap break-word
+            :min-width 0px
+            :flex-grow 1)))
+    (.input
+     :height 50px
+     :min-height 30px))
+   (.users
+    :border-left 1px solid (rgb 120 25 25)))))

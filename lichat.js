@@ -496,7 +496,9 @@ var LichatDefaultPort = 1113;
 
 var LichatClient = function(options){
     var self = this;
-    if(!options.username) throw "Username cannot be empty";
+
+    options = options || {};
+    if(!options.username) options.username = "Lion";
     if(!options.password) options.password = null;
     if(!options.hostname) options.hostname = "ws://localhost";
     if(!options.port) options.port = LichatDefaultPort;
@@ -523,12 +525,14 @@ var LichatClient = function(options){
     };
 
     self.closeConnection = function(){
-        if(!socket) throw "The client is not connected.";
-        status = "STOPPING";
-        if(self.socket.readyState < 2){
-            self.socket.close();
+        if(!self.socket) throw "The client is not connected.";
+        if(status != "STOPPING"){
+            status = "STOPPING";
+            if(self.socket.readyState < 2){
+                self.socket.close();
+            }
+            self.socket = null;
         }
-        self.socket = null;
     };
 
     self.send = function(wireable){
@@ -557,6 +561,7 @@ var LichatClient = function(options){
                 if(update.type !== "CONNECT")
                     throw "Error during connection: non-CONNECT update: "+update;
                 status = "RUNNING";
+                self.process(update);
                 break;
             case "RUNNING":
                 self.process(update);
