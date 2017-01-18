@@ -76,11 +76,12 @@ var LichatPrinter = function(){
 
     self.printSexpr = function(sexpr, stream){
         cl.typecase(sexpr,
+                    null,     ()=> self.printSexprToken("NIL", stream),
                     "String", ()=> self.printSexprString(sexpr, stream),
                     "Array",  ()=> self.printSexprList(sexpr, stream),
                     "Number", ()=> self.printSexprNumber(sexpr, stream),
                     "Symbol", ()=> self.printSexprSymbol(sexpr, stream),
-                    "T", ()=> {throw "Unprintable object "+sexpr;});
+                    true, ()=> {throw "Unprintable object "+sexpr;});
     };
 
     self.toWire = function(wireable, stream){

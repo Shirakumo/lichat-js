@@ -5,7 +5,7 @@ var LichatStream = function(string){
 
     self.readChar = function(errorp){
         if(errorp === undefined)errorp = true;
-        if(i < buffer.length){
+        if(i < self.string.length){
             var character = self.string[i];
             i++;
             return character;
@@ -24,11 +24,14 @@ var LichatStream = function(string){
         }
     };
 
-    self.peekChar = function(){
-        if(i < buffer.length){
+    self.peekChar = function(errorp){
+        if(errorp === undefined)errorp = true;
+        if(i < self.string.length){
             return self.string[i];
-        }else{
+        }else if(errorp){
             throw "End of stream reached.";
+        }else{
+            return null;
         }
     };
 

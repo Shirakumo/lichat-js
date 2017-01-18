@@ -4,7 +4,7 @@ var LichatReader = function(){
     self.whitespace = "\u0009\u000A\u000B\u000C\u000D\u0020\u0085\u00A0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2008\u2009\u200A\u2028\u2029\u202F\u205F\u3000\u180E\u200B\u200C\u200D\u2060\uFEFF"
     self.invalidSymbol = cl.makeSymbol("INVALID-SYMBOL");
 
-    self.isWhistepace = function(character){
+    self.isWhitespace = function(character){
         return self.whitespace.indexOf(character) >= 0;
     };
 
@@ -19,23 +19,17 @@ var LichatReader = function(){
     };
 
     self.safeFindSymbol = function(name, pkg){
-        if(pkg === "KEYWORD"){
-            return cl.intern(name, pkg);
-        }
-        if(pkg === "LICHAT-PROTOCOL" && cl.findSymbol(name, pkg)){
-            return cl.findSymbol(name, pkg);
-        }
         if(pkg === null){
             return cl.makeSymbol(name);
         }
-        return self.invalidSymbol;
+        return cl.findSymbol(name, pkg) || self.invalidSymbol;
     };
 
     self.readSexprList = function(stream){
         var array = [];
         self.skipWhitespace(stream);
         while(stream.peekChar() !== ")"){
-            array.push(self.readSexpr());
+            array.push(self.readSexpr(stream));
             self.skipWhitespace(stream);
         }
         stream.readChar();
@@ -79,6 +73,7 @@ var LichatReader = function(){
             case "0": case "1": case "2": case "3": case "4":
             case "5": case "6": case "7": case "8": case "9":
                 out.writeChar(character);
+                break;
             default:
                 stream.unreadChar();
                 break loop;
@@ -103,7 +98,7 @@ var LichatReader = function(){
             switch(character){
             case null: break loop;
             case "\\": out.writeChar(stream.readChar()); break;
-            case "(": case ")": case ".": case " ": case "\"":
+            case "(": case ")": case ".": case " ": case "\"": case ":":
             case "0": case "1": case "2": case "3": case "4":
             case "5": case "6": case "7": case "8": case "9":
                 stream.unreadChar(); break loop;
@@ -124,7 +119,7 @@ var LichatReader = function(){
                 return self.safeFindSymbol(self.readSexprToken(stream), token);
             }
         }else{
-            self.safeFindSymbol(token, "LICHAT-PROTOCOL");
+            return self.safeFindSymbol(token, "LICHAT-PROTOCOL");
         }
     };
 
@@ -133,7 +128,7 @@ var LichatReader = function(){
         // FIXME: Catch symbol errors
         switch(stream.readChar()){
         case "(": return self.readSexprList(stream);
-        case ")": throw "Icomplete token";
+        case ")": throw "Incomplete token";
         case "\"": return self.readSexprString(stream);
         case "0": case "1": case "2": case "3": case "4":
         case "5": case "6": case "7": case "8": case "9": case ".":
@@ -150,8 +145,8 @@ var LichatReader = function(){
         var sexpr = self.readSexpr(stream);
         if(sexpr instanceof Array){
             var type = sexpr.shift();
-            if(! type instanceof Keyword){
-                throw "Wire object is malformed. First item in list is not a keyword: "+sexpr;
+            if(!(type instanceof Symbol)){
+                throw "Wire object is malformed. First item in list is not a symbol: "+sexpr;
             }
             
             var object = new WireObject(type);
@@ -163,10 +158,10 @@ var LichatReader = function(){
                 }
                 object.set(key, val);
             }
-            if(!object.id){
+            if(object.id === undefined){
                 throw "Missing ID on object. "+object;
             }
-            if(!object.clock){
+            if(object.clock === undefined){
                 throw "Missing CLOCK on object. "+object;
             }
             return object;

@@ -11,8 +11,7 @@ var Symbol = function(name, pkg){
 
 var Keyword = function(name){
     var self = this;
-    Symbol.call(self);
-    self.pkg = "KEYWORD";
+    Symbol.call(self, name, "KEYWORD");
     return self;
 };
 Keyword.prototype = Object.create(Symbol.prototype);
@@ -20,6 +19,27 @@ Keyword.prototype = Object.create(Symbol.prototype);
 var CL = function(){
     var self = this;
     var symbols = {};
+
+    self.defclass = function(name, superclass, slots, initializer){
+        slots = slots || [];
+        initializer = initializer || function(){}
+        var c = function(initargs){
+            var self = this;
+            window[superclass].call(self);
+            for(var i=0; i<slots.length; i+= 2){
+                var name = slots[i];
+                var options = slots[i+1];
+                var initarg = initargs[options.initarg];
+                self[name] = (initarg !== undefined)? initarg
+                    : options.initform;
+            }
+            initializer(self);
+            return self;
+        }
+        c.prototype = Object.create(window[superclass].prototype);
+        window[name] = c;
+        return name;
+    };
     
     self.intern = function(name, pkg){
         var symbol = self.findSymbol(name, pkg);
@@ -47,7 +67,7 @@ var CL = function(){
 
     self.makeSymbol = function(name){
         return new Symbol(name);
-    }
+    };
 
     self.unwindProtect = function(protect, cleanup){
         try{protect();
@@ -56,14 +76,18 @@ var CL = function(){
             cleanup();
             throw e;
         }
-    }
+    };
 
     self.typecase = function(object){
         for(var i=1; i<arguments.length; i+=2){
             var type = arguments[i];
             var func = arguments[i+1];
-            if(type === "T"){
+            if(type === true){
                 return func();
+            }else if(type === null){
+                if(object === null){
+                    return func();
+                }
             }else{
                 if(!window[type]) throw "Invalid type: "+type;
                 if(window[type].prototype.isPrototypeOf(object)
@@ -73,12 +97,15 @@ var CL = function(){
             }
         }
         return null;
+    };
+
+    self.universalUnixOffset = 2208988800;
+
+    self.getUniversalTime = function(){
+        return self.universalUnixOffset + new Date();
     }
 
     return self;
 };
 
 var cl = new CL();
-for(var name of ["WIRE-OBJECT","UPDATE","PING","PONG","CONNECT","DISCONNECT","REGISTER","CHANNEL-UPDATE","TARGET-UPDATE","TEXT-UPDATE","JOIN","LEAVE","CREATE","KICK","PULL","PERMISSIONS","MESSAGE","USERS","CHANNELS","USER-INFO","FAILURE","MALFORMED-UPDATE","CONNECTION-UNSTABLE","TOO-MANY-CONNECTIONS","UPDATE-FAILURE","INVALID-UPDATE","USERNAME-MISMATCH","INCOMPATIBLE-VERSION","INVALID-PASSWORD","NO-SUCH-PROFILE","USERNAME-TAKEN","NO-SUCH-CHANNEL","ALREADY-IN-CHANNEL","NOT-IN-CHANNEL","CHANNELNAME-TAKEN","BAD-NAME","INSUFFICIENT-PERMISSIONS","INVALID-PERMISSIONS","NO-SUCH-USER","TOO-MANY-UPDATES"]){
-    cl.intern(name, "LICHAT-PROTOCOL");
-}
