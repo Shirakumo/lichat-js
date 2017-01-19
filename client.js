@@ -16,6 +16,7 @@ var LichatClient = function(options){
     }
     
     self.socket = null;
+    self.servername = null;
     self.handlers = {};
     
     var reader = new LichatReader();
@@ -81,6 +82,7 @@ var LichatClient = function(options){
                     throw e;
                 }
                 status = "RUNNING";
+                self.servername = update.from;
                 self.process(update);
                 break;
             case "RUNNING":
@@ -93,9 +95,10 @@ var LichatClient = function(options){
     };
 
     self.process = function(update){
+        console.log("[Lichat] Update:",update);
         var handler = self.handlers[update.type];
         if(handler){
-            handler(self, update);
+            handler(update, self);
         }else{
             console.log(update);
         }
@@ -106,6 +109,10 @@ var LichatClient = function(options){
     }
 
     self.removeHandler = function(update){
-        self.handlers[update] = null;
+        delete self.handlers[update];
     }
+
+    self.addHandler("PING", function(){
+        self.s("PONG");
+    });
 };

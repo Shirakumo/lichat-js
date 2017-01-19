@@ -103,7 +103,37 @@ var CL = function(){
 
     self.getUniversalTime = function(){
         return  +new Date()+self.universalUnixOffset;
+    };
+
+    self.universalToUnix = function(universal){
+        return universal-self.universalUnixOffset;
+    };
+
+    self.pushnew = function(el, arr){
+        if(arr.indexOf(el) < 0){
+            arr.push(el);
+        }
+        return arr;
     }
+
+    self.remove = function(el, arr, test){
+        test = test || function(a,b){return a===b;}
+        var newarr = [];
+        for(var item of arr){
+            if(!test(item, el))
+                newarr.push(item);
+        }
+        return newarr;
+    }
+
+    self.sxhash = function(object){
+        var str = object.toString();
+        var hash = 0;
+        for(var i=0; i<str.length; i++){
+            hash  = ((hash << 5) - hash + str.charCodeAt(i++)) << 0;
+        }
+        return hash;
+    };
 
     return self;
 };

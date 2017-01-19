@@ -21,8 +21,7 @@
     <main class="chat" style="display:none">
       <div class="channels">
         <h2>Channels</h2>
-        <div>
-          <a>Test</a>
+        <div class="lichat-channel-list">
         </div>
       </div>
       <div class="chat-area">
@@ -31,25 +30,14 @@
           <a>Join</a>
           <a>Leave</a>
         </nav>
-        <div class="output">
-          <div>
-            <time>00:00:00</time>
-            <a>Someone</a>:
-            <span>Yooo</span>
-          </div>
-          <div>
-            <time>00:00:00</time>
-            <a>Someone</a>:
-            <span>YoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYoooYooo</span>
-          </div>
+        <div class="lichat-output">
         </div>
-        <textarea class="input"></textarea>
+        <textarea class="lichat-input"></textarea>
         <input type="submit" value="Send" />
       </div>
       <div class="users">
         <h2>Users</h2>
-        <div>
-          <a>Someone</a>
+        <div class="lichat-user-list">
         </div>
       </div>
     </main>
@@ -59,6 +47,7 @@
       var stat = document.querySelector(".status");
       var chat = document.querySelector(".chat");
       var client = new LichatClient();
+      var ui = new LichatUI(chat, client);
 
       var fail = function(reason){
           chat.style.display = "none";

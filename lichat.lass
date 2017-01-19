@@ -35,9 +35,6 @@
    :max-width 100%
    ((:or .channels .users)
     :background "#EEE"
-    :list-style none
-    :margin 0
-    :padding 0
     :min-width 100px
     :width 10vw
     (h2
@@ -45,9 +42,14 @@
      :font-size 1.0em
      :background (rgb 120 25 25)
      :color white)
-    (>* :padding 5px))
+    (a :padding 5px))
    (.channels
-    :border-right 1px solid (rgb 120 25 25))
+    :border-right 1px solid (rgb 120 25 25)
+    (.lichat-channel-list
+     :display flex
+     :flex-direction column
+     (.active
+      :background "#AAA")))
    (.chat-area
     :min-width 0px
     :flex-grow 1
@@ -57,28 +59,35 @@
      :background "#EEE"
      :display flex
      (a :padding 5px))
-    (.output
+    (.lichat-output
      :flex-grow 1
-     :overflow-y auto
-     :margin 2px
-     (div
-      :display flex
-      (>* :margin 2px)
-      (time :min-width 80px
-            :display inline-block
-            :font-size 0.9em
-            :text-align center
-            :vertical-align middle)
-      (a :min-width 100px
-         :display inline-block
-         :overflow hidden
-         :white-space nowrap
-         :text-overflow ellipsis)
-      (span :word-wrap break-word
-            :min-width 0px
-            :flex-grow 1)))
-    (.input
+     :position relative
+     (.lichat-channel
+      :padding 2px
+      :position absolute
+      :left 0 :right 0 :top 0 :bottom 0
+      :overflow-y auto
+      (div
+       :display flex
+       (>* :margin 2px)
+       (time :min-width 80px
+             :display inline-block
+             :font-size 0.9em
+             :text-align center
+             :vertical-align middle)
+       (a :min-width 100px
+          :display inline-block
+          :overflow hidden
+          :white-space nowrap
+          :text-overflow ellipsis)
+       (span :word-wrap break-word
+             :min-width 0px
+             :flex-grow 1))))
+    (.lichat-input
      :height 50px
      :min-height 30px))
    (.users
-    :border-left 1px solid (rgb 120 25 25)))))
+    :border-left 1px solid (rgb 120 25 25)
+    (.lichat-user-list
+     :display flex
+     :flex-direction column)))))
