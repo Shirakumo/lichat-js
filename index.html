@@ -88,6 +88,10 @@
           client.openConnection();
           return false;
       }, false);
+
+      chat.querySelector("[type=submit]").addEventListener("click", (ev)=>{
+          ui.processInput();
+      }, false);
     </script>
   </body>
 </html>

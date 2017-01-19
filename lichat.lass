@@ -76,13 +76,17 @@
              :text-align center
              :vertical-align middle)
        (a :min-width 100px
+          :max-width 100px
           :display inline-block
           :overflow hidden
           :white-space nowrap
           :text-overflow ellipsis)
        (span :word-wrap break-word
              :min-width 0px
-             :flex-grow 1))))
+             :flex-grow 1
+             (.command :min-width 100px
+                       :color maroon
+                       :display inline-block)))))
     (.lichat-input
      :height 50px
      :min-height 30px))

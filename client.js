@@ -18,7 +18,8 @@ var LichatClient = function(options){
     self.socket = null;
     self.servername = null;
     self.handlers = {};
-    
+
+    var callbacks = {};
     var reader = new LichatReader();
     var printer = new LichatPrinter();
     var status = "STARTING";
@@ -97,6 +98,17 @@ var LichatClient = function(options){
     self.process = function(update){
         console.log("[Lichat] Update:",update);
         var handler = self.handlers[update.type];
+        var handlers = callbacks[update.id];
+        if(handlers){
+            for(handler of handlers){
+                try{
+                    handler(update);
+                }catch(e){
+                    console.log(e);
+                }
+            }
+            self.removeCallback(update.id);
+        }
         if(handler){
             handler(update, self);
         }else{
@@ -110,6 +122,18 @@ var LichatClient = function(options){
 
     self.removeHandler = function(update){
         delete self.handlers[update];
+    }
+
+    self.addCallback = function(id, handler){
+        if(!callbacks[id]){
+            callbacks[id] = [handler];
+        }else{
+            callbacks[id].push(handler);
+        }
+    }
+
+    self.removeCallback = function(id){
+        delete callbacks[id];
     }
 
     self.addHandler("PING", function(){

@@ -535,7 +535,8 @@ var LichatClient = function(options){
     self.socket = null;
     self.servername = null;
     self.handlers = {};
-    
+
+    var callbacks = {};
     var reader = new LichatReader();
     var printer = new LichatPrinter();
     var status = "STARTING";
@@ -614,6 +615,17 @@ var LichatClient = function(options){
     self.process = function(update){
         console.log("[Lichat] Update:",update);
         var handler = self.handlers[update.type];
+        var handlers = callbacks[update.id];
+        if(handlers){
+            for(handler of handlers){
+                try{
+                    handler(update);
+                }catch(e){
+                    console.log(e);
+                }
+            }
+            self.removeCallback(update.id);
+        }
         if(handler){
             handler(update, self);
         }else{
@@ -627,6 +639,18 @@ var LichatClient = function(options){
 
     self.removeHandler = function(update){
         delete self.handlers[update];
+    }
+
+    self.addCallback = function(id, handler){
+        if(!callbacks[id]){
+            callbacks[id] = [handler];
+        }else{
+            callbacks[id].push(handler);
+        }
+    }
+
+    self.removeCallback = function(id){
+        delete callbacks[id];
     }
 
     self.addHandler("PING", function(){
@@ -671,7 +695,8 @@ var LichatUI = function(chat,client){
         }
     };
 
-    self.addCommand = function(prefix, handler){
+    self.addCommand = function(prefix, handler, documentation){
+        handler.documentation = documentation
         self.commands[prefix] = handler;
     };
 
@@ -733,13 +758,13 @@ var LichatUI = function(chat,client){
         if(!options.from) options.from = "System";
         if(!options.type) options.type = "INFO";
         if(!options.channel) options.channel = self.channel;
-        if(!options.text) throw "Can't show a message without text!";
+        if(!options.text && !options.html) throw "Can't show a message without text!";
         var el = self.constructElement("div", {
             classes: ["message", options.type.toLowerCase()],
             elements: {"time": {text: self.formatTime(cl.universalToUnix(options.clock))},
                        "a": {text: options.from,
                              attributes: {style: "color:"+self.objectColor(options.from)}},
-                       "span": {text: options.text}}
+                       "span": {text: options.text, html: options.html}}
         });
         self.channelElement(options.channel).appendChild(el);
         return el;
@@ -785,6 +810,7 @@ var LichatUI = function(chat,client){
         channels.querySelector("[data-channel=\""+name+"\"]").classList.add("active");
         channel.style.display = "";
         self.channel = name;
+        self.rebuildUserList();
         return channel;
     };
 
@@ -849,19 +875,77 @@ var LichatUI = function(chat,client){
         }
     });
 
+    self.addCommand("help", function(){
+        var text = "Available commands:";
+        for(var name in self.commands){
+            text += "<br/><label class='command'>"+self.commandPrefix+name+"</label>"
+                +(self.commands[name].documentation || "")
+        }
+        self.showMessage({html: text});
+    }, "Show all available commands");
+
     self.addCommand("create", function(name){
+        if(!name) name = null;
         client.s("CREATE", {channel: name});
-    });
+    }, "Create a new channel. Not specifying a name will create an anonymous channel.");
 
     self.addCommand("join", function(name){
         if(!name) throw "You must supply the name of the channel to join."
         client.s("JOIN", {channel: name});
-    });
+    }, "Join an existing channel.");
 
     self.addCommand("leave", function(name){
         if(!name) name = self.channel;
         client.s("LEAVE", {channel: name});
-    });
+    }, "Leave a channel. Not specifying a name will leave the current channel.");
+
+    self.addCommand("pull", function(user, name){
+        if(!user) throw "You must supply the name of a user to pull."
+        if(!name) name = self.channel;
+        client.s("PULL", {channel:name, target:user});
+    }, "Pull a user into a channel. Not specifying a name will leave the current channel.");
+
+    self.addCommand("kick", function(user, name){
+        if(!user) throw "You must supply the name of a user to kick."
+        if(!name) name = self.channel;
+        client.s("KICK", {channel:name, target:user});
+    }, "Kick a user from a channel. Not specifying a name will leave the current channel.");
+
+    self.addCommand("users", function(name){
+        if(!name) name = self.channel;
+        client.s("USERS", {channel:name});
+    }, "Fetch a list of users from a channel. Not specifying a name will leave the current channel.");
+
+    self.addCommand("channels", function(){
+        client.s("CHANNELS", {});
+    }, "Fetch a list of public channels.");
+
+    self.addCommand("info", function(user){
+        if(!user) throw "You must supply the name of a user to query."
+        client.s("USER-INFO", {target:user});
+    }, "Fetch information about a user.");
+
+    self.addCommand("message", function(name){
+        if(!name) throw "You must supply the name of a channel to message to.";
+        var args = Array.prototype.slice.call(arguments,1);
+        client.s("KICK", {channel:name, text:args.join(" ")});
+    }, "Send a message to a channel. Note that you must be in the channel to send to it.");
+
+    self.addCommand("contact", function(user){
+        if(!user) throw "You must supply the name of at least one user to contact.";
+        var update = new Update("KICK");
+        update.set("from", client.username);
+        client.addCallback(update.id, function(update){
+            if(update.type === "JOIN"){
+                for(var i=0; i<arguments.length; i++){
+                    client.s("PULL", {channel:update.channel, target:arguments[i]});
+                }
+            }else{
+                self.showError("Failed to create anonymous channel for contacting.");
+            }
+        });
+        client.send(update);
+    }, "Contact one or more users in an anonymous channel.");
 
     self.initControls = function(){
         input.addEventListener("keydown", function(ev){
