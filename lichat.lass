@@ -1,97 +1,169 @@
-(html
- :min-height 100%
- :position relative
- (body
-  :font-family sans-serif
-  :font-size 12pt
-  :margin 0
-  :height 100%
-  ((:or noscript .status)
-   :background red
-   :padding 5px
-   :margin 5px
-   :color white
-   :font-weight bold
-   :text-align center)
-  (.login
-   :display flex
-   :flex-direction column
-   :margin 0 auto 0 auto
-   :max-width 400px
-   (h1 :text-align center)
-   (div
-    :display flex
+(:let ((flavor-bg "#0088EE")
+       (flavor-fg "#FFFFFF")
+       (primary-bg "#EEEEEE")
+       (primary-fg "#111111")
+       (menu-bg "#FFFFFF")
+       (menu-fg "#111111"))
+  (html
+   :min-height 100%
+   :position relative)
+  (body
+   :background #(primary-bg)
+   :color #(primary-fg)
+   :font-family sans-serif
+   :font-size 14pt
+   :margin 0
+   :height 100%
+   ((:or noscript .status)
+    :background red
+    :padding 5px
     :margin 5px
-    (label :min-width 200px
-           :display inline-block
-           :text-align left)
-    (input :flex-grow 1))
+    :color white
+    :font-weight bold
+    :text-align center)
+   ((:or input textarea)
+    :border 1px solid "#DDD"
+    :background "#F8F8F8"
+    :color "#111"
+    :padding 2px)
    (input[type=submit]
-    :margin 5px 0 0 0
-    :width 100%))
-  (.chat
-   :height 100vh
-   :display flex
-   :max-width 100%
-   ((:or .channels .users)
-    :background "#EEE"
-    :min-width 100px
-    :width 10vw
-    (h2
-     :margin 0
-     :font-size 1.0em
-     :background (rgb 120 25 25)
-     :color white)
-    (a :padding 5px))
-   (.channels
-    :border-right 1px solid (rgb 120 25 25)
-    (.lichat-channel-list
-     :display flex
-     :flex-direction column
-     (.active
-      :background "#AAA")))
-   (.chat-area
-    :min-width 0px
-    :flex-grow 1
+    :background #(flavor-bg)
+    :color white
+    :border none)
+   ("input[type=submit]:hover"
+    :background "#55AAEE"
+    :cursor pointer)
+   (.login
+    :background #(menu-bg)
+    :color #(menu-fg)
     :display flex
     :flex-direction column
-    (.menu
-     :background "#EEE"
+    :margin 10px auto 0 auto
+    :padding 10px
+    :border 1px solid "#DDD"
+    :border-bottom 3px solid #(flavor-bg)
+    :max-width 300px
+    (h1 :text-align center
+        :margin 0)
+    (div
      :display flex
-     (a :padding 5px))
-    (.lichat-output
+     :margin 5px
+     (label :min-width 150px
+            :display inline-block
+            :text-align left)
+     (input :flex-grow 1
+            :min-width 0
+            :box-sizing border-box))
+    (input[type=submit]
+     :margin 5px 0 0 0
+     :width 100%))
+   (.chat
+    :height 100vh
+    :display flex
+    :max-width 100%
+    :cursor normal !important
+    :user-select none
+    ((:or .channels .users .menu)
+     :display flex
+     :background #(menu-bg)
+     :color #(menu-fg)
+     (a :padding 5px
+        :cursor pointer))
+    ((:or .channels .users)
+     :min-width 100px
+     :width 10vw
+     :flex-direction column
+     (h2
+      :border-bottom 2px solid "#111"
+      :margin 0
+      :padding 5px
+      :font-size 1.0em
+      :background #(menu-bg)
+      :color #(menu-fg))
+     ((:or .lichat-channel-list .lichat-user-list)
+      :flex-grow 1
+      :display flex
+      :flex-direction column
+      :background "#DDD"
+      (a :overflow hidden
+         :white-space nowrap
+         :text-overflow ellipsis)))
+    (.channels
+     (.active
+      :background #(primary-bg)
+      :color #(primary-fg)))
+    (.chat-area
+     :min-width 200px
      :flex-grow 1
-     :position relative
-     (.lichat-channel
-      :padding 2px
-      :position absolute
-      :left 0 :right 0 :top 0 :bottom 0
-      :overflow-y auto
-      (div
-       :display flex
-       (>* :margin 2px)
-       (time :min-width 80px
-             :display inline-block
-             :font-size 0.9em
-             :text-align center
-             :vertical-align middle)
-       (a :min-width 100px
-          :max-width 100px
-          :display inline-block
-          :overflow hidden
-          :white-space nowrap
-          :text-overflow ellipsis)
-       (span :word-wrap break-word
-             :min-width 0px
-             :flex-grow 1
-             (.command :min-width 100px
-                       :color maroon
-                       :display inline-block)))))
-    (.lichat-input
-     :height 50px
-     :min-height 30px))
-   (.users
-    :border-left 1px solid (rgb 120 25 25)
-    (.lichat-user-list
      :display flex
-     :flex-direction column)))))
+     :flex-direction column
+     (.menu
+      :border-bottom 2px solid #(flavor-bg)
+      ("a:hover"
+       :color #(flavor-bg))
+      ("a:active"
+       :background #(primary-bg)))
+     (.lichat-output
+      :user-select text
+      :font-family monospace
+      :flex-grow 1
+      :position relative
+      (.lichat-channel
+       :padding 2px
+       :position absolute
+       :left 0 :right 0 :top 0 :bottom 0
+       :overflow-y auto
+       (.join (span :color green))
+       (.leave (span :color blue))
+       (.message
+        :display flex
+        :max-height 200px
+        :overflow-y hidden
+        (>* :padding 2px)
+        (time :width 80px
+              :font-size 0.9em
+              :text-align center
+              :vertical-align middle)
+        (>a :min-width 100px
+            :max-width 100px
+            :overflow hidden
+            :white-space nowrap
+            :text-overflow ellipsis)
+        (span :word-wrap break-word
+              :min-width 0px
+              :flex-grow 1
+              (.command :min-width 100px
+                        :color #(flavor-bg)
+                        :display inline-block)))
+       (".message:active"
+        :max-height none)))
+     (.input-area
+      :height 50px
+      :min-height 30px
+      :border-top 1px solid #(flavor-bg)
+      :display flex
+      :align-items stretch
+      (textarea
+       :font-size 1.0em
+       :flex-grow 1
+       :font-family monospace)
+      (input
+       :min-width 50px))))))
+
+(:media "(max-width: 800px)"
+        (body
+         :font-size 12pt
+         (.users :display none !important)))
+(:media "(max-width: 600px)"
+        (body
+         :font-size 11pt
+         (.channels :display none !important)))
+(:media "(max-width: 400px)"
+        (body
+         :font-size 10pt
+         (.lichat-output (.message (>time :display none)))))
+(:media "(max-width: 300px)"
+        (body
+         :font-size 10pt
+         (.lichat-output (.message (>a :min-width 70px !important
+                                       :max-width 70px !important)))))

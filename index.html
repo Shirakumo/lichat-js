@@ -12,10 +12,11 @@
     <div class="status" style="display:none"></div>
     <form class="login" action="#">
       <h1>Log In to Lichat</h1>
-      <div><label>Username</label><input type="text" name="username" maxlength="32" placeholder="My Name" required /></div>
+      <div><label>Username</label><input type="text" name="username" maxlength="32" placeholder="My Name" required autofocus /></div>
       <div><label>Password (optional)</label><input type="password" name="password" placeholder="" /></div>
-      <div><label>Server Hostname</label><input type="url" name="hostname" value="ws://localhost" placeholder="ws://localhost" required /></div>
+      <div><label>Server Hostname</label><input type="text" name="hostname" value="localhost" placeholder="localhost" required /></div>
       <div><label>Server Port</label><input type="number" name="port" min="1" max="65535" value="1113" placeholder="1113" required /></div>
+      <div><label>Channel</label><input type="text" name="channel" maxlength="32" /></div>
       <input type="submit" value="Connect" />
     </form>
     <main class="chat" style="display:none">
@@ -26,14 +27,16 @@
       </div>
       <div class="chat-area">
         <nav class="menu">
-          <a>Create</a>
-          <a>Join</a>
-          <a>Leave</a>
+          <a data-action="create">Create</a>
+          <a data-action="join">Join</a>
+          <a data-action="leave">Leave</a>
         </nav>
         <div class="lichat-output">
         </div>
-        <textarea class="lichat-input"></textarea>
-        <input type="submit" value="Send" />
+        <div class="input-area">
+          <textarea class="lichat-input"></textarea>
+          <input type="submit" value="Send" />
+        </div>
       </div>
       <div class="users">
         <h2>Users</h2>
@@ -46,6 +49,7 @@
       var login = document.querySelector(".login");
       var stat = document.querySelector(".status");
       var chat = document.querySelector(".chat");
+      var menu = document.querySelector(".menu");
       var client = new LichatClient();
       var ui = new LichatUI(chat, client);
 
@@ -69,7 +73,12 @@
       
       client.addHandler("CONNECT", (client,update)=>{
           stat.style.display = "none";
-          chat.style.display = "flex";
+          chat.style.display = "";
+
+          var channel = login.querySelector("input[name=channel]").value;
+          if(channel){
+              ui.invokeCommand("join", channel);
+          }
           
           window.onbeforeunload = ()=>{
               return "Are you sure you want to leave?";
@@ -91,6 +100,20 @@
 
       chat.querySelector("[type=submit]").addEventListener("click", (ev)=>{
           ui.processInput();
+      }, false);
+
+      menu.querySelector("[data-action=create]").addEventListener("click", (ev)=>{
+          var name = prompt("Please enter a channel name:");
+          if(name) ui.invokeCommand("create", name);
+      }, false);
+
+      menu.querySelector("[data-action=join]").addEventListener("click", (ev)=>{
+          var name = prompt("Please enter a channel name:");
+          if(name) ui.invokeCommand("join", name);
+      }, false);
+
+      menu.querySelector("[data-action=leave]").addEventListener("click", (ev)=>{
+          if(name) ui.invokeCommand("leave");
       }, false);
     </script>
   </body>

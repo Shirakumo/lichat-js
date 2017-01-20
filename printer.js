@@ -1,7 +1,7 @@
 var LichatPrinter = function(){
     var self = this;
 
-    self.printSexprList = function(list, stream){
+    self.printSexprList = (list, stream)=>{
         stream.writeChar("(");
         cl.unwindProtect(()=>{
             for(var i=0; i<list.length; i++){
@@ -15,7 +15,7 @@ var LichatPrinter = function(){
         });
     };
 
-    self.printSexprString = function(string, stream){
+    self.printSexprString = (string, stream)=>{
         stream.writeChar("\"");
         cl.unwindProtect(()=>{
             for(var character of string){
@@ -29,7 +29,7 @@ var LichatPrinter = function(){
         });
     };
 
-    self.printSexprNumber = function(number, stream){
+    self.printSexprNumber = (number, stream)=>{
         if(Math.abs(number) < 1.0){
             var e = parseInt(number.toString().split('e-')[1]);
             if(e){
@@ -47,7 +47,7 @@ var LichatPrinter = function(){
         stream.writeString(number);
     };
     
-    self.printSexprToken = function(token, stream){
+    self.printSexprToken = (token, stream)=>{
         for(var character of token){
             if("\"():0123456789. #".indexOf(character) >= 0){
                 stream.writeChar("\\");
@@ -56,7 +56,7 @@ var LichatPrinter = function(){
         }
     };
 
-    self.printSexprSymbol = function(symbol, stream){
+    self.printSexprSymbol = (symbol, stream)=>{
         switch(symbol.pkg){
         case null:
             stream.writeChar("#");
@@ -74,17 +74,17 @@ var LichatPrinter = function(){
         self.printSexprToken(symbol.name, stream);
     };
 
-    self.printSexpr = function(sexpr, stream){
+    self.printSexpr = (sexpr, stream)=>{
         cl.typecase(sexpr,
                     null,     ()=> self.printSexprToken("NIL", stream),
                     "String", ()=> self.printSexprString(sexpr, stream),
                     "Array",  ()=> self.printSexprList(sexpr, stream),
                     "Number", ()=> self.printSexprNumber(sexpr, stream),
                     "Symbol", ()=> self.printSexprSymbol(sexpr, stream),
-                    true, ()=> {throw "Unprintable object "+sexpr;});
+                    true, ()=> cl.error("UNPRINTABLE-OBJECT",{object: sexpr}));
     };
 
-    self.toWire = function(wireable, stream){
+    self.toWire = (wireable, stream)=>{
         if(wireable instanceof WireObject){
             var list = [cl.findSymbol(wireable.type, "LICHAT-PROTOCOL")];
             for(var key of wireable.fields){

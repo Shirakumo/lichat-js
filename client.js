@@ -1,4 +1,3 @@
-var LichatVersion = "1.0";
 var LichatDefaultPort = 1113;
 
 var LichatClient = function(options){
@@ -7,9 +6,9 @@ var LichatClient = function(options){
     options = options || {};
     if(!options.username) options.username = "Lion";
     if(!options.password) options.password = null;
-    if(!options.hostname) options.hostname = "ws://localhost";
+    if(!options.hostname) options.hostname = "localhost";
     if(!options.port) options.port = LichatDefaultPort;
-    if(!options.handleFailure) options.handleFailure = function(){};
+    if(!options.handleFailure) options.handleFailure = ()=>{};
 
     for(var key in options){
         self[key] = options[key];
@@ -19,20 +18,20 @@ var LichatClient = function(options){
     self.servername = null;
     self.handlers = {};
 
-    var callbacks = {};
+    var idCallbacks = {};
     var reader = new LichatReader();
     var printer = new LichatPrinter();
     var status = "STARTING";
 
-    self.openConnection = function(){
-        self.socket = new WebSocket(self.hostname+":"+self.port, "lichat");
+    self.openConnection = ()=>{
+        self.socket = new WebSocket("ws://"+self.hostname+":"+self.port, "lichat");
         
         self.socket.onopen = ()=>{
             self.s("CONNECT", {password: self.password || null,
                                version: LichatVersion});
         };
         self.socket.onmessage = self.handleMessage;
-        self.socket.onclose = function(e){
+        self.socket.onclose = (e)=>{
             if(e.code !== 1000){
                 self.handleFailure("Error "+e.code+" "+e.reason);
             }
@@ -40,8 +39,8 @@ var LichatClient = function(options){
         }
     };
 
-    self.closeConnection = function(){
-        if(!self.socket) throw "The client is not connected.";
+    self.closeConnection = ()=>{
+        if(!self.socket) cl.error("NOT-CONNECTED",{text: "The client is not connected."});
         if(status != "STOPPING"){
             status = "STOPPING";
             if(self.socket.readyState < 2){
@@ -51,14 +50,14 @@ var LichatClient = function(options){
         }
     };
 
-    self.send = function(wireable){
-        if(!self.socket) throw "The client is not connected.";
+    self.send = (wireable)=>{
+        if(!self.socket) cl.error("NOT-CONNECTED",{text: "The client is not connected."});
         var stream = new LichatStream();
         printer.toWire(wireable, stream);
         self.socket.send(stream.string);
     };
 
-    self.s = function(type, args){
+    self.s = (type, args)=>{
         var update = new Update(type);
         for(var key in args){
             update.set(key, args[key]);
@@ -67,16 +66,16 @@ var LichatClient = function(options){
         self.send(update);
     };
 
-    self.handleMessage = function(event){
+    self.handleMessage = (event)=>{
         try{
             var update = reader.fromWire(new LichatStream(event.data));
             switch(status){
             case "STARTING":
                 try{
                     if(!(update instanceof WireObject))
-                        throw "Error during connection: non-Update message: "+update;
+                        cl.error("CONNECTION-FAILED",{text: "non-Update message", update: update});
                     if(update.type !== "CONNECT")
-                        throw "Error during connection: non-CONNECT update: "+update;
+                        cl.error("CONNECTION-FAILED",{text: "non-CONNECT update", update: update});
                 }catch(e){
                     self.handleFailure(e);
                     self.closeConnection();
@@ -91,52 +90,60 @@ var LichatClient = function(options){
                 break;
             }
         }catch(e){
-            console.log(e);
+            cl.format("Error during message handling: ~s", e);
         }
     };
 
-    self.process = function(update){
-        console.log("[Lichat] Update:",update);
-        var handler = self.handlers[update.type];
-        var handlers = callbacks[update.id];
-        if(handlers){
-            for(handler of handlers){
+    self.process = (update)=>{
+        cl.format("[Lichat] Update:~s",update);
+        var callbacks = idCallbacks[update.id];
+        if(callbacks){
+            for(callback of callbacks){
                 try{
-                    handler(update);
+                    callback(update);
                 }catch(e){
-                    console.log(e);
+                    cl.format("Callback error: ~s", e);
                 }
             }
             self.removeCallback(update.id);
         }
-        if(handler){
-            handler(update, self);
-        }else{
-            console.log(update);
+        if(!self.maybeCallHandler(update.type, update)){
+            for(var s of cl.classOf(update).superclasses){
+                if(self.maybeCallHandler(s.className, update))
+                    break;
+            }
         }
     };
 
-    self.addHandler = function(update, handler){
-        self.handlers[update] = handler;
-    }
-
-    self.removeHandler = function(update){
-        delete self.handlers[update];
-    }
-
-    self.addCallback = function(id, handler){
-        if(!callbacks[id]){
-            callbacks[id] = [handler];
-        }else{
-            callbacks[id].push(handler);
+    self.maybeCallHandler = (type, update)=>{
+        if(self.handlers[type]){
+            self.handlers[type](update);
+            return true;
         }
-    }
+        return false;
+    };
 
-    self.removeCallback = function(id){
-        delete callbacks[id];
-    }
+    self.addHandler = (update, handler)=>{
+        self.handlers[update] = handler;
+    };
 
-    self.addHandler("PING", function(){
+    self.removeHandler = (update)=>{
+        delete self.handlers[update];
+    };
+
+    self.addCallback = (id, handler)=>{
+        if(!idCallbacks[id]){
+            idCallbacks[id] = [handler];
+        }else{
+            idCallbacks[id].push(handler);
+        }
+    };
+
+    self.removeCallback = (id)=>{
+        delete idCallbacks[id];
+    };
+
+    self.addHandler("PING", ()=>{
         self.s("PONG");
     });
 };

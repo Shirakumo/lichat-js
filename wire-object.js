@@ -1,5 +1,6 @@
+var LichatVersion = "1.0";
 var IDCounter = Math.random(+new Date());
-var nextID = function(){
+var nextID = ()=>{
     var ID = IDCounter;
     IDCounter++;
     return ID;
@@ -12,34 +13,71 @@ for(var name of ["ID","CLOCK","FROM","PASSWORD","VERSION","CHANNEL","TARGET","TE
     cl.intern(name, "KEYWORD");
 }
 
-var WireObject = function(type){
-    var self = this;
-
-    self.type = type.toString();
-    self.fields = [];
-
-    self.set = function(key, val){
-        var varname;
-        if(key instanceof Symbol){
-            varname = key.name.toLowerCase();
-        }else{
-            varname = key.toString();
-        }
-        self[varname] = val;
-        self.fields.push(varname);
-        return val;
-    }
-
-    return self;
-};
-
-var Update = function(type){
-    var self = this;
-    WireObject.call(self, type);
-
-    self.set("clock", cl.getUniversalTime());
-    self.set("id", nextID());
-    
-    return self;
-};
-Update.prototype = Object.create(WireObject.prototype);
+cl.defclass("WIRE-OBJECT", []);
+cl.defclass("UPDATE", ["WIRE-OBJECT"], {
+    clock: cl.getUniversalTime,
+    id: nextID
+});
+cl.defclass("PING", ["UPDATE"]);
+cl.defclass("PONG", ["UPDATE"]);
+cl.defclass("CONNECT", ["UPDATE"], {
+    password: null,
+    version: LichatVersion
+});
+cl.defclass("DISCONNECT", ["UPDATE"]);
+cl.defclass("REGISTER", ["UPDATE"], {
+    password: cl.requiredArg("register")
+});
+cl.defclass("CHANNEL-UPDATE", ["UPDATE"], {
+    channel: cl.requiredArg("channel")
+});
+cl.defclass("TARGET-UPDATE", ["UPDATE"], {
+    target: cl.requiredArg("target")
+});
+cl.defclass("TEXT-UPDATE", ["UPDATE"], {
+    text: cl.requiredArg("text")
+});
+cl.defclass("JOIN", ["CHANNEL-UPDATE"]);
+cl.defclass("LEAVE", ["CHANNEL-UPDATE"]);
+cl.defclass("CREATE", ["CHANNEL-UPDATE"], {
+    channel: null
+});
+cl.defclass("KICK", ["CHANNEL-UPDATE", "TARGET-UPDATE"]);
+cl.defclass("PULL", ["CHANNEL-UPDATE", "TARGET-UPDATE"]);
+cl.defclass("PERMISSIONS", ["CHANNEL-UPDATE"], {
+    permissions: []
+});
+cl.defclass("MESSAGE", ["CHANNEL-UPDATE"]);
+cl.defclass("USERS", ["CHANNEL-UPDATE"], {
+    users: []
+});
+cl.defclass("CHANNELS", ["UPDATE"], {
+    users: []
+});
+cl.defclass("USER-INFO", ["TARGET-UPDATE"], {
+    registered: false,
+    connections: 1
+});
+cl.defclass("FAILURE", ["TEXT-UPDATE"]);
+cl.defclass("MALFORMED-UPDATE", ["FAILURE"]);
+cl.defclass("CONNECTION-UNSTABLE", ["FAILURE"]);
+cl.defclass("TOO-MANY-CONNECTIONS", ["FAILURE"]);
+cl.defclass("UPDATE-FAILURE", ["FAILURE"], {
+    "update-id": cl.requiredArg("update-id")
+});
+cl.defclass("INVALID-UPDATE", ["UPDATE-FAILURE"]);
+cl.defclass("USERNAME-MISMATCH", ["UPDATE-FAILURE"]);
+cl.defclass("INCOMPATIBLE-VERSION", ["UPDATE-FAILURE"], {
+    "compatible-versions": cl.requiredArg("compatible-versions")
+});
+cl.defclass("INVALID-PASSWORD", ["UPDATE-FAILURE"]);
+cl.defclass("NO-SUCH-PROFILE", ["UPDATE-FAILURE"]);
+cl.defclass("USERNAME-TAKEN", ["UPDATE-FAILURE"]);
+cl.defclass("NO-SUCH-CHANNEL", ["UPDATE-FAILURE"]);
+cl.defclass("ALREADY-IN-CHANNEL", ["UPDATE-FAILURE"]);
+cl.defclass("NOT-IN-CHANNEL", ["UPDATE-FAILURE"]);
+cl.defclass("CHANNELNAME-TAKEN", ["UPDATE-FAILURE"]);
+cl.defclass("BAD-NAME", ["UPDATE-FAILURE"]);
+cl.defclass("INSUFFICIENT-PERMISSIONS", ["UPDATE-FAILURE"]);
+cl.defclass("NO-SUCH-USER", ["UPDATE-FAILURE"]);
+cl.defclass("TOO-MANY-UPDATES", ["UPDATE-FAILURE"]);
