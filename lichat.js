@@ -106,18 +106,18 @@ var CL = function(){
         if(type === true){
             return true;
         }else if(type === null){
-            if(object === null){
+            if(instance === null){
                 return true;
             }
-        }else if(object instanceof StandardObject){
-            if(object.type === type
-               || object.isInstanceOf(type)){
+        }else if(instance instanceof StandardObject){
+            if(instance.type === type
+               || instance.isInstanceOf(type)){
                 return true;
             }
         }else{
             if(!window[type]) cl.error("INVALID-TYPE",{type: type});
-            if(window[type].prototype.isPrototypeOf(object)
-               || object.constructor === window[type].prototype.constructor){
+            if(window[type].prototype.isPrototypeOf(instance)
+               || instance.constructor === window[type].prototype.constructor){
                 return true;
             }
         }
@@ -339,6 +339,7 @@ var CL = function(){
     };
 
     self.error = (type, initargs)=>{
+        initargs.stack = new Error().stack;
         var condition = new Condition(type, initargs);
         throw condition;
     };
@@ -421,7 +422,9 @@ StandardObject.prototype.isInstanceOf = function(superclass){
     var self = this;
     if(superclass === true)
         return true;
-    return cl.find(superclass, self.superclasses);
+    if((typeof superclass) === "string")
+        superclass = cl.findClass(superclass);
+    return cl.find(superclass, cl.classOf(self).superclasses);
 };
 
 StandardObject.prototype.set = function(key, val){
@@ -522,13 +525,11 @@ var LichatStream = function(string){
 
     self.writeChar = (character)=>{
         self.string += character;
-        i++;
         return character;
     };
 
     self.writeString = (string)=>{
         self.string += string;
-        i += string.length;
         return string;
     };
 
@@ -539,7 +540,7 @@ var LichatStream = function(string){
     return self;
 }
 var LichatVersion = "1.0";
-var IDCounter = Math.random(+new Date());
+var IDCounter = Math.floor(Math.random()*(+new Date()));
 var nextID = ()=>{
     var ID = IDCounter;
     IDCounter++;
@@ -556,7 +557,8 @@ for(var name of ["ID","CLOCK","FROM","PASSWORD","VERSION","CHANNEL","TARGET","TE
 cl.defclass("WIRE-OBJECT", []);
 cl.defclass("UPDATE", ["WIRE-OBJECT"], {
     clock: cl.getUniversalTime,
-    id: nextID
+    id: nextID,
+    from: cl.requiredArg("from")
 });
 cl.defclass("PING", ["UPDATE"]);
 cl.defclass("PONG", ["UPDATE"]);
@@ -708,7 +710,7 @@ var LichatPrinter = function(){
     };
 
     self.toWire = (wireable, stream)=>{
-        if(wireable instanceof WireObject){
+        if(cl.typep(wireable, "WIRE-OBJECT")){
             var list = [cl.findSymbol(wireable.type, "LICHAT-PROTOCOL")];
             for(var key of wireable.fields){
                 list.push(cl.findSymbol(key.toUpperCase(), "KEYWORD"));
@@ -879,13 +881,13 @@ var LichatReader = function(){
                 if(! key instanceof Symbol || key.pkg !== "KEYWORD"){
                     cl.error("MALFORMED-WIRE-OBJECT",{text: "Key is not of type Keyword.", key: key});
                 }
-                initargs[key] = val;
+                initargs[key.name.toLowerCase()] = val;
             }
             if(initargs.id === undefined)
                 cl.error("MISSING-ID", {sexpr: sexpr});
             if(initargs.clock === undefined)
                 cl.error("MISSING-CLOCK", {sexpr: sexpr});
-            return cl.makeInstance(type);
+            return cl.makeInstance(type, initargs);
         }else{
             return sexpr;
         }
@@ -953,11 +955,8 @@ var LichatClient = function(options){
     };
 
     self.s = (type, args)=>{
-        var update = new Update(type);
-        for(var key in args){
-            update.set(key, args[key]);
-        }
-        if(!update.from) update.set("from", self.username);
+        if(!args.from) args.from = self.username;
+        var update = cl.makeInstance(type, args);
         self.send(update);
     };
 
@@ -967,7 +966,7 @@ var LichatClient = function(options){
             switch(status){
             case "STARTING":
                 try{
-                    if(!(update instanceof WireObject))
+                    if(!(cl.typep(update, "WIRE-OBJECT")))
                         cl.error("CONNECTION-FAILED",{text: "non-Update message", update: update});
                     if(update.type !== "CONNECT")
                         cl.error("CONNECTION-FAILED",{text: "non-CONNECT update", update: update});
@@ -1144,7 +1143,7 @@ var LichatUI = function(chat,client){
         if(!options.channel) options.channel = self.channel;
         if(!options.text && !options.html) cl.error("NO-MESSAGE-TEXT",{message:options});
         var el = self.constructElement("div", {
-            classes: ["message", options.type.toLowerCase()],
+            classes: cl.mapcar((a)=>a.className.toLowerCase(), cl.classOf(options).superclasses),
             elements: {"time": {text: self.formatTime(cl.universalToUnix(options.clock))},
                        "a": {text: options.from,
                              attributes: {style: "color:"+self.objectColor(options.from)}},

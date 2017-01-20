@@ -1,5 +1,5 @@
 var LichatVersion = "1.0";
-var IDCounter = Math.random(+new Date());
+var IDCounter = Math.floor(Math.random()*(+new Date()));
 var nextID = ()=>{
     var ID = IDCounter;
     IDCounter++;
@@ -16,7 +16,8 @@ for(var name of ["ID","CLOCK","FROM","PASSWORD","VERSION","CHANNEL","TARGET","TE
 cl.defclass("WIRE-OBJECT", []);
 cl.defclass("UPDATE", ["WIRE-OBJECT"], {
     clock: cl.getUniversalTime,
-    id: nextID
+    id: nextID,
+    from: cl.requiredArg("from")
 });
 cl.defclass("PING", ["UPDATE"]);
 cl.defclass("PONG", ["UPDATE"]);

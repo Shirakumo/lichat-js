@@ -85,7 +85,7 @@ var LichatPrinter = function(){
     };
 
     self.toWire = (wireable, stream)=>{
-        if(wireable instanceof WireObject){
+        if(cl.typep(wireable, "WIRE-OBJECT")){
             var list = [cl.findSymbol(wireable.type, "LICHAT-PROTOCOL")];
             for(var key of wireable.fields){
                 list.push(cl.findSymbol(key.toUpperCase(), "KEYWORD"));

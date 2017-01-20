@@ -155,13 +155,13 @@ var LichatReader = function(){
                 if(! key instanceof Symbol || key.pkg !== "KEYWORD"){
                     cl.error("MALFORMED-WIRE-OBJECT",{text: "Key is not of type Keyword.", key: key});
                 }
-                initargs[key] = val;
+                initargs[key.name.toLowerCase()] = val;
             }
             if(initargs.id === undefined)
                 cl.error("MISSING-ID", {sexpr: sexpr});
             if(initargs.clock === undefined)
                 cl.error("MISSING-CLOCK", {sexpr: sexpr});
-            return cl.makeInstance(type);
+            return cl.makeInstance(type, initargs);
         }else{
             return sexpr;
         }

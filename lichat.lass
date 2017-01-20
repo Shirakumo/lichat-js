@@ -115,7 +115,8 @@
        :overflow-y auto
        (.join (span :color green))
        (.leave (span :color blue))
-       (.message
+       (.failure (span :color red :font-weight bold))
+       (.update
         :display flex
         :max-height 200px
         :overflow-y hidden
@@ -135,7 +136,7 @@
               (.command :min-width 100px
                         :color #(flavor-bg)
                         :display inline-block)))
-       (".message:active"
+       (".update:active"
         :max-height none)))
      (.input-area
       :height 50px
@@ -161,9 +162,9 @@
 (:media "(max-width: 400px)"
         (body
          :font-size 10pt
-         (.lichat-output (.message (>time :display none)))))
+         (.lichat-output (.update (>time :display none)))))
 (:media "(max-width: 300px)"
         (body
          :font-size 10pt
-         (.lichat-output (.message (>a :min-width 70px !important
+         (.lichat-output (.update (>a :min-width 70px !important
                                        :max-width 70px !important)))))

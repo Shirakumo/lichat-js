@@ -106,18 +106,18 @@ var CL = function(){
         if(type === true){
             return true;
         }else if(type === null){
-            if(object === null){
+            if(instance === null){
                 return true;
             }
-        }else if(object instanceof StandardObject){
-            if(object.type === type
-               || object.isInstanceOf(type)){
+        }else if(instance instanceof StandardObject){
+            if(instance.type === type
+               || instance.isInstanceOf(type)){
                 return true;
             }
         }else{
             if(!window[type]) cl.error("INVALID-TYPE",{type: type});
-            if(window[type].prototype.isPrototypeOf(object)
-               || object.constructor === window[type].prototype.constructor){
+            if(window[type].prototype.isPrototypeOf(instance)
+               || instance.constructor === window[type].prototype.constructor){
                 return true;
             }
         }
@@ -339,6 +339,7 @@ var CL = function(){
     };
 
     self.error = (type, initargs)=>{
+        initargs.stack = new Error().stack;
         var condition = new Condition(type, initargs);
         throw condition;
     };
@@ -421,7 +422,9 @@ StandardObject.prototype.isInstanceOf = function(superclass){
     var self = this;
     if(superclass === true)
         return true;
-    return cl.find(superclass, self.superclasses);
+    if((typeof superclass) === "string")
+        superclass = cl.findClass(superclass);
+    return cl.find(superclass, cl.classOf(self).superclasses);
 };
 
 StandardObject.prototype.set = function(key, val){

@@ -100,7 +100,7 @@ var LichatUI = function(chat,client){
         if(!options.channel) options.channel = self.channel;
         if(!options.text && !options.html) cl.error("NO-MESSAGE-TEXT",{message:options});
         var el = self.constructElement("div", {
-            classes: ["message", options.type.toLowerCase()],
+            classes: cl.mapcar((a)=>a.className.toLowerCase(), cl.classOf(options).superclasses),
             elements: {"time": {text: self.formatTime(cl.universalToUnix(options.clock))},
                        "a": {text: options.from,
                              attributes: {style: "color:"+self.objectColor(options.from)}},

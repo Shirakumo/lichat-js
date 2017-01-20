@@ -37,13 +37,11 @@ var LichatStream = function(string){
 
     self.writeChar = (character)=>{
         self.string += character;
-        i++;
         return character;
     };
 
     self.writeString = (string)=>{
         self.string += string;
-        i += string.length;
         return string;
     };
 

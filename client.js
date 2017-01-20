@@ -58,11 +58,8 @@ var LichatClient = function(options){
     };
 
     self.s = (type, args)=>{
-        var update = new Update(type);
-        for(var key in args){
-            update.set(key, args[key]);
-        }
-        if(!update.from) update.set("from", self.username);
+        if(!args.from) args.from = self.username;
+        var update = cl.makeInstance(type, args);
         self.send(update);
     };
 
@@ -72,7 +69,7 @@ var LichatClient = function(options){
             switch(status){
             case "STARTING":
                 try{
-                    if(!(update instanceof WireObject))
+                    if(!(cl.typep(update, "WIRE-OBJECT")))
                         cl.error("CONNECTION-FAILED",{text: "non-Update message", update: update});
                     if(update.type !== "CONNECT")
                         cl.error("CONNECTION-FAILED",{text: "non-CONNECT update", update: update});
