@@ -58,6 +58,7 @@ var LichatClient = function(options){
     };
 
     self.s = (type, args)=>{
+        args = args || {};
         if(!args.from) args.from = self.username;
         var update = cl.makeInstance(type, args);
         self.send(update);
