@@ -99,8 +99,12 @@ var LichatUI = function(chat,client){
         if(!options.type) options.type = "INFO";
         if(!options.channel) options.channel = self.channel;
         if(!options.text && !options.html) cl.error("NO-MESSAGE-TEXT",{message:options});
+        if(cl.classOf(options))
+            classList = cl.mapcar((a)=>a.className.toLowerCase(), cl.classOf(options).superclasses);
+        else
+            classList = ["update"];
         var el = self.constructElement("div", {
-            classes: cl.mapcar((a)=>a.className.toLowerCase(), cl.classOf(options).superclasses),
+            classes: classList,
             elements: {"time": {text: self.formatTime(cl.universalToUnix(options.clock))},
                        "a": {text: options.from,
                              attributes: {style: "color:"+self.objectColor(options.from)}},
@@ -281,9 +285,8 @@ var LichatUI = function(chat,client){
     }, "Send a message to a channel. Note that you must be in the channel to send to it.");
 
     self.addCommand("contact", (...users)=>{
-        if(!user) cl.error("MISSING-ARGUMENT",{text: "You must supply the name of at least one user to contact."});;
-        var update = new Update("CREATE");
-        update.set("from", client.username);
+        if(users.length === 0) cl.error("MISSING-ARGUMENT",{text: "You must supply the name of at least one user to contact."});;
+        var update = cl.makeInstance("CREATE",{from: client.username});
         client.addCallback(update.id, (update)=>{
             if(update.type === "JOIN"){
                 for(var user of users){
