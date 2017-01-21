@@ -131,6 +131,7 @@
             :white-space nowrap
             :text-overflow ellipsis)
         (span :word-wrap break-word
+              :white-space pre-wrap
               :min-width 0px
               :flex-grow 1
               (.command :min-width 100px

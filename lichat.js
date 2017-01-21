@@ -1143,10 +1143,12 @@ var LichatUI = function(chat,client){
         if(!options.type) options.type = "INFO";
         if(!options.channel) options.channel = self.channel;
         if(!options.text && !options.html) cl.error("NO-MESSAGE-TEXT",{message:options});
-        if(cl.classOf(options))
+        if(cl.classOf(options)){
             classList = cl.mapcar((a)=>a.className.toLowerCase(), cl.classOf(options).superclasses);
-        else
+            classList.push(cl.classOf(options).className);
+        }else{
             classList = ["update"];
+        }
         var el = self.constructElement("div", {
             classes: classList,
             elements: {"time": {text: self.formatTime(cl.universalToUnix(options.clock))},
@@ -1269,6 +1271,11 @@ var LichatUI = function(chat,client){
         }
     });
 
+    client.addHandler("CHANNELS", (update)=>{
+        update.text = "Channels: "+update.channels.join(", ");
+        self.showMessage(update);
+    });
+
     client.addHandler("FAILURE", (update)=>{
         self.showMessage(update);
     });
@@ -1356,3 +1363,5 @@ var LichatUI = function(chat,client){
 
     return self;
 }
+
+// Todo: desktop notifications, tab blinking (change window.title), highlighting
