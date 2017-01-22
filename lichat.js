@@ -257,7 +257,7 @@ var CL = function(){
     self.universalUnixOffset = 2208988800;
 
     self.getUniversalTime = ()=>{
-        return (Date.now()/1000)+self.universalUnixOffset;
+        return Math.round(Date.now()/1000)+self.universalUnixOffset;
     };
 
     self.universalToUnix = (universal)=>{
@@ -918,11 +918,11 @@ var LichatClient = function(options){
     var idCallbacks = {};
     var reader = new LichatReader();
     var printer = new LichatPrinter();
-    var status = "STARTING";
+    var status = null;
 
     self.openConnection = ()=>{
+        status = "STARTING";
         self.socket = new WebSocket("ws://"+self.hostname+":"+self.port, "lichat");
-        
         self.socket.onopen = ()=>{
             self.s("CONNECT", {password: self.password || null,
                                version: LichatVersion});
@@ -1059,8 +1059,8 @@ var LichatUI = function(chat,client){
         var encoded = hash % 0xFFFFFF;
         var r = (encoded&0xFF0000)>>16, g = (encoded&0x00FF00)>>8, b = (encoded&0x0000FF)>>0
         return "rgb("+Math.min(200, Math.max(50, r))
-            +","+Math.min(200, Math.max(50, g))
-            +","+Math.min(200, Math.max(50, b))+")";
+            +","+Math.min(180, Math.max(80, g))
+            +","+Math.min(180, Math.max(80, b))+")";
     }
 
     self.formatTime = (time)=>{
@@ -1306,6 +1306,12 @@ var LichatUI = function(chat,client){
         self.showMessage({html: text});
     }, "Show all available commands");
 
+    self.addCommand("register", (password)=>{
+        if(password.length<6)
+            cl.error("PASSWORD-TOO-SHORT",{text: "Your password must be at least six characters long."});
+        client.s("REGISTER", {password: password});
+    }, "Register your username with a password.");
+
     self.addCommand("create", (name)=>{
         if(!name) name = null;
         client.s("CREATE", {channel: name});
@@ -1369,7 +1375,7 @@ var LichatUI = function(chat,client){
 
     self.initControls = ()=>{
         input.addEventListener("keydown", (ev)=>{
-            if(ev.keyCode === 13 && ev.ctrlKey){
+            if(ev.keyCode === 13 && (ev.ctrlKey || input.tagName.toLowerCase() === "input")){
                 self.processInput();
                 return false;
             }
@@ -1381,4 +1387,4 @@ var LichatUI = function(chat,client){
     return self;
 }
 
-// Todo: desktop notifications, highlighting, fix timestamps
+// Todo: desktop notifications, highlighting, links
