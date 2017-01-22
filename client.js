@@ -21,11 +21,11 @@ var LichatClient = function(options){
     var idCallbacks = {};
     var reader = new LichatReader();
     var printer = new LichatPrinter();
-    var status = "STARTING";
+    var status = null;
 
     self.openConnection = ()=>{
+        status = "STARTING";
         self.socket = new WebSocket("ws://"+self.hostname+":"+self.port, "lichat");
-        
         self.socket.onopen = ()=>{
             self.s("CONNECT", {password: self.password || null,
                                version: LichatVersion});
