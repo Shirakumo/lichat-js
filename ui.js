@@ -16,8 +16,8 @@ var LichatUI = function(chat,client){
         var encoded = hash % 0xFFFFFF;
         var r = (encoded&0xFF0000)>>16, g = (encoded&0x00FF00)>>8, b = (encoded&0x0000FF)>>0
         return "rgb("+Math.min(200, Math.max(50, r))
-            +","+Math.min(200, Math.max(50, g))
-            +","+Math.min(200, Math.max(50, b))+")";
+            +","+Math.min(180, Math.max(80, g))
+            +","+Math.min(180, Math.max(80, b))+")";
     }
 
     self.formatTime = (time)=>{
