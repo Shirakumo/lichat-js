@@ -263,6 +263,12 @@ var LichatUI = function(chat,client){
         self.showMessage({html: text});
     }, "Show all available commands");
 
+    self.addCommand("register", (password)=>{
+        if(password.length<6)
+            cl.error("PASSWORD-TOO-SHORT",{text: "Your password must be at least six characters long."});
+        client.s("REGISTER", {password: password});
+    }, "Register your username with a password.");
+
     self.addCommand("create", (name)=>{
         if(!name) name = null;
         client.s("CREATE", {channel: name});
