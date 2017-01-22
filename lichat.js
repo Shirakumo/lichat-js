@@ -257,7 +257,7 @@ var CL = function(){
     self.universalUnixOffset = 2208988800;
 
     self.getUniversalTime = ()=>{
-        return  +new Date()+self.universalUnixOffset;
+        return (Date.now()/1000)+self.universalUnixOffset;
     };
 
     self.universalToUnix = (universal)=>{
@@ -937,10 +937,9 @@ var LichatClient = function(options){
     };
 
     self.closeConnection = ()=>{
-        if(!self.socket) cl.error("NOT-CONNECTED",{text: "The client is not connected."});
         if(status != "STOPPING"){
             status = "STOPPING";
-            if(self.socket.readyState < 2){
+            if(self.socket && self.socket.readyState < 2){
                 self.socket.close();
             }
             self.socket = null;
@@ -1238,9 +1237,27 @@ var LichatUI = function(chat,client){
             });
             users.appendChild(menu);
         }
-    }
+    };
+
+    var updates = 0;
+    var title = window.title;
+    self.notify = (update)=>{
+        updates++;
+        window.title = "〔"+updates+"〕 "+title;
+    };
+
+    document.addEventListener("visibilitychange", update(ev){
+        if(document.hidden){
+            updates = 0;
+        }else{
+            window.title = title;
+        }
+    });
 
     client.addHandler("MESSAGE", (update)=>{
+        if(document.hidden){
+            self.notify(update);
+        }
         self.showMessage(update);
     });
 
@@ -1364,4 +1381,4 @@ var LichatUI = function(chat,client){
     return self;
 }
 
-// Todo: desktop notifications, tab blinking (change window.title), highlighting
+// Todo: desktop notifications, highlighting, fix timestamps
