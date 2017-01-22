@@ -326,7 +326,7 @@ var LichatUI = function(chat,client){
 
     self.initControls = ()=>{
         input.addEventListener("keydown", (ev)=>{
-            if(ev.keyCode === 13 && ev.ctrlKey){
+            if(ev.keyCode === 13 && (ev.ctrlKey || input.tagName.toLowerCase() === "input")){
                 self.processInput();
                 return false;
             }
