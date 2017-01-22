@@ -194,9 +194,27 @@ var LichatUI = function(chat,client){
             });
             users.appendChild(menu);
         }
-    }
+    };
+
+    var updates = 0;
+    var title = window.title;
+    self.notify = (update)=>{
+        updates++;
+        window.title = "〔"+updates+"〕 "+title;
+    };
+
+    document.addEventListener("visibilitychange", update(ev){
+        if(document.hidden){
+            updates = 0;
+        }else{
+            window.title = title;
+        }
+    });
 
     client.addHandler("MESSAGE", (update)=>{
+        if(document.hidden){
+            self.notify(update);
+        }
         self.showMessage(update);
     });
 
@@ -320,4 +338,4 @@ var LichatUI = function(chat,client){
     return self;
 }
 
-// Todo: desktop notifications, tab blinking (change window.title), highlighting
+// Todo: desktop notifications, highlighting, fix timestamps
