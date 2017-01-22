@@ -40,10 +40,9 @@ var LichatClient = function(options){
     };
 
     self.closeConnection = ()=>{
-        if(!self.socket) cl.error("NOT-CONNECTED",{text: "The client is not connected."});
         if(status != "STOPPING"){
             status = "STOPPING";
-            if(self.socket.readyState < 2){
+            if(self.socket && self.socket.readyState < 2){
                 self.socket.close();
             }
             self.socket = null;
