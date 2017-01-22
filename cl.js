@@ -257,7 +257,7 @@ var CL = function(){
     self.universalUnixOffset = 2208988800;
 
     self.getUniversalTime = ()=>{
-        return (Date.now()/1000)+self.universalUnixOffset;
+        return Math.round(Date.now()/1000)+self.universalUnixOffset;
     };
 
     self.universalToUnix = (universal)=>{
