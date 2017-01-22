@@ -203,7 +203,7 @@ var LichatUI = function(chat,client){
         window.title = "〔"+updates+"〕 "+title;
     };
 
-    document.addEventListener("visibilitychange", update(ev){
+    document.addEventListener("visibilitychange", (ev)=>{
         if(document.hidden){
             updates = 0;
         }else{
