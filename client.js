@@ -51,6 +51,7 @@ var LichatClient = function(options){
 
     self.send = (wireable)=>{
         if(!self.socket) cl.error("NOT-CONNECTED",{text: "The client is not connected."});
+        cl.format("[Lichat] Send:~s", wireable);
         var stream = new LichatStream();
         printer.toWire(wireable, stream);
         self.socket.send(stream.string);

@@ -96,7 +96,7 @@ var CL = function(){
     self.requiredArg = (name)=>{
         return (e)=>{
             if(e[name] === undefined)
-                cl.error("MISSING-INITARG",{object:e, initarg:name});
+                cl.error("MISSING-INITARG",{object:e, initarg:name, text: "The initarg "+name+" is missing."});
             else
                 return e[name];
         };
@@ -451,7 +451,7 @@ var Condition = function(type, initargs){
 Condition.prototype = Object.create(StandardObject.prototype);
 Condition.prototype.report = function(){
     var self = this;
-    return cl.format("Condition of type [~a]: ~a", self.type, self.text);
+    return "Condition of type ["+self.type+"]"+(self.text?": "+self.text:"");
 }
 
 // Special objects

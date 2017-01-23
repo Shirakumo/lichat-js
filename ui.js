@@ -147,8 +147,13 @@ var LichatUI = function(chat,client){
     };
 
     self.showError = (e)=>{
-        return self.showMessage({from: "System",
-                                 text: e+""});
+        if(e instanceof Condition){
+            return self.showMessage({from: "System",
+                                     text: ""+e.report()});
+        }else{
+            return self.showMessage({from: "System",
+                                     text: e+""});
+        }
     };
 
     self.addChannel = (name)=>{
@@ -305,7 +310,17 @@ var LichatUI = function(chat,client){
         self.showMessage(update);
     });
 
+    client.addHandler("REGISTER", (update)=>{
+        update.text = " ** the password has been updated.";
+        self.showMessage(update);
+    });
+
     client.addHandler("FAILURE", (update)=>{
+        self.showMessage(update);
+    });
+
+    client.addHandler("UPDATE", (update)=>{
+        if(!update.text) update.text = "Received update of type "+update.type;
         self.showMessage(update);
     });
 

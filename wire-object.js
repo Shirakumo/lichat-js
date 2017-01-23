@@ -27,7 +27,7 @@ cl.defclass("CONNECT", ["UPDATE"], {
 });
 cl.defclass("DISCONNECT", ["UPDATE"]);
 cl.defclass("REGISTER", ["UPDATE"], {
-    password: cl.requiredArg("register")
+    password: cl.requiredArg("password")
 });
 cl.defclass("CHANNEL-UPDATE", ["UPDATE"], {
     channel: cl.requiredArg("channel")

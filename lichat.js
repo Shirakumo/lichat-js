@@ -96,7 +96,7 @@ var CL = function(){
     self.requiredArg = (name)=>{
         return (e)=>{
             if(e[name] === undefined)
-                cl.error("MISSING-INITARG",{object:e, initarg:name});
+                cl.error("MISSING-INITARG",{object:e, initarg:name, text: "The initarg "+name+" is missing."});
             else
                 return e[name];
         };
@@ -451,7 +451,7 @@ var Condition = function(type, initargs){
 Condition.prototype = Object.create(StandardObject.prototype);
 Condition.prototype.report = function(){
     var self = this;
-    return cl.format("Condition of type [~a]: ~a", self.type, self.text);
+    return "Condition of type ["+self.type+"]"+(self.text?": "+self.text:"");
 }
 
 // Special objects
@@ -568,7 +568,7 @@ cl.defclass("CONNECT", ["UPDATE"], {
 });
 cl.defclass("DISCONNECT", ["UPDATE"]);
 cl.defclass("REGISTER", ["UPDATE"], {
-    password: cl.requiredArg("register")
+    password: cl.requiredArg("password")
 });
 cl.defclass("CHANNEL-UPDATE", ["UPDATE"], {
     channel: cl.requiredArg("channel")
@@ -948,6 +948,7 @@ var LichatClient = function(options){
 
     self.send = (wireable)=>{
         if(!self.socket) cl.error("NOT-CONNECTED",{text: "The client is not connected."});
+        cl.format("[Lichat] Send:~s", wireable);
         var stream = new LichatStream();
         printer.toWire(wireable, stream);
         self.socket.send(stream.string);
@@ -1190,8 +1191,13 @@ var LichatUI = function(chat,client){
     };
 
     self.showError = (e)=>{
-        return self.showMessage({from: "System",
-                                 text: e+""});
+        if(e instanceof Condition){
+            return self.showMessage({from: "System",
+                                     text: ""+e.report()});
+        }else{
+            return self.showMessage({from: "System",
+                                     text: e+""});
+        }
     };
 
     self.addChannel = (name)=>{
@@ -1348,7 +1354,17 @@ var LichatUI = function(chat,client){
         self.showMessage(update);
     });
 
+    client.addHandler("REGISTER", (update)=>{
+        update.text = " ** the password has been updated.";
+        self.showMessage(update);
+    });
+
     client.addHandler("FAILURE", (update)=>{
+        self.showMessage(update);
+    });
+
+    client.addHandler("UPDATE", (update)=>{
+        if(!update.text) update.text = "Received update of type "+update.type;
         self.showMessage(update);
     });
 
