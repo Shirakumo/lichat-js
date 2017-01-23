@@ -1118,8 +1118,8 @@ var LichatUI = function(chat,client){
     self.constructElement = (tag, options)=>{
         var el = document.createElement(tag);
         el.setAttribute("class", (options.classes||[]).join(" "));
-        if(options.html) el.innerHTML = options.html;
         if(options.text) el.innerText = options.text;
+        if(options.html) el.innerHTML = options.html;
         for(var attr in (options.attributes||{})){
             el.setAttribute(attr, options.attributes[attr]);
         }
@@ -1239,18 +1239,47 @@ var LichatUI = function(chat,client){
         }
     };
 
+    self.linkifyURLs = (text)=>{
+        return text.replace(/((?:[\w\-_]+:\/\/)([\w_\-]+(?:(?:\.[\w_\-]+)+))(?:[\w.,@?^=%&:/~+#\-()]*[\w@?^=%&/~+#\-])?)/g,
+                            "<a href=\"$1\" class=\"userlink\" target=\"_blank\">$1</a>");
+    };
+
+    self.escapeHTML = (text)=>{
+        return text.replace(/([<>"&\n])/g, (a,b)=>{
+            switch(b){
+            case "<": return "&lt;"
+            case ">": return "&gt;"
+            case "\"": return "&quot;"
+            case "&": return "&amp;"
+            case "\n": return "<br>"
+            }
+        });
+    };
+
+    self.escapeRegex = (text)=>{
+        return text.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+    }
+
+    self.markSelf = (text)=>{
+        return text.replace(new RegExp("("+self.escapeRegex(client.username)+")", "g"), "<mark>$1</mark>");
+    };
+
+    self.formatUserText = (text)=>{
+        return self.linkifyURLs(self.markSelf(self.escapeHTML(text)));
+    };
+
     var updates = 0;
-    var title = window.title;
+    var title = document.title;
     self.notify = (update)=>{
         updates++;
-        window.title = "〔"+updates+"〕 "+title;
+        document.title = "〔"+updates+"〕 "+title;
     };
 
     document.addEventListener("visibilitychange", (ev)=>{
         if(document.hidden){
             updates = 0;
         }else{
-            window.title = title;
+            document.title = title;
         }
     });
 
@@ -1258,6 +1287,7 @@ var LichatUI = function(chat,client){
         if(document.hidden){
             self.notify(update);
         }
+        update.html = self.formatUserText(update.text);
         self.showMessage(update);
     });
 
@@ -1386,5 +1416,3 @@ var LichatUI = function(chat,client){
 
     return self;
 }
-
-// Todo: desktop notifications, highlighting, links
