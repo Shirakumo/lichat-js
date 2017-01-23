@@ -1162,6 +1162,12 @@ var LichatUI = function(chat,client){
         return channel;
     };
 
+    self.channelExists = (name)=>{
+        try{self.channelElement(name);
+            return true;
+           }catch(e){return false;}
+    };
+
     self.showMessage = (options)=>{
         if(!options.clock) options.clock = cl.getUniversalTime();
         if(!options.from) options.from = "System";
@@ -1390,12 +1396,17 @@ var LichatUI = function(chat,client){
 
     self.addCommand("join", (name)=>{
         if(!name) cl.error("MISSING-ARGUMENT",{text: "You must supply the name of the channel to join."});
-        client.s("JOIN", {channel: name});
+        if(self.channelExists(name)){
+            self.changeChannel(name);
+        }else{
+            client.s("JOIN", {channel: name});
+        }
     }, "Join an existing channel.");
 
     self.addCommand("leave", (name)=>{
         if(!name) name = self.channel;
-        client.s("LEAVE", {channel: name});
+        if(self.channelExists(name))
+            client.s("LEAVE", {channel: name});
     }, "Leave a channel. Not specifying a name will leave the current channel.");
 
     self.addCommand("pull", (user, name)=>{

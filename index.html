@@ -77,7 +77,7 @@
 
           var channel = login.querySelector("input[name=channel]").value;
           if(channel){
-              ui.invokeCommand("join", channel);
+              setTimeout(()=> ui.invokeCommand("join", channel), 500);
           }
           
           window.onbeforeunload = ()=>{
