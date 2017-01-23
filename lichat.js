@@ -1115,6 +1115,31 @@ var LichatUI = function(chat,client){
         }
     };
 
+    var autoComplete = {index: 0,
+                        prefix: null,
+                        pretext: null};
+    self.autoCompleteInput = (text, channel)=>{
+        if(channel === undefined) channel = self.channel;
+        if(text === undefined) text = input.value;
+
+        if(autoComplete.prefix === null){
+            autoComplete.index = 0;
+            autoComplete.prefix = text.split(" ").splice(-1)[0];
+            autoComplete.pretext = text.substr(0, text.length-autoComplete.prefix.length);
+        }
+        
+        var matchingNames = [];
+        for(var user of self.channelElement(channel).users){
+            if(user.indexOf(autoComplete.prefix) === 0)
+                matchingNames.push(user);
+        }
+        if(0 < matchingNames.length){
+            matchingNames = cl.sort(matchingNames, cl.lt);
+            input.value = autoComplete.pretext+matchingNames[autoComplete.index];
+            autoComplete.index = (autoComplete.index+1)%matchingNames.length;
+        }
+    }
+
     self.constructElement = (tag, options)=>{
         var el = document.createElement(tag);
         el.setAttribute("class", (options.classes||[]).join(" "));
@@ -1405,7 +1430,15 @@ var LichatUI = function(chat,client){
 
     self.initControls = ()=>{
         input.addEventListener("keydown", (ev)=>{
+            if(ev.keyCode === 9){
+                ev.preventDefault();
+                self.autoCompleteInput();
+                return false;
+            }else{
+                autoComplete.prefix = null;
+            }
             if(ev.keyCode === 13 && (ev.ctrlKey || input.tagName.toLowerCase() === "input")){
+                ev.preventDefault();
                 self.processInput();
                 return false;
             }
