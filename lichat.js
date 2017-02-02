@@ -1125,19 +1125,19 @@ var LichatUI = function(chat,client){
 
         if(autoComplete.prefix === null){
             autoComplete.index = 0;
-            autoComplete.prefix = text.split(" ").splice(-1)[0];
+            autoComplete.prefix = text.split(" ").splice(-1)[0].toLowerCase();
             autoComplete.pretext = text.substr(0, text.length-autoComplete.prefix.length);
         }
         
         var matchingNames = [];
         for(var user of self.channelElement(channel).users){
-            if(user.indexOf(autoComplete.prefix) === 0)
+            if(user.toLowerCase().indexOf(autoComplete.prefix) === 0)
                 matchingNames.push(user);
         }
         if(0 < matchingNames.length){
             matchingNames = cl.sort(matchingNames, cl.lt);
             input.value = autoComplete.pretext+matchingNames[autoComplete.index] +
-                (autoComplete.prefix === "")? ": ": " ";
+                (autoComplete.pretext === "")? ": ": " ";
             autoComplete.index = (autoComplete.index+1)%matchingNames.length;
         }
     }
