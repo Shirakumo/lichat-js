@@ -1136,7 +1136,8 @@ var LichatUI = function(chat,client){
         }
         if(0 < matchingNames.length){
             matchingNames = cl.sort(matchingNames, cl.lt);
-            input.value = autoComplete.pretext+matchingNames[autoComplete.index];
+            input.value = autoComplete.pretext+matchingNames[autoComplete.index] +
+                (autoComplete.prefix === "")? ": ": " ";
             autoComplete.index = (autoComplete.index+1)%matchingNames.length;
         }
     }
@@ -1157,6 +1158,7 @@ var LichatUI = function(chat,client){
     };
 
     self.channelElement = (name)=>{
+        name = name.toLowerCase();
         var channel = output.querySelector("[data-channel=\""+name+"\"]");
         if(!channel) cl.error("NO-SUCH-CHANNEL",{channel:name});
         return channel;
@@ -1207,6 +1209,7 @@ var LichatUI = function(chat,client){
     };
 
     self.addChannel = (name)=>{
+        name = name.toLowerCase();
         var el = self.constructElement("div", {
             classes: ["lichat-channel"],
             attributes: {"data-channel": name, "style": "display:none;"}
@@ -1228,6 +1231,7 @@ var LichatUI = function(chat,client){
     };
 
     self.removeChannel = (name)=>{
+        name = name.toLowerCase();
         output.removeChild(self.channelElement(name));
         channels.removeChild(channels.querySelector("[data-channel=\""+name+"\"]"));
         self.channel = null;
@@ -1235,6 +1239,7 @@ var LichatUI = function(chat,client){
     };
 
     self.changeChannel = (name)=>{
+        name = name.toLowerCase();
         var channel = self.channelElement(name);
         if(self.channel) self.channelElement(self.channel).style.display = "none";
         if(channels.querySelector(".active"))

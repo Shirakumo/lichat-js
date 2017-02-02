@@ -92,7 +92,8 @@ var LichatUI = function(chat,client){
         }
         if(0 < matchingNames.length){
             matchingNames = cl.sort(matchingNames, cl.lt);
-            input.value = autoComplete.pretext+matchingNames[autoComplete.index];
+            input.value = autoComplete.pretext+matchingNames[autoComplete.index] +
+                (autoComplete.prefix === "")? ": ": " ";
             autoComplete.index = (autoComplete.index+1)%matchingNames.length;
         }
     }
