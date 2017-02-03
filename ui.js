@@ -210,17 +210,13 @@ var LichatUI = function(chat,client){
     self.addUser = (name, channel)=>{
         channel = self.channelElement(channel || self.channel);
         cl.pushnew(name, channel.users);
-        if(channel.dataset.name === self.channel){
-            self.rebuildUserList();
-        }
+        self.rebuildUserList();
     };
 
     self.removeUser = (name, channel)=>{
         channel = self.channelElement(channel || self.channel);
         channel.users = cl.remove(name, channel.users);
-        if(channel.dataset.name === self.channel){
-            self.rebuildUserList();
-        }
+        self.rebuildUserList();
     };
 
     self.rebuildUserList = ()=>{
@@ -235,6 +231,12 @@ var LichatUI = function(chat,client){
             });
             users.appendChild(menu);
         }
+    };
+
+    self.reset = ()=>{
+        self.output.innerHTML = "";
+        self.users.innerHTML = "";
+        self.channels.innerHTML = "";
     };
 
     self.linkifyURLs = (text)=>{
