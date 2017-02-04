@@ -437,7 +437,7 @@ StandardObject.prototype.set = function(key, val){
         varname = key.toString();
     }
     self[varname] = val;
-    self.fields.push(varname);
+    cl.pushnew(varname, self.fields);
     return val;
 };
 
