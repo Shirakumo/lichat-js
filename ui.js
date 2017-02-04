@@ -234,9 +234,10 @@ var LichatUI = function(chat,client){
     };
 
     self.reset = ()=>{
-        self.output.innerHTML = "";
-        self.users.innerHTML = "";
-        self.channels.innerHTML = "";
+        if(output) output.innerHTML = "";
+        if(users) users.innerHTML = "";
+        if(channels) channels.innerHTML = "";
+        self.channel = null;
     };
 
     self.linkifyURLs = (text)=>{
