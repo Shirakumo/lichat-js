@@ -142,7 +142,8 @@ var LichatUI = function(chat,client){
             classes: classList,
             elements: {"time": {text: self.formatTime(cl.universalToUnix(options.clock))},
                        "a": {text: options.from,
-                             attributes: {style: "color:"+self.objectColor(options.from)}},
+                             attributes: {style: "color:"+self.objectColor(options.from),
+                                          title: options.from}},
                        "span": {text: options.text, html: options.html}}
         });
         var channel = self.channelElement(options.channel);
