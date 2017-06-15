@@ -429,9 +429,13 @@ var LichatUI = function(chat,client){
             }else{
                 autoComplete.prefix = null;
             }
-            if(ev.keyCode === 13 && (!ev.ctrlKey || input.tagName.toLowerCase() === "input")){
+            if(ev.keyCode === 13){
                 ev.preventDefault();
-                self.processInput();
+                if(!ev.ctrlKey || input.tagName.toLowerCase() === "input"){
+                    self.processInput();
+                }else{
+                    input.value = input.value+"\n";
+                }
                 return false;
             }
         });
