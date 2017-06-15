@@ -1472,7 +1472,7 @@ var LichatUI = function(chat,client){
             }else{
                 autoComplete.prefix = null;
             }
-            if(ev.keyCode === 13 && (ev.ctrlKey || input.tagName.toLowerCase() === "input")){
+            if(ev.keyCode === 13 && (!ev.ctrlKey || input.tagName.toLowerCase() === "input")){
                 ev.preventDefault();
                 self.processInput();
                 return false;
