@@ -87,7 +87,8 @@ var LichatUI = function(chat,client){
         
         var matchingNames = [];
         for(var user of self.channelElement(channel).users){
-            if(user.toLowerCase().indexOf(autoComplete.prefix) === 0)
+            if(user.toLowerCase().indexOf(autoComplete.prefix) === 0 &&
+               user !== client.username)
                 matchingNames.push(user);
         }
         if(0 < matchingNames.length){
