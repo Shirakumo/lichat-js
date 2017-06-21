@@ -1319,7 +1319,7 @@ var LichatUI = function(chat,client){
     var title = document.title;
     self.notify = (update)=>{
         updates++;
-        document.title = "〔"+updates+"〕 "+title;
+        document.title = "("+updates+") "+title;
     };
 
     document.addEventListener("visibilitychange", (ev)=>{
