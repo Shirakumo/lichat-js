@@ -59,7 +59,7 @@ var LichatClient = function(options){
     };
 
     self.send = (socket, wireable)=>{
-        cl.error("NOT-CONNECTED",{text: "The client is not connected."});
+        if(!socket) cl.error("NOT-CONNECTED",{text: "The client is not connected."});
         cl.format("[Lichat] Send:~s", wireable);
         var stream = new LichatStream();
         printer.toWire(wireable, stream);
@@ -72,7 +72,7 @@ var LichatClient = function(options){
         if(!args.from) args.from = self.username;
         delete args.socket;
         var update = cl.makeInstance(type, args);
-        self.send(update);
+        self.send(socket, update);
     };
 
     self.handleMessage = (socket, event)=>{
