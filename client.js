@@ -25,48 +25,60 @@ var LichatClient = function(options){
 
     self.openConnection = ()=>{
         status = "STARTING";
-        self.socket = new WebSocket("ws://"+self.hostname+":"+self.port, "lichat");
-        self.socket.onopen = ()=>{
+        var socket = new WebSocket("ws://"+self.hostname+":"+self.port, "lichat");
+        socket.onopen = ()=>{
             self.s("CONNECT", {password: self.password || null,
-                               version: LichatVersion});
+                               version: LichatVersion,
+                               socket: socket});
         };
-        self.socket.onmessage = self.handleMessage;
-        self.socket.onclose = (e)=>{
+        socket.onmessage = (e)=>{self.handleMessage(socket, e);};
+        socket.onclose = (e)=>{
             if(e.code !== 1000){
-                self.handleFailure("Error "+e.code+" "+e.reason);
+                self.handleFailure(new Condition("SOCKET-CLOSE", {
+                    report: "Error "+e.code+" "+e.reason,
+                    socket: socket,
+                    event: e
+                }));
             }
-            self.closeConnection();
+            self.closeConnection(socket);
         }
+        self.socket = socket;
     };
 
-    self.closeConnection = ()=>{
+    self.closeConnection = (socket)=>{
+        socket = socket || self.socket;
         if(status != "STOPPING"){
             status = "STOPPING";
-            if(self.socket && self.socket.readyState < 2){
-                self.socket.close();
+            if(socket && socket.readyState < 2){
+                socket.close();
             }
-            self.socket = null;
+            if(self.socket == socket){ 
+                self.socket = null;
+            }
         }
     };
 
-    self.send = (wireable)=>{
-        if(!self.socket) cl.error("NOT-CONNECTED",{text: "The client is not connected."});
+    self.send = (socket, wireable)=>{
+        cl.error("NOT-CONNECTED",{text: "The client is not connected."});
         cl.format("[Lichat] Send:~s", wireable);
         var stream = new LichatStream();
         printer.toWire(wireable, stream);
-        self.socket.send(stream.string);
+        socket.send(stream.string);
     };
 
     self.s = (type, args)=>{
         args = args || {};
+        var socket = args.socket || self.socket;
         if(!args.from) args.from = self.username;
+        delete args.socket;
         var update = cl.makeInstance(type, args);
         self.send(update);
     };
 
-    self.handleMessage = (event)=>{
+    self.handleMessage = (socket, event)=>{
         try{
             var update = reader.fromWire(new LichatStream(event.data));
+            update.socket = socket;
             switch(status){
             case "STARTING":
                 try{
@@ -76,7 +88,7 @@ var LichatClient = function(options){
                         cl.error("CONNECTION-FAILED",{text: "non-CONNECT update", update: update});
                 }catch(e){
                     self.handleFailure(e);
-                    self.closeConnection();
+                    self.closeConnection(socket);
                     throw e;
                 }
                 status = "RUNNING";
