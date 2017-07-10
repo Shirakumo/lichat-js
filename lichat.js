@@ -914,11 +914,13 @@ var LichatClient = function(options){
     self.socket = null;
     self.servername = null;
     self.handlers = {};
+    self.pingDelay = 15000;
 
     var idCallbacks = {};
     var reader = new LichatReader();
     var printer = new LichatPrinter();
     var status = null;
+    var pingTimer = null;
 
     self.openConnection = ()=>{
         status = "STARTING";
@@ -940,6 +942,7 @@ var LichatClient = function(options){
             self.closeConnection(socket);
         }
         self.socket = socket;
+        return socket;
     };
 
     self.closeConnection = (socket)=>{
@@ -953,14 +956,17 @@ var LichatClient = function(options){
                 self.socket = null;
             }
         }
+        return socket;
     };
 
     self.send = (socket, wireable)=>{
-        if(!socket) cl.error("NOT-CONNECTED",{text: "The client is not connected."});
+        if(!socket || socket.readyState != 1)
+            cl.error("NOT-CONNECTED",{text: "The client is not connected."});
         cl.format("[Lichat] Send:~s", wireable);
         var stream = new LichatStream();
         printer.toWire(wireable, stream);
         socket.send(stream.string);
+        return wireable;
     };
 
     self.s = (type, args)=>{
@@ -969,12 +975,24 @@ var LichatClient = function(options){
         if(!args.from) args.from = self.username;
         delete args.socket;
         var update = cl.makeInstance(type, args);
-        self.send(socket, update);
+        return self.send(socket, update);
+    };
+
+    self.startDelayPing = (socket)=>{
+        if(pingTimer) clearTimeout(pingTimer);
+        pingTimer = setTimeout(()=>{
+            if(socket.readyState == 1){
+                self.s("PING", {socket: socket});
+                self.startDelayPing(socket);
+            }
+        }, self.pingDelay);
+        return pingTimer;
     };
 
     self.handleMessage = (socket, event)=>{
         try{
             var update = reader.fromWire(new LichatStream(event.data));
+            self.startDelayPing(socket);
             update.socket = socket;
             switch(status){
             case "STARTING":
@@ -999,6 +1017,7 @@ var LichatClient = function(options){
         }catch(e){
             cl.format("Error during message handling: ~s", e);
         }
+        return self;
     };
 
     self.process = (update)=>{
@@ -1020,6 +1039,7 @@ var LichatClient = function(options){
                     break;
             }
         }
+        return self;
     };
 
     self.maybeCallHandler = (type, update)=>{
@@ -1032,10 +1052,12 @@ var LichatClient = function(options){
 
     self.addHandler = (update, handler)=>{
         self.handlers[update] = handler;
+        return self;
     };
 
     self.removeHandler = (update)=>{
         delete self.handlers[update];
+        return self;
     };
 
     self.addCallback = (id, handler)=>{
@@ -1044,14 +1066,19 @@ var LichatClient = function(options){
         }else{
             idCallbacks[id].push(handler);
         }
+        return self;
     };
 
     self.removeCallback = (id)=>{
         delete idCallbacks[id];
+        return self;
     };
 
-    self.addHandler("PING", ()=>{
-        self.s("PONG");
+    self.addHandler("PING", (ev)=>{
+        self.s("PONG", {socket: ev.socket});
+    });
+
+    self.addHandler("PONG", (ev)=>{
     });
 };
 var LichatUI = function(chat,client){
