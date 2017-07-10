@@ -934,7 +934,7 @@ var LichatClient = function(options){
         socket.onclose = (e)=>{
             if(e.code !== 1000){
                 self.handleFailure(new Condition("SOCKET-CLOSE", {
-                    report: "Error "+e.code+" "+e.reason,
+                    text: "Error "+e.code+" "+e.reason,
                     socket: socket,
                     event: e
                 }));
