@@ -19,7 +19,7 @@ var LichatPrinter = function(){
         stream.writeChar("\"");
         cl.unwindProtect(()=>{
             for(var character of string){
-                if(character === "\""){
+                if(character === "\"" | character === "\\"){
                     stream.writeChar("\\");
                 }
                 stream.writeChar(character);
