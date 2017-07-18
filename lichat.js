@@ -674,7 +674,7 @@ var LichatPrinter = function(){
     
     self.printSexprToken = (token, stream)=>{
         for(var character of token){
-            if("\"():0123456789. #".indexOf(character) >= 0){
+            if("\\\"():0123456789. #".indexOf(character) >= 0){
                 stream.writeChar("\\");
             }
             stream.writeChar(character);
@@ -965,7 +965,7 @@ var LichatClient = function(options){
         cl.format("[Lichat] Send:~s", wireable);
         var stream = new LichatStream();
         printer.toWire(wireable, stream);
-        socket.send(stream.string);
+        socket.send(stream.string+'\u0000');
         return wireable;
     };
 

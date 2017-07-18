@@ -68,7 +68,7 @@ var LichatClient = function(options){
         cl.format("[Lichat] Send:~s", wireable);
         var stream = new LichatStream();
         printer.toWire(wireable, stream);
-        socket.send(stream.string);
+        socket.send(stream.string+'\u0000');
         return wireable;
     };
 
