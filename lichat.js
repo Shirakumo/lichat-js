@@ -539,7 +539,7 @@ var LichatStream = function(string){
     
     return self;
 }
-var LichatVersion = "1.0";
+var LichatVersion = "1.2";
 var IDCounter = Math.floor(Math.random()*(+new Date()));
 var nextID = ()=>{
     var ID = IDCounter;
