@@ -49,7 +49,7 @@ var LichatPrinter = function(){
     
     self.printSexprToken = (token, stream)=>{
         for(var character of token){
-            if("\"():0123456789. #".indexOf(character) >= 0){
+            if("\\\"():0123456789. #".indexOf(character) >= 0){
                 stream.writeChar("\\");
             }
             stream.writeChar(character);
