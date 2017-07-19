@@ -1324,11 +1324,30 @@ var LichatUI = function(chat,client){
         if(channels) channels.innerHTML = "";
         self.channel = null;
     };
-
+    
+    var URLRegex = /((?:[\w\-_]+:\/\/)([\w_\-]+(?:(?:\.[\w_\-]+)+))(?:[\w.,@?^=%&:/~+#\-()]*[\w@?^=%&/~+#\-])?)/g
     self.linkifyURLs = (text)=>{
-        return text.replace(/((?:[\w\-_]+:\/\/)([\w_\-]+(?:(?:\.[\w_\-]+)+))(?:[\w.,@?^=%&:/~+#\-()]*[\w@?^=%&/~+#\-])?)/g,
-                            "<a href=\"$1\" class=\"userlink\" target=\"_blank\">$1</a>");
+        return text.replace(URLRegex,
+                            (match, url)=>{
+                                return "<a href=\""+self.unescapeHTML(url)+"\" class=\"userlink\" target=\"_blank\">"+url+"</a>"
+                            });
     };
+
+    self.prewrapURLs = (text)=>{
+        return text.replace(URLRegex, "\u200B$&\u200B");
+    };
+
+    self.unescapeHTML = (text)=>{
+        return text.replace(/&([\w]+);/g, (a,b)=>{
+            switch(b){
+            case "lt": return "<";
+            case "gt": return ">";
+            case "quot": return "\"";
+            case "amp": return "&";
+            default: return a;
+            }
+        });
+    }
 
     self.escapeHTML = (text)=>{
         return text.replace(/([<>"&\n])/g, (a,b)=>{
@@ -1338,6 +1357,7 @@ var LichatUI = function(chat,client){
             case "\"": return "&quot;"
             case "&": return "&amp;"
             case "\n": return "<br>"
+            default: return a;
             }
         });
     };
@@ -1351,7 +1371,7 @@ var LichatUI = function(chat,client){
     };
 
     self.formatUserText = (text)=>{
-        return self.linkifyURLs(self.markSelf(self.escapeHTML(text)));
+        return self.linkifyURLs(self.markSelf(self.escapeHTML(self.prewrapURLs(text))));
     };
 
     var updates = 0;
