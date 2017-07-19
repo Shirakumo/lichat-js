@@ -1325,7 +1325,7 @@ var LichatUI = function(chat,client){
         self.channel = null;
     };
     
-    var URLRegex = /((?:[\w\-_]+:\/\/)([\w_\-]+(?:(?:\.[\w_\-]+)+))(?:[\w.,@?^=%&:/~+#\-()]*[\w@?^=%&/~+#\-])?)/g
+    var URLRegex = new RegExp("((?:[\\w\\-_]+:\\/\\/)([\\w_\\-]+(?:(?:\\.[\\w_\\-]+)+))(?:[\\w.,@?^=%&:/~+#\\-()]*[\\w@?^=%&/~+#\\-])?)", "g");
     self.linkifyURLs = (text)=>{
         return text.replace(URLRegex,
                             (match, url)=>{
@@ -1366,12 +1366,28 @@ var LichatUI = function(chat,client){
         return text.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
     }
 
-    self.markSelf = (text)=>{
-        return text.replace(new RegExp("("+self.escapeRegex(client.username)+")", "g"), "<mark>$1</mark>");
+    self.markSelf = (text, name)=>{
+        name = name || client.username || "anonymous";
+        var stream = new LichatStream();
+        var inLink = false;
+        for(var i=0; i<text.length; i++){
+            if(!inLink && text.substring(i, i+name.length) === name){
+                stream.writeString("<mark>"+name+"</mark>");
+                i += name.length-1;
+            }else{
+                if(!inLink && text[i] === "<" && text[i+1] === "a"){
+                    inLink = true;
+                }else if(inLink && text[i] === ">"){
+                    inLink = false;
+                }
+                stream.writeChar(text[i]);
+            }
+        }
+        return stream.string;
     };
 
     self.formatUserText = (text)=>{
-        return self.linkifyURLs(self.markSelf(self.escapeHTML(self.prewrapURLs(text))));
+        return self.markSelf(self.linkifyURLs(self.escapeHTML(self.prewrapURLs(text))));
     };
 
     var updates = 0;
