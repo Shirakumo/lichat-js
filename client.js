@@ -31,6 +31,7 @@ var LichatClient = function(options){
         socket.onopen = ()=>{
             self.s("CONNECT", {password: self.password || null,
                                version: LichatVersion,
+                               extensions: ["shirakumo-data", "shirakumo-backfill"],
                                socket: socket});
         };
         socket.onmessage = (e)=>{self.handleMessage(socket, e);};

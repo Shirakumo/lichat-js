@@ -539,7 +539,7 @@ var LichatStream = function(string){
     
     return self;
 }
-var LichatVersion = "1.2";
+var LichatVersion = "1.3";
 var IDCounter = Math.floor(Math.random()*(+new Date()));
 var nextID = ()=>{
     var ID = IDCounter;
@@ -547,10 +547,10 @@ var nextID = ()=>{
     return ID;
 };
 
-for(var name of ["WIRE-OBJECT","UPDATE","PING","PONG","CONNECT","DISCONNECT","REGISTER","CHANNEL-UPDATE","TARGET-UPDATE","TEXT-UPDATE","JOIN","LEAVE","CREATE","KICK","PULL","PERMISSIONS","MESSAGE","USERS","CHANNELS","USER-INFO","FAILURE","MALFORMED-UPDATE","CONNECTION-UNSTABLE","TOO-MANY-CONNECTIONS","UPDATE-FAILURE","INVALID-UPDATE","USERNAME-MISMATCH","INCOMPATIBLE-VERSION","INVALID-PASSWORD","NO-SUCH-PROFILE","USERNAME-TAKEN","NO-SUCH-CHANNEL","ALREADY-IN-CHANNEL","NOT-IN-CHANNEL","CHANNELNAME-TAKEN","BAD-NAME","INSUFFICIENT-PERMISSIONS","INVALID-PERMISSIONS","NO-SUCH-USER","TOO-MANY-UPDATES","NIL","T"]){
+for(var name of ["WIRE-OBJECT","UPDATE","PING","PONG","CONNECT","DISCONNECT","REGISTER","CHANNEL-UPDATE","TARGET-UPDATE","TEXT-UPDATE","JOIN","LEAVE","CREATE","KICK","PULL","PERMISSIONS","MESSAGE","USERS","CHANNELS","USER-INFO","BACKFILL","DATA","FAILURE","MALFORMED-UPDATE","UPDATE-TOO-LONG","CONNECTION-UNSTABLE","TOO-MANY-CONNECTIONS","UPDATE-FAILURE","INVALID-UPDATE","USERNAME-MISMATCH","INCOMPATIBLE-VERSION","INVALID-PASSWORD","NO-SUCH-PROFILE","USERNAME-TAKEN","NO-SUCH-CHANNEL","ALREADY-IN-CHANNEL","NOT-IN-CHANNEL","CHANNELNAME-TAKEN","BAD-NAME","INSUFFICIENT-PERMISSIONS","INVALID-PERMISSIONS","NO-SUCH-USER","TOO-MANY-UPDATES","BAD-CONTENT-TYPE","NIL","T"]){
     cl.intern(name, "LICHAT-PROTOCOL");
 }
-for(var name of ["ID","CLOCK","FROM","PASSWORD","VERSION","CHANNEL","TARGET","TEXT","PERMISSIONS","USERS","CHANNELS","REGISTERED","CONNECTIONS","UPDATE-ID","COMPATIBLE-VERSIONS"]){
+for(var name of ["ID","CLOCK","FROM","PASSWORD","VERSION","EXTENSIONS","CHANNEL","TARGET","TEXT","PERMISSIONS","USERS","CHANNELS","REGISTERED","CONNECTIONS","UPDATE-ID","COMPATIBLE-VERSIONS","CONTENT-TYPE","FILENAME","PAYLOAD","ALLOWED-CONTENT-TYPES"]){
     cl.intern(name, "KEYWORD");
 }
 
@@ -564,7 +564,8 @@ cl.defclass("PING", ["UPDATE"]);
 cl.defclass("PONG", ["UPDATE"]);
 cl.defclass("CONNECT", ["UPDATE"], {
     password: null,
-    version: LichatVersion
+    version: LichatVersion,
+    extensions: []
 });
 cl.defclass("DISCONNECT", ["UPDATE"]);
 cl.defclass("REGISTER", ["UPDATE"], {
@@ -600,8 +601,15 @@ cl.defclass("USER-INFO", ["TARGET-UPDATE"], {
     registered: false,
     connections: 1
 });
+cl.defclass("BACKFILL", ["CHANNEL-UPDATE"]);
+cl.defclass("DATA", ["CHANNEL-UPDATE"], {
+    "content-type": cl.requiredArg("content-type"),
+    filename: null,
+    payload: cl.requiredArg("payload")
+});
 cl.defclass("FAILURE", ["TEXT-UPDATE"]);
 cl.defclass("MALFORMED-UPDATE", ["FAILURE"]);
+cl.defclass("UPDATE-TOO-LONG", ["FAILURE"]);
 cl.defclass("CONNECTION-UNSTABLE", ["FAILURE"]);
 cl.defclass("TOO-MANY-CONNECTIONS", ["FAILURE"]);
 cl.defclass("UPDATE-FAILURE", ["FAILURE"], {
@@ -623,6 +631,9 @@ cl.defclass("BAD-NAME", ["UPDATE-FAILURE"]);
 cl.defclass("INSUFFICIENT-PERMISSIONS", ["UPDATE-FAILURE"]);
 cl.defclass("NO-SUCH-USER", ["UPDATE-FAILURE"]);
 cl.defclass("TOO-MANY-UPDATES", ["UPDATE-FAILURE"]);
+cl.defclass("BAD-CONTENT-TYPE", ["UPDATE-FAILURE"], {
+    "allowed-content-types": []
+});
 var LichatPrinter = function(){
     var self = this;
 
@@ -928,6 +939,7 @@ var LichatClient = function(options){
         socket.onopen = ()=>{
             self.s("CONNECT", {password: self.password || null,
                                version: LichatVersion,
+                               extensions: ["shirakumo-data", "shirakumo-backfill"],
                                socket: socket});
         };
         socket.onmessage = (e)=>{self.handleMessage(socket, e);};
