@@ -58,6 +58,25 @@ var LichatUI = function(chat,client){
         if(!channel) cl.error("NO-ACTIVE-CHANNEL");
         client.s("MESSAGE", {channel: channel, text: text});
     };
+
+    self.sendFile = (file, channel)=>{
+        if(channel === undefined) channel = self.channel;
+        if(!channel) cl.error("NO-ACTIVE-CHANNEL");
+        console.log("Reading file",file);
+        var reader = new FileReader();
+        reader.onload = ()=>{
+            var base64 = reader.result.substring(reader.result.indexOf(",")+1);
+            console.log(base64.length);
+            client.s("DATA", {"channel": channel,
+                              "payload": base64,
+                              "content-type": file.type,
+                              "filename": file.name});
+        };
+        reader.onerror = (e)=>{
+            self.showError(e);
+        };
+        reader.readAsDataURL(file);
+    };
     
     self.processInput = (text, chan)=>{
         if(text === undefined){
@@ -327,6 +346,38 @@ var LichatUI = function(chat,client){
             self.notify(update);
         }
         update.html = self.formatUserText(update.text);
+        self.showMessage(update);
+    });
+
+    client.addHandler("DATA", (update)=>{
+        switch(update["content-type"]){
+        case "image/gif":
+        case "image/jpeg":
+        case "image/png":
+        case "image/svg+xml":
+            update.html = "<img class=\"data\" alt=\""+update["filename"]+"\" src=\"data:"+update["content-type"]+";base64,"+update["payload"]+"\" />";
+            break;
+        case "audio/wave":
+        case "audio/wav":
+        case "audio/x-wav":
+        case "audio/x-pn-wav":
+        case "audio/webm":
+        case "audio/ogg":
+        case "audio/mpeg":
+        case "audio/mp3":
+        case "audio/mp4":
+        case "audio/flac":
+            update.html = "<audio class=\"data\" controls><source src=\"data:"+update["content-type"]+";base64,"+update["payload"]+"\" type=\""+update["content-type"]+"\"></audio>";
+            break;
+        case "video/webm":
+        case "video/ogg":
+        case "video/mp4":
+        case "application/ogg":
+            update.html = "<video class=\"data\" controls><source src=\"data:"+update["content-type"]+";base64,"+update["payload"]+"\" type=\""+update["content-type"]+"\"></video>";
+            break;
+        default:
+            update.html = "<div class=\"data unsupported\">Unsupported data of type "+update["content-type"]+"</div>";
+        }
         self.showMessage(update);
     });
 

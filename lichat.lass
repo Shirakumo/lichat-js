@@ -116,9 +116,9 @@
        (.join (span :color green))
        (.leave (span :color blue))
        (.failure (span :color red :font-weight bold))
+       (.data :max-width 100%)
        (.update
         :display flex
-        :max-height 200px
         :overflow-y hidden
         (>* :padding 2px)
         (time :width 80px
@@ -130,6 +130,7 @@
             :overflow hidden
             :white-space nowrap
             :text-overflow ellipsis)
+        (img :max-height 300px)
         (span :word-wrap break-word
               :white-space pre-wrap
               :min-width 0px
@@ -149,6 +150,16 @@
        :font-size 1.0em
        :flex-grow 1
        :font-family monospace)
+      (.lichat-file
+       (input :width 0.1px
+              :height 0.1px
+              :opacity 0
+              :overflow hidden
+              :position absolute
+              :z-index -1)
+       (label
+        :cursor pointer
+        :font-size 2em))
       (input
        :min-width 50px))))))
 
