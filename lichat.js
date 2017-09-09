@@ -1603,6 +1603,10 @@ var LichatUI = function(chat,client){
         client.send(update);
     }, "Contact one or more users in an anonymous channel.");
 
+    self.addCommand("clear", ()=>{
+        if(output) output.innerHTML = "";
+    }, "Clear all messages from the channel.");
+
     self.initControls = ()=>{
         input.addEventListener("keydown", (ev)=>{
             if(ev.keyCode === 9){
