@@ -170,7 +170,7 @@ var LichatUI = function(chat,client){
         var currentScroll = channel.scrollHeight - channel.scrollTop - channel.clientHeight;
         channel.appendChild(el);
         if(currentScroll<10){
-            channel.scrollTop = channel.scrollHeight;
+            channel.scrollTop = channel.scrollHeight + el.clientHeight;
         }
         return el;
     };
