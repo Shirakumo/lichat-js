@@ -355,7 +355,8 @@ var LichatUI = function(chat,client){
         case "image/jpeg":
         case "image/png":
         case "image/svg+xml":
-            update.html = "<img class=\"data\" alt=\""+update["filename"]+"\" src=\"data:"+update["content-type"]+";base64,"+update["payload"]+"\" />";
+            var link = "data:"+update["content-type"]+";base64,"+update["payload"];
+            update.html = "<a href=\""+link+"\" target=\"_blank\"><img class=\"data\" alt=\""+update["filename"]+"\" src=\""+link+"\" /></a>";
             break;
         case "audio/wave":
         case "audio/wav":
