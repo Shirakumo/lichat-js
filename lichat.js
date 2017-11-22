@@ -1101,7 +1101,7 @@ var LichatClient = function(options){
     };
 
     self.addEmote = (emote)=>{
-        var name = emote["name"].toLowerCase();
+        var name = ":"+emote["name"].toLowerCase().replace(/^:|:$/g,"")+":";
         self.emotes[name] = "<img class=\"emote\" alt=\""+name+"\" title=\""+name+"\" src=\"data:"+emote["content-type"]+";base64,"+emote["payload"]+"\" />";
         if(window.localStorage){
             window.localStorage.setItem("emotes", JSON.stringify(self.emotes));
@@ -1445,9 +1445,34 @@ var LichatUI = function(chat,client){
     };
 
     self.replaceEmotes = (text)=>{
-        return text.replace(/:([^:]+):/g, (a,b)=>{
-            return client.emotes[b.toLowerCase()] || a;
-        });
+        // Find starting point
+        var start = 0;        
+        while(text[start] != ':' && start<text.length) start++;
+        // If we do have colons in, scan for emotes.
+        if(start < text.length){
+            var out = text.slice(0, start);
+            // Scan for next colon
+            for(var end=start+1; end<text.length; end++){
+                if(text[end] == ':'){
+                    var emote = text.slice(start, end+1);
+                    // If we do have an emote of that name
+                    if(client.emotes[emote]){
+                        out = out+client.emotes[emote];
+                        // Scan ahead for next possible end point after "skipping" the emote.
+                        end++;
+                        start = end;
+                        while(text[end] != ':' && end<text.length) end++;
+                    }else{
+                        out = out+emote.slice(0, -1);
+                        start = end;
+                    }
+                }
+            }
+            // Stitch on ending
+            return out+text.slice(start,end);
+        }else{
+            return text;
+        }
     };
 
     self.formatUserText = (text)=>{

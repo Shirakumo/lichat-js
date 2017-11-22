@@ -185,7 +185,7 @@ var LichatClient = function(options){
     };
 
     self.addEmote = (emote)=>{
-        var name = emote["name"].toLowerCase();
+        var name = ":"+emote["name"].toLowerCase().replace(/^:|:$/g,"")+":";
         self.emotes[name] = "<img class=\"emote\" alt=\""+name+"\" title=\""+name+"\" src=\"data:"+emote["content-type"]+";base64,"+emote["payload"]+"\" />";
         if(window.localStorage){
             window.localStorage.setItem("emotes", JSON.stringify(self.emotes));
