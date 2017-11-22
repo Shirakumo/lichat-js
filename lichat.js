@@ -1619,8 +1619,11 @@ var LichatUI = function(chat,client){
     });
 
     client.addHandler("UPDATE", (update)=>{
-        if(!update.text) update.text = "Received update of type "+update.type;
-        self.showMessage(update);
+        if(!cl.find(cl.classOf(update).className,
+                    ["PING", "PONG", "EMOTES", "EMOTE"])){
+            if(!update.text) update.text = "Received update of type "+update.type;
+            self.showMessage(update);
+        }
     });
 
     self.addCommand("help", ()=>{
