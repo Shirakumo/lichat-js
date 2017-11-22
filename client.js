@@ -18,6 +18,11 @@ var LichatClient = function(options){
     self.servername = null;
     self.handlers = {};
     self.pingDelay = 15000;
+    self.emotes = {};
+
+    if(window.localStorage){
+        self.emotes = JSON.parse(window.localStorage.getItem("emotes")) || {};
+    }
 
     var idCallbacks = {};
     var reader = new LichatReader();
@@ -31,7 +36,7 @@ var LichatClient = function(options){
         socket.onopen = ()=>{
             self.s("CONNECT", {password: self.password || null,
                                version: LichatVersion,
-                               extensions: ["shirakumo-data", "shirakumo-backfill"],
+                               extensions: ["shirakumo-data", "shirakumo-backfill", "shirakumo-emotes"],
                                socket: socket});
         };
         socket.onmessage = (e)=>{self.handleMessage(socket, e);};
@@ -113,6 +118,7 @@ var LichatClient = function(options){
                 status = "RUNNING";
                 self.servername = update.from;
                 self.process(update);
+                self.s("EMOTES", {names: Object.keys(self.emotes)});
                 break;
             case "RUNNING":
                 self.process(update);
@@ -178,10 +184,23 @@ var LichatClient = function(options){
         return self;
     };
 
+    self.addEmote = (emote)=>{
+        var name = emote["name"].toLowerCase();
+        self.emotes[name] = "<img class=\"emote\" alt=\""+name+"\" title=\""+name+"\" src=\"data:"+emote["content-type"]+";base64,"+emote["payload"]+"\" />";
+        if(window.localStorage){
+            window.localStorage.setItem("emotes", JSON.stringify(self.emotes));
+        }
+        return emote;
+    };
+
     self.addHandler("PING", (ev)=>{
         self.s("PONG", {socket: ev.socket});
     });
 
     self.addHandler("PONG", (ev)=>{
+    });
+
+    self.addHandler("EMOTE", (ev)=>{
+        self.addEmote(ev);
     });
 };

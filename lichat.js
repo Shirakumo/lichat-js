@@ -547,10 +547,10 @@ var nextID = ()=>{
     return ID;
 };
 
-for(var name of ["WIRE-OBJECT","UPDATE","PING","PONG","CONNECT","DISCONNECT","REGISTER","CHANNEL-UPDATE","TARGET-UPDATE","TEXT-UPDATE","JOIN","LEAVE","CREATE","KICK","PULL","PERMISSIONS","MESSAGE","USERS","CHANNELS","USER-INFO","BACKFILL","DATA","FAILURE","MALFORMED-UPDATE","UPDATE-TOO-LONG","CONNECTION-UNSTABLE","TOO-MANY-CONNECTIONS","UPDATE-FAILURE","INVALID-UPDATE","USERNAME-MISMATCH","INCOMPATIBLE-VERSION","INVALID-PASSWORD","NO-SUCH-PROFILE","USERNAME-TAKEN","NO-SUCH-CHANNEL","ALREADY-IN-CHANNEL","NOT-IN-CHANNEL","CHANNELNAME-TAKEN","BAD-NAME","INSUFFICIENT-PERMISSIONS","INVALID-PERMISSIONS","NO-SUCH-USER","TOO-MANY-UPDATES","BAD-CONTENT-TYPE","NIL","T"]){
+for(var name of ["WIRE-OBJECT","UPDATE","PING","PONG","CONNECT","DISCONNECT","REGISTER","CHANNEL-UPDATE","TARGET-UPDATE","TEXT-UPDATE","JOIN","LEAVE","CREATE","KICK","PULL","PERMISSIONS","MESSAGE","USERS","CHANNELS","USER-INFO","BACKFILL","DATA","EMOTE","EMOTES","FAILURE","MALFORMED-UPDATE","UPDATE-TOO-LONG","CONNECTION-UNSTABLE","TOO-MANY-CONNECTIONS","UPDATE-FAILURE","INVALID-UPDATE","USERNAME-MISMATCH","INCOMPATIBLE-VERSION","INVALID-PASSWORD","NO-SUCH-PROFILE","USERNAME-TAKEN","NO-SUCH-CHANNEL","ALREADY-IN-CHANNEL","NOT-IN-CHANNEL","CHANNELNAME-TAKEN","BAD-NAME","INSUFFICIENT-PERMISSIONS","INVALID-PERMISSIONS","NO-SUCH-USER","TOO-MANY-UPDATES","BAD-CONTENT-TYPE","NIL","T"]){
     cl.intern(name, "LICHAT-PROTOCOL");
 }
-for(var name of ["ID","CLOCK","FROM","PASSWORD","VERSION","EXTENSIONS","CHANNEL","TARGET","TEXT","PERMISSIONS","USERS","CHANNELS","REGISTERED","CONNECTIONS","UPDATE-ID","COMPATIBLE-VERSIONS","CONTENT-TYPE","FILENAME","PAYLOAD","ALLOWED-CONTENT-TYPES"]){
+for(var name of ["ID","CLOCK","FROM","PASSWORD","VERSION","EXTENSIONS","CHANNEL","TARGET","TEXT","PERMISSIONS","USERS","CHANNELS","REGISTERED","CONNECTIONS","UPDATE-ID","COMPATIBLE-VERSIONS","CONTENT-TYPE","FILENAME","PAYLOAD","NAME","NAMES","ALLOWED-CONTENT-TYPES"]){
     cl.intern(name, "KEYWORD");
 }
 
@@ -605,6 +605,14 @@ cl.defclass("BACKFILL", ["CHANNEL-UPDATE"]);
 cl.defclass("DATA", ["CHANNEL-UPDATE"], {
     "content-type": cl.requiredArg("content-type"),
     filename: null,
+    payload: cl.requiredArg("payload")
+});
+cl.defclass("EMOTES", ["UPDATE"], {
+    names: []
+});
+cl.defclass("EMOTE", ["UPDATE"], {
+    "content-type": cl.requiredArg("content-type"),
+    name: cl.requiredArg("name"),
     payload: cl.requiredArg("payload")
 });
 cl.defclass("FAILURE", ["TEXT-UPDATE"]);
@@ -926,6 +934,11 @@ var LichatClient = function(options){
     self.servername = null;
     self.handlers = {};
     self.pingDelay = 15000;
+    self.emotes = {};
+
+    if(window.localStorage){
+        self.emotes = JSON.parse(window.localStorage.getItem("emotes")) || {};
+    }
 
     var idCallbacks = {};
     var reader = new LichatReader();
@@ -939,7 +952,7 @@ var LichatClient = function(options){
         socket.onopen = ()=>{
             self.s("CONNECT", {password: self.password || null,
                                version: LichatVersion,
-                               extensions: ["shirakumo-data", "shirakumo-backfill"],
+                               extensions: ["shirakumo-data", "shirakumo-backfill", "shirakumo-emotes"],
                                socket: socket});
         };
         socket.onmessage = (e)=>{self.handleMessage(socket, e);};
@@ -1021,6 +1034,7 @@ var LichatClient = function(options){
                 status = "RUNNING";
                 self.servername = update.from;
                 self.process(update);
+                self.s("EMOTES", {names: Object.keys(self.emotes)});
                 break;
             case "RUNNING":
                 self.process(update);
@@ -1086,11 +1100,24 @@ var LichatClient = function(options){
         return self;
     };
 
+    self.addEmote = (emote)=>{
+        var name = emote["name"].toLowerCase();
+        self.emotes[name] = "<img class=\"emote\" alt=\""+name+"\" title=\""+name+"\" src=\"data:"+emote["content-type"]+";base64,"+emote["payload"]+"\" />";
+        if(window.localStorage){
+            window.localStorage.setItem("emotes", JSON.stringify(self.emotes));
+        }
+        return emote;
+    };
+
     self.addHandler("PING", (ev)=>{
         self.s("PONG", {socket: ev.socket});
     });
 
     self.addHandler("PONG", (ev)=>{
+    });
+
+    self.addHandler("EMOTE", (ev)=>{
+        self.addEmote(ev);
     });
 };
 var LichatUI = function(chat,client){
@@ -1417,8 +1444,14 @@ var LichatUI = function(chat,client){
         return stream.string;
     };
 
+    self.replaceEmotes = (text)=>{
+        return text.replace(/:([^:]+):/g, (a,b)=>{
+            return client.emotes[b.toLowerCase()] || a;
+        });
+    };
+
     self.formatUserText = (text)=>{
-        return self.markSelf(self.linkifyURLs(self.escapeHTML(self.prewrapURLs(text))));
+        return self.replaceEmotes(self.markSelf(self.linkifyURLs(self.escapeHTML(self.prewrapURLs(text)))));
     };
 
     var updates = 0;

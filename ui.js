@@ -322,8 +322,14 @@ var LichatUI = function(chat,client){
         return stream.string;
     };
 
+    self.replaceEmotes = (text)=>{
+        return text.replace(/:([^:]+):/g, (a,b)=>{
+            return client.emotes[b.toLowerCase()] || a;
+        });
+    };
+
     self.formatUserText = (text)=>{
-        return self.markSelf(self.linkifyURLs(self.escapeHTML(self.prewrapURLs(text))));
+        return self.replaceEmotes(self.markSelf(self.linkifyURLs(self.escapeHTML(self.prewrapURLs(text)))));
     };
 
     var updates = 0;
