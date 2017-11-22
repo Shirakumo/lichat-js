@@ -135,9 +135,10 @@
               :white-space pre-wrap
               :min-width 0px
               :flex-grow 1
-              (.command :min-width 100px
-                        :color #(flavor-bg)
-                        :display inline-block)))
+              ((:and label (:or .command .emote))
+               :min-width 100px
+               :color #(flavor-bg)
+               :display inline-block)))
        (".update:active"
         :max-height none)))
      (.input-area

@@ -1666,6 +1666,15 @@ var LichatUI = function(chat,client){
         if(output) output.innerHTML = "";
     }, "Clear all messages from the channel.");
 
+    self.addCommand("emotes", ()=>{
+        var emotes = Object.keys(client.emotes).sort((a,b)=>{return a.localeCompare(b);});
+        var text = "Available emotes:";
+        for(var emote in client.emotes){
+            text += "<br/><label class='emote'>"+emote+"</label> "+client.emotes[emote];
+        }
+        self.showMessage({html: text});
+    }, "Show the available emotes.");
+
     self.initControls = ()=>{
         input.addEventListener("keydown", (ev)=>{
             if(ev.keyCode === 9){
