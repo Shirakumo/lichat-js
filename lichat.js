@@ -1136,7 +1136,11 @@ var LichatClient = function(options){
     };
 
     self.addInternalHandler("CONNECT", (ev)=>{
-        self.s("EMOTES", {names: Object.keys(self.emotes)});
+        var known = [];
+        for(var emote in self.emotes){
+            cl.push(emote.replace(/^:|:$/g,""), known);
+        }
+        self.s("EMOTES", {names: known});
     });
 
     self.addInternalHandler("PING", (ev)=>{
