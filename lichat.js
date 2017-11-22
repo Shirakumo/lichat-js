@@ -935,11 +935,13 @@ var LichatClient = function(options){
     self.handlers = {};
     self.pingDelay = 15000;
     self.emotes = {};
+    self.channels = [];
 
     if(window.localStorage){
         self.emotes = JSON.parse(window.localStorage.getItem("emotes")) || {};
     }
 
+    var internalHandlers = {};
     var idCallbacks = {};
     var reader = new LichatReader();
     var printer = new LichatPrinter();
@@ -972,6 +974,7 @@ var LichatClient = function(options){
 
     self.closeConnection = (socket)=>{
         socket = socket || self.socket;
+        self.channels = [];
         if(status != "STOPPING"){
             status = "STOPPING";
             if(socket && socket.readyState < 2){
@@ -1034,7 +1037,6 @@ var LichatClient = function(options){
                 status = "RUNNING";
                 self.servername = update.from;
                 self.process(update);
-                self.s("EMOTES", {names: Object.keys(self.emotes)});
                 break;
             case "RUNNING":
                 self.process(update);
@@ -1059,12 +1061,36 @@ var LichatClient = function(options){
             }
             self.removeCallback(update.id);
         }
+        if(!self.maybeCallInternalHandler(update.type, update)){
+            for(var s of cl.classOf(update).superclasses){
+                if(self.maybeCallInternalHandler(s.className, update))
+                    break;
+            }
+        }
         if(!self.maybeCallHandler(update.type, update)){
             for(var s of cl.classOf(update).superclasses){
                 if(self.maybeCallHandler(s.className, update))
                     break;
             }
         }
+        return self;
+    };
+
+    self.maybeCallInternalHandler = (type, update)=>{
+        if(internalHandlers[type]){
+            internalHandlers[type](update);
+            return true;
+        }
+        return false;
+    };
+
+    self.addInternalHandler = (update, handler)=>{
+        internalHandlers[update] = handler;
+        return self;
+    };
+
+    self.removeInternalHandler = (update)=>{
+        delete internalHandlers[update];
         return self;
     };
 
@@ -1109,14 +1135,30 @@ var LichatClient = function(options){
         return emote;
     };
 
-    self.addHandler("PING", (ev)=>{
+    self.addInternalHandler("CONNECT", (ev)=>{
+        self.s("EMOTES", {names: Object.keys(self.emotes)});
+    });
+
+    self.addInternalHandler("PING", (ev)=>{
         self.s("PONG", {socket: ev.socket});
     });
 
-    self.addHandler("PONG", (ev)=>{
+    self.addInternalHandler("PONG", (ev)=>{
     });
 
-    self.addHandler("EMOTE", (ev)=>{
+    self.addInternalHandler("JOIN", (ev)=>{
+        if(ev.from === self.username){
+            cl.pushnew(ev.channel, self.channels);
+        }
+    });
+
+    self.addInternalHandler("LEAVE", (ev)=>{
+        if(ev.from === self.username){
+            self.channels = cl.remove(ev.channel, self.channels);
+        }
+    });
+
+    self.addInternalHandler("EMOTE", (ev)=>{
         self.addEmote(ev);
     });
 };
