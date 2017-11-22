@@ -1580,6 +1580,7 @@ var LichatUI = function(chat,client){
     client.addHandler("JOIN", (update)=>{
         if(update.from === client.username){
             self.addChannel(update.channel);
+            self.changeChannel(update.channel);
             client.s("USERS", {channel: update.channel});
         }
         self.addUser(update.from, update.channel);
@@ -1619,6 +1620,7 @@ var LichatUI = function(chat,client){
     });
 
     client.addHandler("UPDATE", (update)=>{
+        // Some events are uninteresting, so they should be ignored entirely.
         if(!cl.find(cl.classOf(update).className,
                     ["PING", "PONG", "EMOTES", "EMOTE"])){
             if(!update.text) update.text = "Received update of type "+update.type;

@@ -416,6 +416,7 @@ var LichatUI = function(chat,client){
     client.addHandler("JOIN", (update)=>{
         if(update.from === client.username){
             self.addChannel(update.channel);
+            self.changeChannel(update.channel);
             client.s("USERS", {channel: update.channel});
         }
         self.addUser(update.from, update.channel);
