@@ -116,8 +116,9 @@ chat.querySelector("[type=file]").addEventListener("change", (ev)=>{
 }, false);
 
 menu.querySelector("[data-action=create]").addEventListener("click", (ev)=>{
-    var name = prompt("Please enter a channel name:");
-    if(name) ui.invokeCommand("create", name);
+    var name = prompt("Please enter a channel name, or leave it empty for an anonymous channel:");
+    if(typeof name === 'string' || name instanceof String)
+        ui.invokeCommand("create", name);
 }, false);
 
 menu.querySelector("[data-action=join]").addEventListener("click", (ev)=>{
