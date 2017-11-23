@@ -158,9 +158,11 @@ var LichatUI = function(chat,client){
         }else{
             classList = ["update"];
         }
+        var timestamp = cl.universalToUnix(options.clock);
         var el = self.constructElement("div", {
             classes: classList,
-            elements: {"time": {text: self.formatTime(cl.universalToUnix(options.clock))},
+            elements: {"time": {text: self.formatTime(timestamp),
+                                attributes: {datetime: ""+timestamp}},
                        "a": {text: options.from,
                              attributes: {style: "color:"+self.objectColor(options.from),
                                           title: options.from}},
@@ -168,7 +170,19 @@ var LichatUI = function(chat,client){
         });
         var channel = self.channelElement(options.channel);
         var currentScroll = channel.scrollHeight - channel.scrollTop - channel.clientHeight;
-        channel.appendChild(el);
+        var inserted = false;
+        for(var child of channel.childNodes){
+            var datetime = child.querySelector("time").getAttribute("datetime");
+            if(timestamp < parseInt(datetime)){
+                channel.insertBefore(el, child);
+                inserted = true;
+                break;
+            }
+        }
+        if(!inserted){
+            channel.appendChild(el);
+        }
+        
         if(currentScroll<10){
             channel.scrollTop = channel.scrollHeight + el.clientHeight;
         }
