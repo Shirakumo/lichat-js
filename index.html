@@ -5,18 +5,31 @@
     <title>Lichat-JS Client Library</title>
     <link rel="stylesheet" type="text/css" href="lichat.css" />
   </head>
-  <body>
+  <body class="light">
     <noscript>
       JavaScript is required for this to work. Sorry!
     </noscript>
     <div class="status" style="display:none"></div>
     <form class="login" action="#">
       <h1>Log In to Lichat</h1>
-      <div><label>Username</label><input type="text" name="username" maxlength="32" placeholder="My Name" required autofocus /></div>
-      <div><label>Password (optional)</label><input type="password" name="password" placeholder="" /></div>
-      <div><label>Server Hostname</label><input type="text" name="hostname" value="localhost" required /></div>
-      <div><label>Server Port</label><input type="number" name="port" min="1" max="65535" value="1113" placeholder="1113" required /></div>
-      <div><label>Channel</label><input type="text" name="channel" value="stevenchan" maxlength="32" /></div>
+      <div><label>Username</label>
+        <input type="text" name="username" maxlength="32" placeholder="My Name" required autofocus />
+      </div>
+      <div><label>Password (optional)</label>
+        <input type="password" name="password" placeholder="" />
+      </div>
+      <div><label>Server Hostname</label>
+        <input type="text" name="hostname" value="localhost" required />
+      </div>
+      <div><label>Server Port</label>
+        <input type="number" name="port" min="1" max="65535" value="1113" placeholder="1113" required />
+      </div>
+      <div><label>Channel</label>
+        <input type="text" name="channel" value="" maxlength="32" />
+      </div>
+      <div><label>Theme</label>
+        <select name="theme"><option value="light">Light</option><option value="dark">Dark</option></select>
+      </div>
       <input type="submit" value="Connect" />
     </form>
     <main class="chat" style="display:none">
@@ -27,9 +40,9 @@
       </div>
       <div class="chat-area">
         <nav class="menu">
-          <a data-action="create">Create</a>
-          <a data-action="join">Join</a>
-          <a data-action="leave">Leave</a>
+          <a data-action="create" title="Create a new channel.">Create</a>
+          <a data-action="join" title="Join a channel.">Join</a>
+          <a data-action="leave" title="Leave this channel.">Leave</a>
         </nav>
         <div class="lichat-output">
         </div>
@@ -49,83 +62,6 @@
       </div>
     </main>
     <script type="text/javascript" src="lichat.js"></script>
-    <script type="text/javascript">
-      var login = document.querySelector(".login");
-      var stat = document.querySelector(".status");
-      var chat = document.querySelector(".chat");
-      var menu = document.querySelector(".menu");
-      var client = new LichatClient();
-      var ui = new LichatUI(chat, client);
-
-      var fail = function(reason){
-          chat.style.display = "none";
-          stat.style.display = "block";
-          login.style.display = "block";
-          stat.innerHTML = reason;
-          window.onbeforeunload = ()=>{
-              return true;
-          };
-          ui.reset();
-      };
-
-      client.handleFailure = (e)=>{
-          console.log("Failure:",e);
-          fail(e+"");
-      };
-
-      client.addHandler("DISCONNECT", (client,update)=>{
-          fail("Disconnected");
-      });
-      
-      client.addHandler("CONNECT", (client,update)=>{
-          stat.style.display = "none";
-          chat.style.display = "";
-
-          var channel = login.querySelector("input[name=channel]").value;
-          if(channel){
-              setTimeout(()=> ui.invokeCommand("join", channel), 500);
-          }
-          
-          window.onbeforeunload = ()=>{
-              return "Are you sure you want to leave?";
-          };
-      });
-
-      login.addEventListener("submit", (ev)=>{
-          ev.preventDefault()
-          login.style.display = "none";
-          client.username = login.querySelector("input[name=username]").value;
-          client.password = login.querySelector("input[name=password]").value;
-          client.hostname = login.querySelector("input[name=hostname]").value;
-          client.port = parseInt(login.querySelector("input[name=port]").value);
-          stat.style.display = "block";
-          stat.innerHTML = "Connecting...";
-          client.openConnection();
-          return false;
-      }, false);
-
-      chat.querySelector("[type=submit]").addEventListener("click", (ev)=>{
-          ui.processInput();
-      }, false);
-
-      chat.querySelector("[type=file]").addEventListener("change", (ev)=>{
-          ui.sendFile(chat.querySelector("[type=file]").files[0]);
-          chat.querySelector("[type=file]").value = null;
-      }, false);
-
-      menu.querySelector("[data-action=create]").addEventListener("click", (ev)=>{
-          var name = prompt("Please enter a channel name:");
-          if(name) ui.invokeCommand("create", name);
-      }, false);
-
-      menu.querySelector("[data-action=join]").addEventListener("click", (ev)=>{
-          var name = prompt("Please enter a channel name:");
-          if(name) ui.invokeCommand("join", name);
-      }, false);
-
-      menu.querySelector("[data-action=leave]").addEventListener("click", (ev)=>{
-          if(name) ui.invokeCommand("leave");
-      }, false);
-    </script>
+    <script type="text/javascript" src="index.js"></script>
   </body>
 </html>
