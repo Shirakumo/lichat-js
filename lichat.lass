@@ -264,7 +264,7 @@
      (".update:active"
       :max-height none)))
    (.input-area
-    :height 50px
+    :height 60px
     :min-height 30px
     :border-top 1px solid "#0088EE"
     :display flex
@@ -274,6 +274,8 @@
      :flex-grow 1
      :font-family monospace)
     (.lichat-file
+     :display flex
+     :align-items center
      (input :width 0.1px
             :height 0.1px
             :opacity 0
@@ -281,6 +283,7 @@
             :position absolute
             :z-index -1)
      (label
+      :padding 0 10px 0 10px
       :cursor pointer
       :font-size 2em))
     (input
