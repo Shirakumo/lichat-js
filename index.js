@@ -50,7 +50,7 @@ login.querySelector("[name=theme]").addEventListener("change", (ev)=>{
 
 client.handleFailure = (e)=>{
     console.log("Failure:",e);
-    fail(e+"");
+    fail((e instanceof Condition)?e.report():e+"");
 };
 
 client.addHandler("DISCONNECT", (client,update)=>{
