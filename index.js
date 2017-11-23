@@ -44,7 +44,8 @@ var changeTheme = (theme)=>{
     return theme;
 };
 
-var defaultPort = (window.location.protocol==="https:")?"1114":"1113";
+var ssl = (window.location.protocol === "https:" || window.location.protocol === "https");
+var defaultPort = (ssl)?"1114":"1113";
 var setup = ()=>{
     login.querySelector("input[name=username]").value = load("username", login.querySelector("input[name=username]").value);
     login.querySelector("input[name=password]").value = load("password", login.querySelector("input[name=password]").value);
