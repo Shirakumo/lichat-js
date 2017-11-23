@@ -49,7 +49,7 @@ cl.defclass("PULL", ["CHANNEL-UPDATE", "TARGET-UPDATE"]);
 cl.defclass("PERMISSIONS", ["CHANNEL-UPDATE"], {
     permissions: []
 });
-cl.defclass("MESSAGE", ["CHANNEL-UPDATE"]);
+cl.defclass("MESSAGE", ["CHANNEL-UPDATE", "TEXT-UPDATE"]);
 cl.defclass("USERS", ["CHANNEL-UPDATE"], {
     users: []
 });
