@@ -1195,8 +1195,11 @@ var LichatUI = function(chat,client){
 
     self.objectColor = (object)=>{
         var hash = cl.sxhash(object);
-        var encoded = hash % 0xFFFFFF;
-        var r = (encoded&0xFF0000)>>16, g = (encoded&0x00FF00)>>8, b = (encoded&0x0000FF)>>0
+        var encoded = hash % 0xFFF;
+        var r = 16*(1+(encoded&0xF00)>>8)-1;
+        var g = 16*(1+(encoded&0x0F0)>>4)-1;
+        var b = 16*(1+(encoded&0x00F)>>0)-1;
+        
         return "rgb("+Math.min(200, Math.max(50, r))
             +","+Math.min(180, Math.max(80, g))
             +","+Math.min(180, Math.max(80, b))+")";
@@ -1338,12 +1341,14 @@ var LichatUI = function(chat,client){
         }else{
             classList = ["update"];
         }
+        if(options.from === client.username) cl.push("self", classList);
         var timestamp = cl.universalToUnix(options.clock);
         var el = self.constructElement("div", {
             classes: classList,
             elements: {"time": {text: self.formatTime(timestamp),
                                 attributes: {datetime: ""+timestamp}},
                        "a": {text: options.from,
+                             classes: ["username"],
                              attributes: {style: "color:"+self.objectColor(options.from),
                                           title: options.from}},
                        "span": {text: options.text, html: options.html}}

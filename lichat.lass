@@ -58,10 +58,13 @@
        (.join (span :color green))
        (.leave (span :color blue))
        (.failure (span :color red))
+       (.self (a :color #(primary-fg) !important))
        (.update
         (span
          ((:and label (:or .command .emote))
-          :color #(flavor-bg))))))
+          :color #(flavor-bg))
+         (a :color #(flavor-bg))
+         ((:and a :hover) :color "#55AAEE")))))
      (.input-area
       :border-color #(flavor-bg))))))
 
@@ -121,8 +124,12 @@
        (.join (span :color green))
        (.leave (span :color blue))
        (.failure (span :color red))
+       (.self (a :color "#DDD" !important))
        (.update
         (span
+         (a :color #(flavor-bg)
+            :text-decoration none)
+         ((:and a :hover) :color "#55AAEE")
          ((:and label (:or .command .emote))
           :color #(flavor-bg))))))
      (.input-area
