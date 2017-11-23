@@ -62,11 +62,9 @@ var LichatUI = function(chat,client){
     self.sendFile = (file, channel)=>{
         if(channel === undefined) channel = self.channel;
         if(!channel) cl.error("NO-ACTIVE-CHANNEL");
-        console.log("Reading file",file);
         var reader = new FileReader();
         reader.onload = ()=>{
             var base64 = reader.result.substring(reader.result.indexOf(",")+1);
-            console.log(base64.length);
             client.s("DATA", {"channel": channel,
                               "payload": base64,
                               "content-type": file.type,
@@ -87,7 +85,6 @@ var LichatUI = function(chat,client){
             self.processCommand(text, chan) ||
                 self.sendMessage(text, chan);
         }catch(e){
-            console.log(e);
             self.showError(e);
         }
     };

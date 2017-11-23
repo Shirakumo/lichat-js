@@ -65,7 +65,8 @@ about.querySelector("button").addEventListener("click", (ev)=>{
 });
 
 client.handleFailure = (e)=>{
-    console.log("Failure:",e);
+    if(console)
+        console.log("Failure:",e);
     fail((e instanceof Condition)?e.report():e+"");
 };
 
