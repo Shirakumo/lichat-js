@@ -2,6 +2,7 @@ var login = document.querySelector(".login");
 var stat = document.querySelector(".status");
 var chat = document.querySelector(".chat");
 var menu = document.querySelector(".menu");
+var about = document.querySelector(".about");
 var client = new LichatClient();
 var ui = new LichatUI(chat, client);
 
@@ -57,6 +58,10 @@ var setup = ()=>{
 
 login.querySelector("[name=theme]").addEventListener("change", (ev)=>{
     changeTheme(ev.target.value);
+});
+
+about.querySelector("button").addEventListener("click", (ev)=>{
+    about.style.display = "none";
 });
 
 client.handleFailure = (e)=>{
@@ -122,6 +127,10 @@ menu.querySelector("[data-action=join]").addEventListener("click", (ev)=>{
 
 menu.querySelector("[data-action=leave]").addEventListener("click", (ev)=>{
     if(name) ui.invokeCommand("leave");
+}, false);
+
+menu.querySelector("[data-action=about]").addEventListener("click", (ev)=>{
+    about.style.display = "block";
 }, false);
 
 ui.addCommand("theme", (theme)=>{

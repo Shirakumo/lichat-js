@@ -12,14 +12,19 @@
   (body.light
    :background #(primary-bg)
    :color #(primary-fg)
-   ((:or input textarea select)
+   (.about
+    :background #(primary-bg)
+    :color #(primary-fg)
+    :border-color #(border)
+    (a :color #(flavor-bg)))
+   ((:or input textarea select button)
     :border-color #(border)
     :background "#F8F8F8"
     :color "#111")
-   (input[type=submit]
+   ((:or input[type=submit] button)
     :background #(flavor-bg)
     :color white)
-   ("input[type=submit]:hover"
+   ((:or "input[type=submit]:hover" "button:hover")
     :background "#55AAEE")
    (.login
     :background #(menu-bg)
@@ -70,14 +75,19 @@
   (body.dark
    :background #(primary-bg)
    :color #(primary-fg)
-   ((:or input textarea select)
+   (.about
+    :background #(primary-bg)
+    :color #(primary-fg)
+    :border-color #(border)
+    (a :color #(flavor-bg)))
+   ((:or input textarea select button)
     :border-color #(border)
     :background "#151515"
     :color "#EEEEEE")
-   (input[type=submit]
+   ((:or input[type=submit] button)
     :background #(flavor-bg)
     :color white)
-   ("input[type=submit]:hover"
+   ((:or "input[type=submit]:hover" "button:hover")
     :background "#55AAEE")
    (.login
     :background #(menu-bg)
@@ -117,6 +127,19 @@
           :color #(flavor-bg))))))
      (.input-area
       :border-color #(flavor-bg))))))
+
+(.about
+ :display none
+ :position absolute
+ :left 50% :top 50px
+ :margin-left -250px
+ :width 500px
+ :background white
+ :padding 10px
+ :border 3px solid black
+ :box-shadow 0 0 50px black
+ (button :width 100%))
+
 (body
  :font-family sans-serif
  :font-size 14pt
@@ -129,13 +152,13 @@
   :color white
   :font-weight bold
   :text-align center)
- ((:or input textarea select)
+ ((:or input textarea select button)
   :border 1px solid "#DDD"
   :padding 2px)
  (select :width 100%)
- (input[type=submit]
+ ((:or input[type=submit] button)
   :border none)
- ("input[type=submit]:hover"
+ ((:or "input[type=submit]:hover" "button:hover")
   :cursor pointer)
  (.login
   :display flex
