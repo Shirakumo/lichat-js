@@ -936,6 +936,7 @@ var LichatClient = function(options){
     self.pingDelay = 15000;
     self.emotes = {};
     self.channels = [];
+    self.ssl = false;
 
     if(window.localStorage){
         self.emotes = JSON.parse(window.localStorage.getItem("emotes")) || {};
@@ -952,7 +953,7 @@ var LichatClient = function(options){
 
     self.openConnection = ()=>{
         status = "STARTING";
-        var socket = new WebSocket("ws://"+self.hostname+":"+self.port, "lichat");
+        var socket = new WebSocket((self.ssl?"wss://":"ws://")+self.hostname+":"+self.port, "lichat");
         socket.onopen = ()=>{
             self.s("CONNECT", {password: self.password || null,
                                version: LichatVersion,

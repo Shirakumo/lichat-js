@@ -78,6 +78,7 @@ login.addEventListener("submit", (ev)=>{
     client.password = login.querySelector("input[name=password]").value;
     client.hostname = login.querySelector("input[name=hostname]").value;
     client.port = parseInt(login.querySelector("input[name=port]").value);
+    client.ssl = (client.port === 1114);
     save("username", client.username);
     save("password", client.password);
     save("hostname", client.hostname);
