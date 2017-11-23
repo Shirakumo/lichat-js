@@ -32,11 +32,12 @@ var load = (name, def)=>{
     }
 };
 
+var defaultPort = (window.location.protocol==="https:")?"1114":"1113";
 var setup = ()=>{
     login.querySelector("input[name=username]").value = load("username", "Lion");
     login.querySelector("input[name=password]").value = load("password", "");
     login.querySelector("input[name=hostname]").value = load("hostname", "localhost");
-    login.querySelector("input[name=port]").value = load("port", "1113");
+    login.querySelector("input[name=port]").value = load("port", defaultPort);
     login.querySelector("input[name=channel]").value = load("channel", "");
     login.querySelector("select[name=theme]").value = load("theme", "light");
     document.querySelector("body").setAttribute("class", load("theme", "light"));
