@@ -25,6 +25,8 @@ var LichatClient = function(options){
         self.emotes = JSON.parse(window.localStorage.getItem("emotes")) || {};
     }
 
+    var supportedExtensions = ["shirakumo-data", "shirakumo-backfill", "shirakumo-emotes"];
+    var availableExtensions = [];
     var internalHandlers = {};
     var idCallbacks = {};
     var reader = new LichatReader();
@@ -38,7 +40,7 @@ var LichatClient = function(options){
         socket.onopen = ()=>{
             self.s("CONNECT", {password: self.password || null,
                                version: LichatVersion,
-                               extensions: ["shirakumo-data", "shirakumo-backfill", "shirakumo-emotes"],
+                               extensions: supportedExtensions,
                                socket: socket});
         };
         socket.onmessage = (e)=>{self.handleMessage(socket, e);};
@@ -220,11 +222,14 @@ var LichatClient = function(options){
     };
 
     self.addInternalHandler("CONNECT", (ev)=>{
-        var known = [];
-        for(var emote in self.emotes){
-            cl.push(emote.replace(/^:|:$/g,""), known);
+        availableExtensions = ev.extensions;
+        if(cl.find("shirakumo-emotes", availableExtensions)){
+            var known = [];
+            for(var emote in self.emotes){
+                cl.push(emote.replace(/^:|:$/g,""), known);
+            }
+            self.s("EMOTES", {names: known});
         }
-        self.s("EMOTES", {names: known});
     });
 
     self.addInternalHandler("PING", (ev)=>{
@@ -237,6 +242,9 @@ var LichatClient = function(options){
     self.addInternalHandler("JOIN", (ev)=>{
         if(ev.from === self.username){
             cl.pushnew(ev.channel, self.channels);
+            if(cl.find("shirakumo-backfill", availableExtensions)){
+                self.s("BACKFILL", {channel: ev.channel});
+            }
         }
     });
 
