@@ -32,6 +32,18 @@ var load = (name, def)=>{
     }
 };
 
+var changeTheme = (theme)=>{
+    if(!login.querySelector("select[name=theme] option[value="+theme+"]")){
+        var themes = Array.from(login.querySelectorAll("select[name=theme] option")).map((n)=>n.value).join(", ");
+        cl.error("NO-SUCH-THEME",{text: "The theme name you supplied is unknown. Should be one of: "+themes});
+    }
+    
+    login.querySelector("select[name=theme]").value = theme;
+    document.querySelector("body").setAttribute("class", theme);
+    save("theme", theme);
+    return theme;
+};
+
 var defaultPort = (window.location.protocol==="https:")?"1114":"1113";
 var setup = ()=>{
     login.querySelector("input[name=username]").value = load("username", login.querySelector("input[name=username]").value);
@@ -39,13 +51,11 @@ var setup = ()=>{
     login.querySelector("input[name=hostname]").value = load("hostname", login.querySelector("input[name=hostname]").value);
     login.querySelector("input[name=port]").value = load("port", defaultPort);
     login.querySelector("input[name=channel]").value = load("channel", login.querySelector("input[name=channel]").value);
-    login.querySelector("select[name=theme]").value = load("theme", "light");
-    document.querySelector("body").setAttribute("class", load("theme", "light"));
+    changeTheme(load("theme", "light"));
 };
 
 login.querySelector("[name=theme]").addEventListener("change", (ev)=>{
-    document.querySelector("body").setAttribute("class", ev.target.value);
-    save("theme", ev.target.value);
+    changeTheme(ev.target.value);
 });
 
 client.handleFailure = (e)=>{
@@ -112,5 +122,10 @@ menu.querySelector("[data-action=join]").addEventListener("click", (ev)=>{
 menu.querySelector("[data-action=leave]").addEventListener("click", (ev)=>{
     if(name) ui.invokeCommand("leave");
 }, false);
+
+ui.addCommand("theme", (theme)=>{
+    if(!theme) cl.error("MISSING-ARGUMENT",{text: "You must supply the name of the theme to use."});
+    changeTheme(theme);
+}, "Change the theme. Available: light, dark");
 
 setup();
