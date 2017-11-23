@@ -1630,6 +1630,11 @@ var LichatUI = function(chat,client){
         self.showMessage(update);
     });
 
+    client.addHandler("KICK", (update)=>{
+        update.text = " ** kicked "+update.target;
+        self.showMessage(update);
+    });
+
     client.addHandler("USERS", (update)=>{
         var channel = self.channelElement(update.channel);
         channel.users = update.users;
@@ -1645,6 +1650,14 @@ var LichatUI = function(chat,client){
 
     client.addHandler("REGISTER", (update)=>{
         update.text = " ** the password has been updated.";
+        self.showMessage(update);
+    });
+
+    client.addHandler("USER-INFO", (update)=>{
+        update.text = " ** "+update.target+" is "+
+            ((update.registered)
+             ? ("registered with "+update.connections+" connections")
+             : "not registered");
         self.showMessage(update);
     });
 
