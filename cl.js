@@ -109,6 +109,10 @@ var CL = function(){
             if(instance === null){
                 return true;
             }
+        }else if(type === "Boolean"){
+            if(instance === true || instance === false){
+                return true;
+            }
         }else if(instance instanceof StandardObject){
             if(instance.type === type
                || instance.isInstanceOf(type)){

@@ -87,6 +87,7 @@ var LichatUI = function(chat,client){
             self.processCommand(text, chan) ||
                 self.sendMessage(text, chan);
         }catch(e){
+            console.log(e);
             self.showError(e);
         }
     };

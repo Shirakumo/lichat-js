@@ -76,11 +76,12 @@ var LichatPrinter = function(){
 
     self.printSexpr = (sexpr, stream)=>{
         cl.typecase(sexpr,
-                    null,     ()=> self.printSexprToken("NIL", stream),
-                    "String", ()=> self.printSexprString(sexpr, stream),
-                    "Array",  ()=> self.printSexprList(sexpr, stream),
-                    "Number", ()=> self.printSexprNumber(sexpr, stream),
-                    "Symbol", ()=> self.printSexprSymbol(sexpr, stream),
+                    null,      ()=> self.printSexprToken("NIL", stream),
+                    "String",  ()=> self.printSexprString(sexpr, stream),
+                    "Array",   ()=> self.printSexprList(sexpr, stream),
+                    "Number",  ()=> self.printSexprNumber(sexpr, stream),
+                    "Symbol",  ()=> self.printSexprSymbol(sexpr, stream),
+                    "Boolean", ()=> self.printSexprToken((sexpr)?"T":"NIL", stream),
                     true, ()=> cl.error("UNPRINTABLE-OBJECT",{object: sexpr}));
     };
 
