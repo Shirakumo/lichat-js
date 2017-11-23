@@ -1051,7 +1051,6 @@ var LichatClient = function(options){
     };
 
     self.process = (update)=>{
-        
         cl.format("[Lichat] Update:~s",update);
         var callbacks = idCallbacks[update.id];
         if(callbacks){
@@ -1157,7 +1156,7 @@ var LichatClient = function(options){
     });
 
     self.addInternalHandler("JOIN", (ev)=>{
-        if(ev.from === self.username){
+        if(ev.from === self.username && ev.channel !== self.servername){
             cl.pushnew(ev.channel, self.channels);
             if(cl.find("shirakumo-backfill", availableExtensions)){
                 self.s("BACKFILL", {channel: ev.channel});
