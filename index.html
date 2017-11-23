@@ -43,6 +43,7 @@
           <a data-action="create" title="Create a new channel.">Create</a>
           <a data-action="join" title="Join a channel.">Join</a>
           <a data-action="leave" title="Leave this channel.">Leave</a>
+          <a data-action="settings" title="Change some options.">Settings</a>
           <a data-action="about" title="About Lichat-JS">About</a>
         </nav>
         <div class="lichat-output">
@@ -61,8 +62,18 @@
         <div class="lichat-user-list">
         </div>
       </div>
+      <audio class="lichat-notify">
+        <source src="notify.mp3" type="audio/mp3"/>
+      </audio>
     </main>
-    <div class="about">
+    <div class="settings popup">
+      <h3>Settings</h3>
+      <div><label>Notifications</label><input type="checkbox" name="notifyBy" value="desktop"/></div>
+      <div><label>Sounds</label><input type="checkbox" name="notifyBy" value="sound"/></div>
+      <div><label>Volume</label><input type="range" name="volume" min="0.0" max="1.0" step="0.1" /></div>
+      <button>Ok</button>
+    </div>
+    <div class="about popup">
       <h3>This is Lichat-JS, a JavaScript client for Lichat.</h3>
       <p>
         Lichat is a light-weight, text-based chat protocol. It is aimed at mid-sized group chats, with many simplifications and improvements over alternative protocols such as IRC and XMPP.

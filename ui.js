@@ -9,7 +9,11 @@ var LichatUI = function(chat,client){
 
     self.commandPrefix = "/";
     self.channel = null;
+    self.notifyBy = [];
     self.commands = {};
+    self.notifySound = chat.querySelector(".lichat-notify");
+    self.icon = document.querySelector("head link[rel=\"shortcut icon\"]");
+    self.icon = (self.icon)?self.icon.getAttribute("href"):"/favicon.ico";
 
     self.objectColor = (object)=>{
         var hash = cl.sxhash(object);
@@ -379,6 +383,35 @@ var LichatUI = function(chat,client){
     self.notify = (update)=>{
         updates++;
         document.title = "("+updates+") "+title;
+        if(cl.find("sound", self.notifyBy) && self.notifySound){
+            self.notifySound.play();
+        }
+        if(cl.find("desktop", self.notifyBy) && window.Notification && Notification.permission === "granted"){
+            if(cl.typep(update, "TEXT-UPDATE")){
+                new Notification(title, {
+                    body: update.from+": "+update.text,
+                    icon: self.icon,
+                    tag: "lichat"
+                });
+            }else if(cl.typep(update, "DATA") && cl.find(update["content-type"], ["image/gif", "image/jpeg", "image/png", "image/svg+xml"])){
+                new Notification(title, {
+                    image: "data:"+update["content-type"]+";base64,"+update["payload"],
+                    icon: self.icon,
+                    tag: "lichat"
+                });
+            }
+        }
+    };
+
+    self.requestNotifyPermissions = ()=>{
+        if(Notification.permission === "granted"){
+            return true;
+        }else if(Notification.permission === "denied"){
+            return false;
+        }else{
+            Notification.requestPermission((p)=>{});
+            return null;
+        }
     };
 
     document.addEventListener("visibilitychange", (ev)=>{
@@ -426,6 +459,9 @@ var LichatUI = function(chat,client){
             break;
         default:
             update.html = "<div class=\"data unsupported\">Unsupported data of type "+update["content-type"]+"</div>";
+        }
+        if(document.hidden){
+            self.notify(update);
         }
         self.showMessage(update);
     });

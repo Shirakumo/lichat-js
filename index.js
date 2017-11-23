@@ -3,6 +3,7 @@ var stat = document.querySelector(".status");
 var chat = document.querySelector(".chat");
 var menu = document.querySelector(".menu");
 var about = document.querySelector(".about");
+var settings = document.querySelector(".settings");
 var client = new LichatClient();
 var ui = new LichatUI(chat, client);
 
@@ -53,6 +54,12 @@ var setup = ()=>{
     login.querySelector("input[name=hostname]").value = load("hostname", login.querySelector("input[name=hostname]").value);
     login.querySelector("input[name=port]").value = load("port", defaultPort);
     login.querySelector("input[name=channel]").value = load("channel", login.querySelector("input[name=channel]").value);
+    ui.notifyBy = load("notifyBy", []);
+    ui.notifySound.volume = load("volume", 0.5);
+    for(var value of ui.notifyBy){
+        settings.querySelector("[name=notifyBy][value="+value+"]").checked = true;
+    }
+    settings.querySelector("[name=volume]").value = ""+ui.notifySound.volume;
     changeTheme(load("theme", "light"));
 };
 
@@ -62,6 +69,17 @@ login.querySelector("[name=theme]").addEventListener("change", (ev)=>{
 
 about.querySelector("button").addEventListener("click", (ev)=>{
     about.style.display = "none";
+});
+
+settings.querySelector("button").addEventListener("click", (ev)=>{
+    if(settings.querySelector("[name=notifyBy][value=desktop]").checked){
+        ui.requestNotifyPermissions();
+    }
+    ui.notifyBy = Array.from(settings.querySelectorAll("[name=notifyBy]")).filter((e)=>e.checked).map((e)=>e.value);
+    ui.notifySound.volume = parseFloat(settings.querySelector("[name=volume]").value);
+    save("notifyBy", ui.notifyBy);
+    save("volume", ui.notifySound.volume);
+    settings.style.display = "none";
 });
 
 client.handleFailure = (e)=>{
@@ -132,7 +150,11 @@ menu.querySelector("[data-action=leave]").addEventListener("click", (ev)=>{
 }, false);
 
 menu.querySelector("[data-action=about]").addEventListener("click", (ev)=>{
-    about.style.display = "block";
+    about.style.display = "flex";
+}, false);
+
+menu.querySelector("[data-action=settings]").addEventListener("click", (ev)=>{
+    settings.style.display = "flex";
 }, false);
 
 ui.addCommand("theme", (theme)=>{
