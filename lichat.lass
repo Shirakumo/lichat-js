@@ -71,7 +71,9 @@
       (".lichat-channel::-webkit-scrollbar-thumb:hover" :background #(flavor-bg))
       (".lichat-channel::-webkit-scrollbar-track" :background "#CCC"))
      (.input-area
-      :border-color #(flavor-bg))))))
+      :border-color #(flavor-bg)
+      (.emote-list
+       :background #(border)))))))
 
 (:let ((flavor-bg "#0088EE")
        (flavor-fg "#FFFFFF")
@@ -143,7 +145,9 @@
       (".lichat-channel::-webkit-scrollbar-thumb:hover" :background #(flavor-bg))
       (".lichat-channel::-webkit-scrollbar-track" :background "#222"))
      (.input-area
-      :border-color #(flavor-bg))))))
+      :border-color #(flavor-bg)
+      (.emote-list
+       :background #(border)))))))
 
 (body
  :font-family sans-serif
@@ -269,13 +273,29 @@
     :border-top 1px solid "#0088EE"
     :display flex
     :align-items stretch
+    :position relative
     (textarea
      :font-size 1.0em
      :flex-grow 1
      :font-family monospace)
-    (.lichat-file
+    (.lichat-extra
      :display flex
      :align-items center
+     :justify-content space-around
+     :flex-direction column
+     (.emote-list
+      :display none
+      :position absolute
+      :height 300px
+      :width 350px
+      :top -301px
+      :right 0
+      :overflow-y scroll
+      :text-align center
+      (img :width 50px
+           :height 50px
+           :object-fit scale-down
+           :margin 5px))
      (input :width 0.1px
             :height 0.1px
             :opacity 0
@@ -284,8 +304,7 @@
             :z-index -1)
      (label
       :padding 0 10px 0 10px
-      :cursor pointer
-      :font-size 2em))
+      :cursor pointer))
     (input
      :min-width 50px)))))
 

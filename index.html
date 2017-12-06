@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <title>Lichat-JS Client Library</title>
     <link rel="stylesheet" type="text/css" href="lichat.css" />
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
   </head>
   <body class="light">
     <noscript>
@@ -50,9 +51,12 @@
         </div>
         <div class="input-area">
           <textarea class="lichat-input"></textarea>
-          <div class="lichat-file">
+          <div class="lichat-extra">
+            <div class="emote-list"></div>
+            <input type="button" id="emotes" name="emotes" />
+            <label for="emotes" title="Add an emote"><i class="fa fa-smile-o" aria-hidden="true"></i></label>
             <input type="file" id="file" name="file" />
-            <label for="file" title="Send a file">+</label>
+            <label for="file" title="Send a file"><i class="fa fa-paperclip" aria-hidden="true"></i></label>
           </div>
           <input type="submit" value="Send" />
         </div>

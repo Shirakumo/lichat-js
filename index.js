@@ -63,6 +63,19 @@ var setup = ()=>{
     changeTheme(load("theme", "light"));
 };
 
+var addEmoteToUI = (name)=>{
+    var el = document.createElement("a");
+    el.innerHTML = client.emotes[name];
+    el = el.firstChild;
+    el.addEventListener("click", (ev)=>{
+        chat.querySelector(".lichat-input").value += name;
+        chat.querySelector("#emotes").click();
+    });
+    chat.querySelector(".emote-list").appendChild(el);
+};
+
+for(var emote in client.emotes) addEmoteToUI(emote);
+
 login.querySelector("[name=theme]").addEventListener("change", (ev)=>{
     changeTheme(ev.target.value);
 });
@@ -106,6 +119,10 @@ client.addHandler("CONNECT", (client,update)=>{
     };
 });
 
+client.addHandler("EMOTE", (client,update)=>{
+    addEmoteToUI(":"+update["name"].toLowerCase().replace(/^:|:$/g,"")+":");
+});
+
 login.addEventListener("submit", (ev)=>{
     ev.preventDefault()
     login.style.display = "none";
@@ -127,6 +144,11 @@ login.addEventListener("submit", (ev)=>{
 
 chat.querySelector("[type=submit]").addEventListener("click", (ev)=>{
     ui.processInput();
+}, false);
+
+chat.querySelector("#emotes").addEventListener("click", (ev)=>{
+    chat.querySelector(".emote-list").style.display =
+        (chat.querySelector(".emote-list").style.display != "block") ? "block" : "none";
 }, false);
 
 chat.querySelector("[type=file]").addEventListener("change", (ev)=>{
