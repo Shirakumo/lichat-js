@@ -54,7 +54,7 @@ cl.defclass("USERS", ["CHANNEL-UPDATE"], {
     users: []
 });
 cl.defclass("CHANNELS", ["UPDATE"], {
-    users: []
+    channels: []
 });
 cl.defclass("USER-INFO", ["TARGET-UPDATE"], {
     registered: false,
