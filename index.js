@@ -175,7 +175,7 @@ menu.querySelector("[data-action=leave]").addEventListener("click", (ev)=>{
 }, false);
 
 menu.querySelector("[data-action=about]").addEventListener("click", (ev)=>{
-    about.style.display = "flex";
+    about.style.display = "block";
 }, false);
 
 menu.querySelector("[data-action=settings]").addEventListener("click", (ev)=>{
