@@ -69,6 +69,7 @@ var addEmoteToUI = (name)=>{
     el = el.firstChild;
     el.addEventListener("click", (ev)=>{
         chat.querySelector(".lichat-input").value += name;
+        chat.querySelector(".lichat-input").focus();
         chat.querySelector("#emotes").click();
     });
     chat.querySelector(".emote-list").appendChild(el);
@@ -154,6 +155,8 @@ chat.querySelector("#emotes").addEventListener("click", (ev)=>{
 chat.querySelector("[type=file]").addEventListener("change", (ev)=>{
     ui.sendFile(chat.querySelector("[type=file]").files[0]);
     chat.querySelector("[type=file]").value = null;
+    chat.querySelector(".lichat-input").focus();
+    ev.preventDefault();
 }, false);
 
 menu.querySelector("[data-action=create]").addEventListener("click", (ev)=>{
