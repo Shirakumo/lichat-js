@@ -353,7 +353,7 @@ var LichatUI = function(chat,client){
             // Scan for next colon
             for(var end=start+1; end<text.length; end++){
                 if(text[end] == ':'){
-                    var emote = text.slice(start, end+1);
+                    var emote = text.slice(start, end+1).toLowerCase();
                     // If we do have an emote of that name
                     if(client.emotes[emote]){
                         out = out+client.emotes[emote];
