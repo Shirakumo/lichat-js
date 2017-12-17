@@ -1542,7 +1542,7 @@ var LichatUI = function(chat,client){
                         // Scan ahead for next possible end point after "skipping" the emote.
                         end++;
                         start = end;
-                        while(text[end] != ':' && end<text.length) end++;
+                        while(text[end+1] != ':' && end<text.length) end++;
                     }else{
                         out = out+emote.slice(0, -1);
                         start = end;
