@@ -151,6 +151,12 @@ var LichatUI = function(chat,client){
            }catch(e){return false;}
     };
 
+    self.isAtBottom = (element)=>{
+        element = element || channel;
+        return (element.scrollHeight - element.scrollTop - element.clientHeight) < 10;
+    };
+
+    var lastInserted = null;
     self.showMessage = (options)=>{
         if(!options.clock) options.clock = cl.getUniversalTime();
         if(!options.from) options.from = "System";
@@ -165,6 +171,7 @@ var LichatUI = function(chat,client){
         }
         if(options.from === client.username) cl.push("self", classList);
         var timestamp = cl.universalToUnix(options.clock);
+        // Construct element
         var el = self.constructElement("div", {
             classes: classList,
             elements: {"time": {text: self.formatTime(timestamp),
@@ -175,8 +182,19 @@ var LichatUI = function(chat,client){
                                           title: options.from}},
                        "span": {text: options.text, html: options.html}}
         });
+        // Handle scrolling deferral.
         var channel = self.channelElement(options.channel);
-        var currentScroll = channel.scrollHeight - channel.scrollTop - channel.clientHeight;
+        lastInserted = el;
+        if(self.isAtBottom(channel)){
+            var elements = el.querySelectorAll("img,audio,video");
+            for(var i=0; i<elements.length; i++){
+                elements[i].addEventListener("load", function(){
+                    if(lastInserted === el)
+                        el.scrollIntoView();
+                });
+            }
+        }
+        // Insert element in order.
         var inserted = false;
         for(var child of channel.childNodes){
             var datetime = child.querySelector("time").getAttribute("datetime");
@@ -188,10 +206,7 @@ var LichatUI = function(chat,client){
         }
         if(!inserted){
             channel.appendChild(el);
-        }
-        
-        if(currentScroll<10){
-            channel.scrollTop = channel.scrollHeight + el.clientHeight;
+            el.scrollIntoView();
         }
         return el;
     };
