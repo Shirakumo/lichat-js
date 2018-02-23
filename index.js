@@ -34,6 +34,32 @@ var load = (name, def)=>{
     }
 };
 
+var urlParams = (url)=>{
+    if(!url) url = window.location.href;
+    var params = {};
+    for(var i=(url.indexOf("?")||url.length)+1; i<url.length; i++){
+        var j=i;
+        key:
+        for(;; i++){
+            if(url[i] == '&' || url[i] == undefined){
+                params[decodeURIComponent(url.slice(j, i))] = null;
+                break key;
+            }
+            if(url[i] == '='){
+                var key = decodeURIComponent(url.slice(j, i));
+                i++; j=i;
+                for(;; i++){
+                    if(url[i] == '&' || url[i] == undefined){
+                        params[key] = decodeURIComponent(url.slice(j, i));
+                        break key;
+                    }
+                }
+            }
+        }
+    }
+    return params;
+};
+
 var changeTheme = (theme)=>{
     if(!login.querySelector("select[name=theme] option[value="+theme+"]")){
         var themes = Array.from(login.querySelectorAll("select[name=theme] option")).map((n)=>n.value).join(", ");
@@ -49,18 +75,27 @@ var changeTheme = (theme)=>{
 var ssl = (window.location.protocol === "https:" || window.location.protocol === "https");
 var defaultPort = (ssl)?"1114":"1113";
 var setup = ()=>{
-    login.querySelector("input[name=username]").value = load("username", login.querySelector("input[name=username]").value);
-    login.querySelector("input[name=password]").value = load("password", login.querySelector("input[name=password]").value);
-    login.querySelector("input[name=hostname]").value = load("hostname", login.querySelector("input[name=hostname]").value);
-    login.querySelector("input[name=port]").value = load("port", defaultPort);
-    login.querySelector("input[name=channel]").value = load("channel", login.querySelector("input[name=channel]").value);
+    var params = urlParams();
+    if(params.hide !== undefined){
+        if(params.username) login.querySelector("input[name=username]").parentNode.style.display = "none";
+        if(params.password) login.querySelector("input[name=password]").parentNode.style.display = "none";
+        if(params.hostname) login.querySelector("input[name=hostname]").parentNode.style.display = "none";
+        if(params.port) login.querySelector("input[name=port]").parentNode.style.display = "none";
+        if(params.channel) login.querySelector("input[name=channel]").parentNode.style.display = "none";
+        if(params.theme) login.querySelector("select[name=theme]").parentNode.style.display = "none";
+    }
+    login.querySelector("input[name=username]").value = params.username || load("username", login.querySelector("input[name=username]").value);
+    login.querySelector("input[name=password]").value = params.password || load("password", login.querySelector("input[name=password]").value);
+    login.querySelector("input[name=hostname]").value = params.hostname || load("hostname", login.querySelector("input[name=hostname]").value);
+    login.querySelector("input[name=port]").value =     params.port     || load("port", defaultPort);
+    login.querySelector("input[name=channel]").value =  params.channel  || load("channel", login.querySelector("input[name=channel]").value);
     ui.notifyBy = load("notifyBy", []);
     ui.notifySound.volume = load("volume", 0.5);
     for(var value of ui.notifyBy){
         settings.querySelector("[name=notifyBy][value="+value+"]").checked = true;
     }
     settings.querySelector("[name=volume]").value = ""+ui.notifySound.volume;
-    changeTheme(load("theme", "light"));
+    changeTheme(params.theme || load("theme", "light"));
 };
 
 var addEmoteToUI = (name)=>{
