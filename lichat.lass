@@ -53,6 +53,7 @@
        :color #(flavor-bg))
       ("a:active"
        :background #(primary-bg)))
+     ((:and .menu "::-webkit-scrollbar") :width 4px :height 4px)
      (.lichat-output
       (.lichat-channel
        (.join (span :color green))
@@ -64,12 +65,12 @@
          ((:and label (:or .command .emote))
           :color #(flavor-bg))
          (a :color #(flavor-bg))
-         ((:and a :hover) :color "#55AAEE"))))
-      (".lichat-channel::-webkit-scrollbar" :width 10px :height 10px)
-      (".lichat-channel::-webkit-scrollbar-button" :width 0 :height 0)
-      (".lichat-channel::-webkit-scrollbar-thumb" :background "#AAA" :border none)
-      (".lichat-channel::-webkit-scrollbar-thumb:hover" :background #(flavor-bg))
-      (".lichat-channel::-webkit-scrollbar-track" :background "#CCC"))
+         ((:and a :hover) :color "#55AAEE")))))
+     ((:and .lichat-channel "::-webkit-scrollbar") :width 10px :height 10px)
+     ((:and (:or .lichat-channel .menu) "::-webkit-scrollbar-button") :width 0 :height 0)
+     ((:and (:or .lichat-channel .menu) "::-webkit-scrollbar-thumb") :background "#AAA" :border none)
+     ((:and (:or .lichat-channel .menu) "::-webkit-scrollbar-thumb:hover") :background #(flavor-bg))
+     ((:and (:or .lichat-channel .menu) "::-webkit-scrollbar-track") :background "#CCC")
      (.input-area
       :border-color #(flavor-bg)
       (.emote-list
@@ -126,6 +127,7 @@
        :color #(flavor-bg))
       ("a:active"
        :background #(primary-bg)))
+     ((:and .menu "::-webkit-scrollbar") :width 4px :height 4px)
      (.lichat-output
       (.lichat-channel
        (.join (span :color green))
@@ -138,12 +140,12 @@
             :text-decoration none)
          ((:and a :hover) :color "#55AAEE")
          ((:and label (:or .command .emote))
-          :color #(flavor-bg)))))
-      (".lichat-channel::-webkit-scrollbar" :width 10px :height 10px)
-      (".lichat-channel::-webkit-scrollbar-button" :width 0 :height 0)
-      (".lichat-channel::-webkit-scrollbar-thumb" :background "#555" :border none)
-      (".lichat-channel::-webkit-scrollbar-thumb:hover" :background #(flavor-bg))
-      (".lichat-channel::-webkit-scrollbar-track" :background "#222"))
+          :color #(flavor-bg))))))
+     ((:and .lichat-channel "::-webkit-scrollbar") :width 10px :height 10px)
+     ((:and (:or .lichat-channel .menu) "::-webkit-scrollbar-button") :width 0 :height 0)
+     ((:and (:or .lichat-channel .menu) "::-webkit-scrollbar-thumb") :background "#555" :border none)
+     ((:and (:or .lichat-channel .menu) "::-webkit-scrollbar-thumb:hover") :background #(flavor-bg))
+     ((:and (:or .lichat-channel .menu) "::-webkit-scrollbar-track") :background "#222")
      (.input-area
       :border-color #(flavor-bg)
       (.emote-list
@@ -193,8 +195,8 @@
   :display none
   :position absolute
   :left 50% :top 50px
-  :margin-left -250px
-  :width 500px
+  :margin-left -200px
+  :width 400px
   :background white
   :padding 10px
   :border 3px solid black
@@ -233,6 +235,8 @@
    :flex-grow 1
    :display flex
    :flex-direction column
+   (.menu
+    :overflow-x auto)
    (.lichat-output
     :user-select text
     :font-family monospace
@@ -249,8 +253,7 @@
       :display flex
       :overflow-y hidden
       (>* :padding 2px 5px 2px 5px)
-      (time :width 80px
-            :font-size 0.9em
+      (time :font-size 0.9em
             :text-align center
             :vertical-align middle)
       (>a :min-width 100px

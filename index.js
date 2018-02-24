@@ -209,6 +209,16 @@ menu.querySelector("[data-action=leave]").addEventListener("click", (ev)=>{
     if(name) ui.invokeCommand("leave");
 }, false);
 
+menu.querySelector("[data-action=users]").addEventListener("click", (ev)=>{
+    var userlist = chat.querySelector(".users");
+    userlist.style.setProperty("display", (window.getComputedStyle(userlist).display == "none")? "flex" : "none", "important");
+}, false);
+
+menu.querySelector("[data-action=channels]").addEventListener("click", (ev)=>{
+    var channellist = chat.querySelector(".channels");
+    channellist.style.setProperty("display", (window.getComputedStyle(channellist).display == "none")? "flex" : "none", "important");
+}, false);
+
 menu.querySelector("[data-action=about]").addEventListener("click", (ev)=>{
     about.style.display = "block";
 }, false);
