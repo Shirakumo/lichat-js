@@ -137,11 +137,11 @@ client.handleFailure = (e)=>{
     fail((e instanceof Condition)?e.report():e+"");
 };
 
-client.addHandler("DISCONNECT", (client,update)=>{
+client.addHandler("DISCONNECT", (update)=>{
     fail("Disconnected");
 });
 
-client.addHandler("CONNECT", (client,update)=>{
+client.addHandler("CONNECT", (update)=>{
     stat.style.display = "none";
     chat.style.display = "";
 
@@ -155,7 +155,7 @@ client.addHandler("CONNECT", (client,update)=>{
     };
 });
 
-client.addHandler("EMOTE", (client,update)=>{
+client.addHandler("EMOTE", (update)=>{
     addEmoteToUI(":"+update["name"].toLowerCase().replace(/^:|:$/g,"")+":");
 });
 
