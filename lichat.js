@@ -1291,17 +1291,22 @@ var LichatUI = function(chat,client){
             autoComplete.pretext = text.substr(0, text.length-autoComplete.prefix.length);
         }
         
-        var matchingNames = [];
+        var matches = [];
         for(var user of self.channelElement(channel).users){
             if(user.toLowerCase().indexOf(autoComplete.prefix) === 0 &&
                user !== client.username)
-                matchingNames.push(user);
+                matches.push(user);
         }
-        if(0 < matchingNames.length){
-            matchingNames = cl.sort(matchingNames, cl.lt);
-            input.value = autoComplete.pretext+matchingNames[autoComplete.index]
-                + ((autoComplete.pretext === "")? ": ": " ");
-            autoComplete.index = (autoComplete.index+1)%matchingNames.length;
+        for(var emote in client.emotes){
+            if(emote.toLowerCase().indexOf(autoComplete.prefix) === 0)
+                matches.push(emote);
+        }
+        if(0 < matches.length){
+            matches = cl.sort(matches, cl.lt);
+            var match = matches[autoComplete.index];
+            input.value = autoComplete.pretext+match
+                + ((autoComplete.pretext === "" && match[match.length-1] !== ":")? ": ": " ");
+            autoComplete.index = (autoComplete.index+1)%matches.length;
         }
     }
 
