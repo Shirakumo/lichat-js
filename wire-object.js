@@ -1,4 +1,4 @@
-var LichatVersion = "1.3";
+var LichatVersion = "1.4";
 var IDCounter = Math.floor(Math.random()*(+new Date()));
 var nextID = ()=>{
     var ID = IDCounter;
