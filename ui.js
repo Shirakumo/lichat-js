@@ -302,12 +302,81 @@ var LichatUI = function(chat,client){
         self.channel = null;
     };
     
-    var URLRegex = new RegExp("((?:[\\w\\-_]+:\\/\\/)([\\w_\\-]+(?:(?:\\.[\\w_\\-]+)+))(?:[\\w.,@?^=%&:/~+#\\-()]*[\\w@?^=%&/~+#\\-])?)", "g");
+    // URL Regex by Diego Perini: https://gist.github.com/dperini/729294
+    var URLRegex = new RegExp(
+        "^" +
+          // protocol identifier (optional)
+          // short syntax // still required
+          "(?:(?:(?:https?|ftp):)?\\/\\/)" +
+          // user:pass BasicAuth (optional)
+          "(?:\\S+(?::\\S*)?@)?" +
+          "(?:" +
+            // IP address exclusion
+            // private & local networks
+            "(?!(?:10|127)(?:\\.\\d{1,3}){3})" +
+            "(?!(?:169\\.254|192\\.168)(?:\\.\\d{1,3}){2})" +
+            "(?!172\\.(?:1[6-9]|2\\d|3[0-1])(?:\\.\\d{1,3}){2})" +
+            // IP address dotted notation octets
+            // excludes loopback network 0.0.0.0
+            // excludes reserved space >= 224.0.0.0
+            // excludes network & broadcast addresses
+            // (first & last IP address of each class)
+            "(?:[1-9]\\d?|1\\d\\d|2[01]\\d|22[0-3])" +
+            "(?:\\.(?:1?\\d{1,2}|2[0-4]\\d|25[0-5])){2}" +
+            "(?:\\.(?:[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-4]))" +
+          "|" +
+            // host & domain names, may end with dot
+            // can be replaced by a shortest alternative
+            // (?![-_])(?:[-\\w\\u00a1-\\uffff]{0,63}[^-_]\\.)+
+            "(?:" +
+              "(?:" +
+                "[a-z0-9\\u00a1-\\uffff]" +
+                "[a-z0-9\\u00a1-\\uffff_-]{0,62}" +
+              ")?" +
+              "[a-z0-9\\u00a1-\\uffff]\\." +
+            ")+" +
+            // TLD identifier name, may end with dot
+            "(?:[a-z\\u00a1-\\uffff]{2,}\\.?)" +
+          ")" +
+          // port number (optional)
+          "(?::\\d{2,5})?" +
+          // resource path (optional)
+          "(?:[/?#]\\S*)?" +
+        "$", "i"
+      );
+
     self.linkifyURLs = (text)=>{
-        return text.replace(URLRegex,
-                            (match, url)=>{
-                                return "<a href=\""+self.unescapeHTML(url)+"\" class=\"userlink\" target=\"_blank\">"+url+"</a>"
-                            });
+        let out = [];
+        let word = [];
+        let start = 0, cur = 0;
+        for(let char of text){
+            // Note: unlike with 'of', text[n] would get only half of a wide unicode character
+            if(char.match(/^\s$/)){
+                if(start < cur){
+                    flushWord();
+                }
+                start = cur + 1;
+                out.push(char);
+            }else{
+                word.push(char);
+            }
+            cur++;
+        }
+        flushWord();
+        return out.join('');
+
+        function flushWord(){
+            if(0 < word.length){
+                let wordStr = word.join('');
+                let unescaped = self.unescapeHTML(wordStr);
+                word.length = 0;
+                if(unescaped.match(URLRegex)){
+                    out.push(`\u200B<a href="${unescaped} class="userlink" target="_blank">${wordStr}</a>\u200B`);
+                }else{
+                    out.push(wordStr);
+                }
+            }
+        }
     };
 
     self.prewrapURLs = (text)=>{
@@ -395,7 +464,7 @@ var LichatUI = function(chat,client){
     };
 
     self.formatUserText = (text)=>{
-        return self.replaceEmotes(self.markSelf(self.linkifyURLs(self.escapeHTML(self.prewrapURLs(text)))));
+        return self.replaceEmotes(self.markSelf(self.linkifyURLs(self.escapeHTML(text))));
     };
 
     var updates = 0;
