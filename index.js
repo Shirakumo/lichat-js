@@ -134,7 +134,11 @@ settings.querySelector("button").addEventListener("click", (ev)=>{
 client.handleFailure = (e)=>{
     if(console)
         console.log("Failure:",e);
-    fail((e instanceof Condition)?e.report():e+"");
+    if(e instanceof Condition){
+        fail(e.text || e.type);
+    }else{
+        fail(e+"");
+    }
 };
 
 client.addHandler("DISCONNECT", (update)=>{
@@ -160,7 +164,7 @@ client.addHandler("EMOTE", (update)=>{
 });
 
 login.addEventListener("submit", (ev)=>{
-    ev.preventDefault()
+    ev.preventDefault();
     login.style.display = "none";
     client.username = login.querySelector("input[name=username]").value;
     client.password = login.querySelector("input[name=password]").value;

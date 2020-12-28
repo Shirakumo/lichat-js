@@ -967,7 +967,7 @@ var LichatClient = function(options){
         };
         socket.onmessage = (e)=>{self.handleMessage(socket, e);};
         socket.onclose = (e)=>{
-            if(e.code !== 1000){
+            if(e.code !== 1000 && status != "STOPPING"){
                 self.handleFailure(new Condition("SOCKET-CLOSE", {
                     text: "Error "+e.code+" "+e.reason,
                     socket: socket,
@@ -975,7 +975,7 @@ var LichatClient = function(options){
                 }));
             }
             self.closeConnection(socket);
-        }
+        };
         self.socket = socket;
         return socket;
     };
@@ -1036,7 +1036,7 @@ var LichatClient = function(options){
                     if(!(cl.typep(update, "WIRE-OBJECT")))
                         cl.error("CONNECTION-FAILED",{text: "non-Update message", update: update});
                     if(update.type !== "CONNECT")
-                        cl.error("CONNECTION-FAILED",{text: "non-CONNECT update", update: update});
+                        cl.error("CONNECTION-FAILED",{text: update.text, update: update});
                 }catch(e){
                     self.handleFailure(e);
                     self.closeConnection(socket);
