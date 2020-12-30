@@ -252,8 +252,12 @@ var LichatUI = function(chat,client){
         name = name.toLowerCase();
         output.removeChild(self.channelElement(name));
         channels.removeChild(channels.querySelector("[data-channel=\""+name+"\"]"));
-        self.channel = null;
-        return self.changeChannel(client.servername);
+        if(self.channel == name){
+            self.channel = null;
+            return self.changeChannel(client.servername);
+        }else{
+            return self.channel;
+        }
     };
 
     self.changeChannel = (name)=>{

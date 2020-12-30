@@ -122,7 +122,8 @@ var LichatClient = function(options){
                     throw e;
                 }
                 status = "RUNNING";
-                self.servername = update.from;
+                if(!self.username)
+                    self.username = update.from;
                 self.process(update);
                 break;
             case "RUNNING":
@@ -241,6 +242,8 @@ var LichatClient = function(options){
     });
 
     self.addInternalHandler("JOIN", (ev)=>{
+        if(!self.servername)
+            self.servername = ev.channel;
         if(ev.from === self.username && ev.channel !== self.servername){
             cl.pushnew(ev.channel, self.channels);
             if(cl.find("shirakumo-backfill", availableExtensions)){
