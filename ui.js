@@ -375,7 +375,7 @@ var LichatUI = function(chat,client){
                 let unescaped = self.unescapeHTML(wordStr);
                 word.length = 0;
                 if(unescaped.match(URLRegex)){
-                    out.push(`\u200B<a href="${unescaped} class="userlink" target="_blank">${wordStr}</a>\u200B`);
+                    out.push(`\u200B<a href="${unescaped}" class="userlink" target="_blank">${wordStr}</a>\u200B`);
                 }else{
                     out.push(wordStr);
                 }
