@@ -6,6 +6,7 @@ var LichatUI = function(chat,client){
     var users = chat.querySelector(".lichat-user-list");
     var output = chat.querySelector(".lichat-output");
     var input = chat.querySelector(".lichat-input");
+    var topic = chat.querySelector(".lichat-topic");
 
     self.commandPrefix = "/";
     self.channel = null;
@@ -268,6 +269,10 @@ var LichatUI = function(chat,client){
             channels.querySelector(".active").classList.remove("active");
         channels.querySelector("[data-channel=\""+name+"\"]").classList.add("active");
         channel.style.display = "";
+        if(topic){
+            var text = client.channels[name][cl.kw("TOPIC")];
+            topic.innerText = text || "";
+        }
         self.channel = name;
         self.rebuildUserList();
         return channel;
@@ -623,6 +628,13 @@ var LichatUI = function(chat,client){
         }
     });
 
+    client.addHandler("SET-CHANNEL-INFO", (update)=>{
+        console.log(update);
+        if(self.channel == update.channel.toLowerCase() && update.key == cl.kw("TOPIC") && topic){
+            topic.innerText = update.text;
+        }
+    });
+
     self.addCommand("help", ()=>{
         var text = "Available commands:";
         for(var name in self.commands){
@@ -632,18 +644,21 @@ var LichatUI = function(chat,client){
         self.showMessage({html: text});
     }, "Show all available commands");
 
-    self.addCommand("register", (password)=>{
+    self.addCommand("register", (...args)=>{
+        password = args.join(" ");
         if(password.length<6)
             cl.error("PASSWORD-TOO-SHORT",{text: "Your password must be at least six characters long."});
         client.s("REGISTER", {password: password});
     }, "Register your username with a password.");
 
-    self.addCommand("create", (name)=>{
+    self.addCommand("create", (...args)=>{
+        name = args.join(" ");
         if(!name) name = null;
         client.s("CREATE", {channel: name});
     }, "Create a new channel. Not specifying a name will create an anonymous channel.");
 
-    self.addCommand("join", (name)=>{
+    self.addCommand("join", (...args)=>{
+        name = args.join(" ");
         if(!name) cl.error("MISSING-ARGUMENT",{text: "You must supply the name of the channel to join."});
         if(self.channelExists(name)){
             self.changeChannel(name);
@@ -652,7 +667,8 @@ var LichatUI = function(chat,client){
         }
     }, "Join an existing channel.");
 
-    self.addCommand("leave", (name)=>{
+    self.addCommand("leave", (...args)=>{
+        name = args.join(" ");
         if(!name) name = self.channel;
         if(self.channelExists(name))
             client.s("LEAVE", {channel: name});
@@ -670,7 +686,8 @@ var LichatUI = function(chat,client){
         client.s("KICK", {channel:name, target:user});
     }, "Kick a user from a channel. Not specifying a name will leave the current channel.");
 
-    self.addCommand("users", (name)=>{
+    self.addCommand("users", (...args)=>{
+        name = args.join(" ");
         if(!name) name = self.channel;
         client.s("USERS", {channel:name});
     }, "Fetch a list of users from a channel. Not specifying a name will leave the current channel.");
@@ -679,7 +696,8 @@ var LichatUI = function(chat,client){
         client.s("CHANNELS", {});
     }, "Fetch a list of public channels.");
 
-    self.addCommand("info", (user)=>{
+    self.addCommand("info", (...args)=>{
+        user = args.join(" ");
         if(!user) cl.error("MISSING-ARGUMENT",{text: "You must supply the name of a user to query."});
         client.s("USER-INFO", {target:user});
     }, "Fetch information about a user.");
@@ -716,6 +734,11 @@ var LichatUI = function(chat,client){
         }
         self.showMessage({html: text});
     }, "Show the available emotes.");
+
+    self.addCommand("topic", (...args)=>{
+        text = args.join(" ");
+        client.s("SET-CHANNEL-INFO", {channel: self.channel, key: cl.kw("TOPIC"), text: text});
+    });
 
     self.initControls = ()=>{
         input.addEventListener("keydown", (ev)=>{

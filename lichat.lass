@@ -54,6 +54,8 @@
       ("a:active"
        :background #(primary-bg)))
      ((:and .menu "::-webkit-scrollbar") :width 4px :height 4px)
+     (.lichat-topic
+      :background #(primary-bg))
      (.lichat-output
       (.lichat-channel
        (.join (span :color green))
@@ -128,6 +130,8 @@
       ("a:active"
        :background #(primary-bg)))
      ((:and .menu "::-webkit-scrollbar") :width 4px :height 4px)
+     (.lichat-topic
+      :background #(primary-bg))
      (.lichat-output
       (.lichat-channel
        (.join (span :color green))
@@ -236,6 +240,9 @@
    :display flex
    :flex-direction column
    (.menu
+    :overflow-x auto)
+   (.lichat-topic
+    :padding 0.1em 1em
     :overflow-x auto)
    (.lichat-output
     :user-select text

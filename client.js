@@ -19,14 +19,14 @@ var LichatClient = function(options){
     self.handlers = {};
     self.pingDelay = 15000;
     self.emotes = {};
-    self.channels = [];
+    self.channels = {};
     self.ssl = false;
 
     if(window.localStorage){
         self.emotes = JSON.parse(window.localStorage.getItem("emotes")) || {};
     }
 
-    var supportedExtensions = ["shirakumo-data", "shirakumo-backfill", "shirakumo-emotes"];
+    var supportedExtensions = ["shirakumo-data", "shirakumo-backfill", "shirakumo-emotes", "shirakumo-channel-info"];
     var availableExtensions = [];
     var internalHandlers = {};
     var idCallbacks = {};
@@ -61,7 +61,7 @@ var LichatClient = function(options){
 
     self.closeConnection = (socket)=>{
         socket = socket || self.socket;
-        self.channels = [];
+        self.channels = {};
         if(status != "STOPPING"){
             status = "STOPPING";
             if(socket && socket.readyState < 2){
@@ -244,21 +244,29 @@ var LichatClient = function(options){
     self.addInternalHandler("JOIN", (ev)=>{
         if(!self.servername)
             self.servername = ev.channel;
-        if(ev.from === self.username && ev.channel !== self.servername){
-            cl.pushnew(ev.channel, self.channels);
-            if(cl.find("shirakumo-backfill", availableExtensions)){
+        if(ev.from === self.username){
+            self.channels[ev.channel.toLowerCase()] = {};
+            if(cl.find("shirakumo-backfill", availableExtensions)
+               && ev.channel !== self.servername){
                 self.s("BACKFILL", {channel: ev.channel});
+            }
+            if(cl.find("shirakumo-channel-info", availableExtensions)){
+                self.s("CHANNEL-INFO", {channel: ev.channel});
             }
         }
     });
 
     self.addInternalHandler("LEAVE", (ev)=>{
         if(ev.from === self.username){
-            self.channels = cl.remove(ev.channel, self.channels);
+            delete self.channels[ev.from];
         }
     });
 
     self.addInternalHandler("EMOTE", (ev)=>{
         self.addEmote(ev);
+    });
+
+    self.addInternalHandler("SET-CHANNEL-INFO", (ev)=>{
+        self.channels[ev.channel.toLowerCase()][ev.key] = ev.text;
     });
 };
