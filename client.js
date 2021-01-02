@@ -26,7 +26,8 @@ var LichatClient = function(options){
         self.emotes = JSON.parse(window.localStorage.getItem("emotes")) || {};
     }
 
-    var supportedExtensions = ["shirakumo-data", "shirakumo-backfill", "shirakumo-emotes", "shirakumo-channel-info"];
+    var supportedExtensions = ["shirakumo-data", "shirakumo-backfill", "shirakumo-emotes",
+                               "shirakumo-channel-info", "shirakumo-quiet", "shirakumo-pause"];
     var availableExtensions = [];
     var internalHandlers = {};
     var idCallbacks = {};

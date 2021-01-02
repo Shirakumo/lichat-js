@@ -555,10 +555,10 @@ var nextID = ()=>{
     return ID;
 };
 
-for(var name of ["WIRE-OBJECT","UPDATE","PING","PONG","CONNECT","DISCONNECT","REGISTER","CHANNEL-UPDATE","TARGET-UPDATE","TEXT-UPDATE","JOIN","LEAVE","CREATE","KICK","PULL","PERMISSIONS","MESSAGE","USERS","CHANNELS","USER-INFO","BACKFILL","DATA","EMOTE","EMOTES","FAILURE","MALFORMED-UPDATE","UPDATE-TOO-LONG","CONNECTION-UNSTABLE","TOO-MANY-CONNECTIONS","UPDATE-FAILURE","INVALID-UPDATE","USERNAME-MISMATCH","INCOMPATIBLE-VERSION","INVALID-PASSWORD","NO-SUCH-PROFILE","USERNAME-TAKEN","NO-SUCH-CHANNEL","ALREADY-IN-CHANNEL","NOT-IN-CHANNEL","CHANNELNAME-TAKEN","BAD-NAME","INSUFFICIENT-PERMISSIONS","INVALID-PERMISSIONS","NO-SUCH-USER","TOO-MANY-UPDATES","BAD-CONTENT-TYPE","NIL","T","+","-","CHANNEL-INFO","SET-CHANNEL-INFO","NO-SUCH-CHANNEL-INFO","MALFORMED-CHANNEL-INFO"]){
+for(var name of ["WIRE-OBJECT","UPDATE","PING","PONG","CONNECT","DISCONNECT","REGISTER","CHANNEL-UPDATE","TARGET-UPDATE","TEXT-UPDATE","JOIN","LEAVE","CREATE","KICK","PULL","PERMISSIONS","MESSAGE","USERS","CHANNELS","USER-INFO","BACKFILL","DATA","EMOTE","EMOTES","FAILURE","MALFORMED-UPDATE","UPDATE-TOO-LONG","CONNECTION-UNSTABLE","TOO-MANY-CONNECTIONS","UPDATE-FAILURE","INVALID-UPDATE","USERNAME-MISMATCH","INCOMPATIBLE-VERSION","INVALID-PASSWORD","NO-SUCH-PROFILE","USERNAME-TAKEN","NO-SUCH-CHANNEL","ALREADY-IN-CHANNEL","NOT-IN-CHANNEL","CHANNELNAME-TAKEN","BAD-NAME","INSUFFICIENT-PERMISSIONS","INVALID-PERMISSIONS","NO-SUCH-USER","TOO-MANY-UPDATES","BAD-CONTENT-TYPE","NIL","T","+","-","CHANNEL-INFO","SET-CHANNEL-INFO","NO-SUCH-CHANNEL-INFO","MALFORMED-CHANNEL-INFO","PAUSE","QUIET","UNQUIET"]){
     cl.intern(name, "LICHAT-PROTOCOL");
 }
-for(var name of ["ID","CLOCK","FROM","PASSWORD","VERSION","EXTENSIONS","CHANNEL","TARGET","TEXT","PERMISSIONS","USERS","CHANNELS","REGISTERED","CONNECTIONS","UPDATE-ID","COMPATIBLE-VERSIONS","CONTENT-TYPE","FILENAME","PAYLOAD","NAME","NAMES","ALLOWED-CONTENT-TYPES","KEYS","KEY","NEWS","TOPIC","RULES","CONTACT"]){
+for(var name of ["ID","CLOCK","FROM","PASSWORD","VERSION","EXTENSIONS","CHANNEL","TARGET","TEXT","PERMISSIONS","USERS","CHANNELS","REGISTERED","CONNECTIONS","UPDATE-ID","COMPATIBLE-VERSIONS","CONTENT-TYPE","FILENAME","PAYLOAD","NAME","NAMES","ALLOWED-CONTENT-TYPES","KEYS","KEY","NEWS","TOPIC","RULES","CONTACT","BY"]){
     cl.intern(name, "KEYWORD");
 }
 
@@ -630,6 +630,11 @@ cl.defclass("SET-CHANNEL-INFO", ["CHANNEL-UPDATE"], {
     key: cl.requiredArg("key"),
     text: cl.requiredArg("text")
 });
+cl.defclass("PAUSE", ["CHANNEL-UPDATE"], {
+    by: cl.requiredArg("by")
+});
+cl.defclass("QUIET", ["CHANNEL-UPDATE","TARGET-UPDATE"]);
+cl.defclass("UNQUIET", ["CHANNEL-UPDATE","TARGET-UPDATE"]);
 cl.defclass("FAILURE", ["TEXT-UPDATE"]);
 cl.defclass("MALFORMED-UPDATE", ["FAILURE"]);
 cl.defclass("UPDATE-TOO-LONG", ["FAILURE"]);
@@ -962,7 +967,8 @@ var LichatClient = function(options){
         self.emotes = JSON.parse(window.localStorage.getItem("emotes")) || {};
     }
 
-    var supportedExtensions = ["shirakumo-data", "shirakumo-backfill", "shirakumo-emotes", "shirakumo-channel-info"];
+    var supportedExtensions = ["shirakumo-data", "shirakumo-backfill", "shirakumo-emotes",
+                               "shirakumo-channel-info", "shirakumo-quiet", "shirakumo-pause"];
     var availableExtensions = [];
     var internalHandlers = {};
     var idCallbacks = {};
@@ -1823,6 +1829,30 @@ var LichatUI = function(chat,client){
         self.showMessage(update);
     });
 
+    client.addHandler("SET-CHANNEL-INFO", (update)=>{
+        if(self.channel == update.channel.toLowerCase() && update.key == cl.kw("TOPIC") && topic){
+            topic.innerText = update.text;
+        }
+    });
+
+    client.addHandler("PAUSE", (update)=>{
+        if(update.by <= 0)
+            update.text = " ** Paused mode has been deactivated. You can now chat freely.";
+        else
+            update.text = " ** Paused mode has been activated. You may only message every "+update.by+" seconds.";
+        self.showMessage(update);
+    });
+
+    client.addHandler("QUIET", (update)=>{
+        update.text = " ** "+update.target+" has been quieted. Their messages will no longer be visible.";
+        self.showMessage(udpate);
+    });
+
+    client.addHandler("UNQUIET", (update)=>{
+        update.text = " ** "+update.target+" has been unquieted. Their messages will be visible again.";
+        self.showMessage(udpate);
+    });
+
     client.addHandler("FAILURE", (update)=>{
         self.showMessage(update);
     });
@@ -1833,13 +1863,6 @@ var LichatUI = function(chat,client){
                     ["PING", "PONG", "EMOTES", "EMOTE"])){
             if(!update.text) update.text = "Received update of type "+update.type;
             self.showMessage(update);
-        }
-    });
-
-    client.addHandler("SET-CHANNEL-INFO", (update)=>{
-        console.log(update);
-        if(self.channel == update.channel.toLowerCase() && update.key == cl.kw("TOPIC") && topic){
-            topic.innerText = update.text;
         }
     });
 
@@ -1946,6 +1969,18 @@ var LichatUI = function(chat,client){
     self.addCommand("topic", (...args)=>{
         text = args.join(" ");
         client.s("SET-CHANNEL-INFO", {channel: self.channel, key: cl.kw("TOPIC"), text: text});
+    });
+
+    self.addCommand("pause", (seconds)=>{
+        client.s("PAUSE", {channel: self.channel, by: parseInt(seconds)});
+    });
+
+    self.addCommand("quiet", (...args)=>{
+        client.s("QUIET", {channel: self.channel, target: args.join(args)});
+    });
+
+    self.addCommand("unquiet", (...args)=>{
+        client.s("UNQUIET", {channel: self.channel, target: args.join(args)});
     });
 
     self.initControls = ()=>{

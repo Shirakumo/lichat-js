@@ -615,6 +615,30 @@ var LichatUI = function(chat,client){
         self.showMessage(update);
     });
 
+    client.addHandler("SET-CHANNEL-INFO", (update)=>{
+        if(self.channel == update.channel.toLowerCase() && update.key == cl.kw("TOPIC") && topic){
+            topic.innerText = update.text;
+        }
+    });
+
+    client.addHandler("PAUSE", (update)=>{
+        if(update.by <= 0)
+            update.text = " ** Paused mode has been deactivated. You can now chat freely.";
+        else
+            update.text = " ** Paused mode has been activated. You may only message every "+update.by+" seconds.";
+        self.showMessage(update);
+    });
+
+    client.addHandler("QUIET", (update)=>{
+        update.text = " ** "+update.target+" has been quieted. Their messages will no longer be visible.";
+        self.showMessage(udpate);
+    });
+
+    client.addHandler("UNQUIET", (update)=>{
+        update.text = " ** "+update.target+" has been unquieted. Their messages will be visible again.";
+        self.showMessage(udpate);
+    });
+
     client.addHandler("FAILURE", (update)=>{
         self.showMessage(update);
     });
@@ -625,13 +649,6 @@ var LichatUI = function(chat,client){
                     ["PING", "PONG", "EMOTES", "EMOTE"])){
             if(!update.text) update.text = "Received update of type "+update.type;
             self.showMessage(update);
-        }
-    });
-
-    client.addHandler("SET-CHANNEL-INFO", (update)=>{
-        console.log(update);
-        if(self.channel == update.channel.toLowerCase() && update.key == cl.kw("TOPIC") && topic){
-            topic.innerText = update.text;
         }
     });
 
@@ -738,6 +755,18 @@ var LichatUI = function(chat,client){
     self.addCommand("topic", (...args)=>{
         text = args.join(" ");
         client.s("SET-CHANNEL-INFO", {channel: self.channel, key: cl.kw("TOPIC"), text: text});
+    });
+
+    self.addCommand("pause", (seconds)=>{
+        client.s("PAUSE", {channel: self.channel, by: parseInt(seconds)});
+    });
+
+    self.addCommand("quiet", (...args)=>{
+        client.s("QUIET", {channel: self.channel, target: args.join(args)});
+    });
+
+    self.addCommand("unquiet", (...args)=>{
+        client.s("UNQUIET", {channel: self.channel, target: args.join(args)});
     });
 
     self.initControls = ()=>{
