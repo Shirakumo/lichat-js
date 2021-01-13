@@ -769,6 +769,30 @@ var LichatUI = function(chat,client){
         client.s("UNQUIET", {channel: self.channel, target: args.join(args)});
     });
 
+    self.addCommand("kill", (...args)=>{
+        client.s("KILL", {target: args.join(args)});
+    });
+
+    self.addCommand("destroy", (...args)=>{
+        client.s("DESTROY", {channel: args.join(args)});
+    });
+
+    self.addCommand("ban", (...args)=>{
+        client.s("BAN", {target: args.join(args)});
+    });
+
+    self.addCommand("unban", (...args)=>{
+        client.s("UNBAN", {target: args.join(args)});
+    });
+
+    self.addCommand("ip-ban", (ip, mask)=>{
+        client.s("IP-BAN", {ip: ip, mask: mask});
+    });
+
+    self.addCommand("ip-unban", (ip, mask)=>{
+        client.s("IP-UNBAN", {ip: ip, mask: mask});
+    });
+
     self.initControls = ()=>{
         input.addEventListener("keydown", (ev)=>{
             if(ev.keyCode === 9){
