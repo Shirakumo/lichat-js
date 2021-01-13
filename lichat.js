@@ -555,10 +555,10 @@ var nextID = ()=>{
     return ID;
 };
 
-for(var name of ["WIRE-OBJECT","UPDATE","PING","PONG","CONNECT","DISCONNECT","REGISTER","CHANNEL-UPDATE","TARGET-UPDATE","TEXT-UPDATE","JOIN","LEAVE","CREATE","KICK","PULL","PERMISSIONS","MESSAGE","USERS","CHANNELS","USER-INFO","BACKFILL","DATA","EMOTE","EMOTES","FAILURE","MALFORMED-UPDATE","UPDATE-TOO-LONG","CONNECTION-UNSTABLE","TOO-MANY-CONNECTIONS","UPDATE-FAILURE","INVALID-UPDATE","USERNAME-MISMATCH","INCOMPATIBLE-VERSION","INVALID-PASSWORD","NO-SUCH-PROFILE","USERNAME-TAKEN","NO-SUCH-CHANNEL","ALREADY-IN-CHANNEL","NOT-IN-CHANNEL","CHANNELNAME-TAKEN","BAD-NAME","INSUFFICIENT-PERMISSIONS","INVALID-PERMISSIONS","NO-SUCH-USER","TOO-MANY-UPDATES","BAD-CONTENT-TYPE","NIL","T","+","-","CHANNEL-INFO","SET-CHANNEL-INFO","NO-SUCH-CHANNEL-INFO","MALFORMED-CHANNEL-INFO","PAUSE","QUIET","UNQUIET","CLOCK-SKEWED"]){
+for(var name of ["WIRE-OBJECT","UPDATE","PING","PONG","CONNECT","DISCONNECT","REGISTER","CHANNEL-UPDATE","TARGET-UPDATE","TEXT-UPDATE","JOIN","LEAVE","CREATE","KICK","PULL","PERMISSIONS","MESSAGE","USERS","CHANNELS","USER-INFO","BACKFILL","DATA","EMOTE","EMOTES","FAILURE","MALFORMED-UPDATE","UPDATE-TOO-LONG","CONNECTION-UNSTABLE","TOO-MANY-CONNECTIONS","UPDATE-FAILURE","INVALID-UPDATE","USERNAME-MISMATCH","INCOMPATIBLE-VERSION","INVALID-PASSWORD","NO-SUCH-PROFILE","USERNAME-TAKEN","NO-SUCH-CHANNEL","ALREADY-IN-CHANNEL","NOT-IN-CHANNEL","CHANNELNAME-TAKEN","BAD-NAME","INSUFFICIENT-PERMISSIONS","INVALID-PERMISSIONS","NO-SUCH-USER","TOO-MANY-UPDATES","BAD-CONTENT-TYPE","NIL","T","+","-","CHANNEL-INFO","SET-CHANNEL-INFO","NO-SUCH-CHANNEL-INFO","MALFORMED-CHANNEL-INFO","PAUSE","QUIET","UNQUIET","BAN","UNBAN","IP-BAN","IP-UNBAN","KILL","DESTROY","CLOCK-SKEWED"]){
     cl.intern(name, "LICHAT-PROTOCOL");
 }
-for(var name of ["ID","CLOCK","FROM","PASSWORD","VERSION","EXTENSIONS","CHANNEL","TARGET","TEXT","PERMISSIONS","USERS","CHANNELS","REGISTERED","CONNECTIONS","UPDATE-ID","COMPATIBLE-VERSIONS","CONTENT-TYPE","FILENAME","PAYLOAD","NAME","NAMES","ALLOWED-CONTENT-TYPES","KEYS","KEY","NEWS","TOPIC","RULES","CONTACT","BY"]){
+for(var name of ["ID","CLOCK","FROM","PASSWORD","VERSION","EXTENSIONS","CHANNEL","TARGET","TEXT","PERMISSIONS","USERS","CHANNELS","REGISTERED","CONNECTIONS","UPDATE-ID","COMPATIBLE-VERSIONS","CONTENT-TYPE","FILENAME","PAYLOAD","NAME","NAMES","ALLOWED-CONTENT-TYPES","KEYS","KEY","NEWS","TOPIC","RULES","CONTACT","BY","IP","MASK"]){
     cl.intern(name, "KEYWORD");
 }
 
@@ -635,6 +635,18 @@ cl.defclass("PAUSE", ["CHANNEL-UPDATE"], {
 });
 cl.defclass("QUIET", ["CHANNEL-UPDATE","TARGET-UPDATE"]);
 cl.defclass("UNQUIET", ["CHANNEL-UPDATE","TARGET-UPDATE"]);
+cl.defclass("KILL", ["TARGET-UPDATE"]);
+cl.defclass("DESTROY", ["CHANNEL-UPDATE"]);
+cl.defclass("BAN", ["TARGET-UPDATE"]);
+cl.defclass("UNBAN", ["TARGET-UPDATE"]);
+cl.defclass("IP-BAN", [], {
+    ip: cl.requiredArg("ip"),
+    mask: cl.requiredArg("mask")
+});
+cl.defclass("IP-UNBAN", [], {
+    ip: cl.requiredArg("ip"),
+    mask: cl.requiredArg("mask")
+});
 cl.defclass("FAILURE", ["TEXT-UPDATE"]);
 cl.defclass("MALFORMED-UPDATE", ["FAILURE"]);
 cl.defclass("UPDATE-TOO-LONG", ["FAILURE"]);
@@ -969,7 +981,8 @@ var LichatClient = function(options){
     }
 
     var supportedExtensions = ["shirakumo-data", "shirakumo-backfill", "shirakumo-emotes",
-                               "shirakumo-channel-info", "shirakumo-quiet", "shirakumo-pause"];
+                               "shirakumo-channel-info", "shirakumo-quiet", "shirakumo-pause",
+                               "shirakumo-server-management", "shirakumo-ip"];
     var availableExtensions = [];
     var internalHandlers = {};
     var idCallbacks = {};
@@ -1982,6 +1995,30 @@ var LichatUI = function(chat,client){
 
     self.addCommand("unquiet", (...args)=>{
         client.s("UNQUIET", {channel: self.channel, target: args.join(args)});
+    });
+
+    self.addCommand("kill", (...args)=>{
+        client.s("KILL", {target: args.join(args)});
+    });
+
+    self.addCommand("destroy", (...args)=>{
+        client.s("DESTROY", {channel: args.join(args)});
+    });
+
+    self.addCommand("ban", (...args)=>{
+        client.s("BAN", {target: args.join(args)});
+    });
+
+    self.addCommand("unban", (...args)=>{
+        client.s("UNBAN", {target: args.join(args)});
+    });
+
+    self.addCommand("ip-ban", (ip, mask)=>{
+        client.s("IP-BAN", {ip: ip, mask: mask});
+    });
+
+    self.addCommand("ip-unban", (ip, mask)=>{
+        client.s("IP-UNBAN", {ip: ip, mask: mask});
     });
 
     self.initControls = ()=>{
