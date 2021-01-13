@@ -135,6 +135,13 @@ client.handleFailure = (e)=>{
     if(console)
         console.log("Failure:",e);
     if(e instanceof Condition){
+        if(e.update.type == "INVALID-PASSWORD"){
+            var pwfield = login.querySelector("input[name=password]");
+            if(pwfield){
+                pwfield.parentNode.setAttribute("style","");
+                pwfield.focus();
+            }
+        }
         fail(e.text || e.type);
     }else{
         fail(e+"");
