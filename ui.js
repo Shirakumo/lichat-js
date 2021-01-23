@@ -140,6 +140,9 @@ var LichatUI = function(chat,client){
             var sub = self.constructElement(tag, options.elements[tag]);
             el.appendChild(sub);
         }
+        for(var data in (options.dataset||{})){
+            el.dataset[data] = options.dataset[data];
+        }
         return el;
     };
 
@@ -161,13 +164,18 @@ var LichatUI = function(chat,client){
         return (element.scrollHeight - element.scrollTop - element.clientHeight) < 10;
     };
 
-    var lastInserted = null;
-    self.showMessage = (options)=>{
+    self.ensureMessageOptions = (options)=>{
         if(!options.clock) options.clock = cl.getUniversalTime();
         if(!options.from) options.from = "System";
         if(!options.type) options.type = "INFO";
         if(!options.channel) options.channel = self.channel;
         if(!options.text && !options.html) cl.error("NO-MESSAGE-TEXT",{message:options});
+        return options;
+    };
+
+    var lastInserted = null;
+    self.showMessage = (options)=>{
+        options = self.ensureMessageOptions(options);
         if(cl.classOf(options)){
             classList = cl.mapcar((a)=>a.className.toLowerCase(), cl.classOf(options).superclasses);
             classList.push(cl.classOf(options).className);
@@ -179,6 +187,7 @@ var LichatUI = function(chat,client){
         // Construct element
         var el = self.constructElement("div", {
             classes: classList,
+            dataset: {id: options.id,from: options.from},
             elements: {"time": {text: self.formatTime(timestamp),
                                 attributes: {datetime: ""+timestamp}},
                        "a": {text: options.from,
@@ -223,6 +232,20 @@ var LichatUI = function(chat,client){
         }else{
             return self.showMessage({from: "System",
                                      text: e+""});
+        }
+    };
+
+    self.editMessage = (options)=>{
+        options = self.ensureMessageOptions(options);
+        let channel = self.channelElement(options.channel);
+        for(let child of channel.childNodes){
+            if(parseInt(child.dataset.id) === options.id &&
+               child.dataset.from === options.from){
+                let span = child.lastElementChild;
+                if(options.text) span.innerText = options.text;
+                if(options.html) span.innerHTML = options.html;
+                break;
+            }
         }
     };
 
@@ -521,6 +544,14 @@ var LichatUI = function(chat,client){
         }
         update.html = self.formatUserText(update.text);
         self.showMessage(update);
+    });
+
+    client.addHandler("EDIT", (update)=>{
+        if(document.hidden){
+            self.notify(update);
+        }
+        update.html = self.formatUserText(update.text);
+        self.editMessage(update);
     });
 
     client.addHandler("DATA", (update)=>{
