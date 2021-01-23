@@ -67,6 +67,12 @@ var LichatUI = function(chat,client){
         client.s("MESSAGE", {channel: channel, text: text});
     };
 
+    self.sendEdit = (text, id, channel)=>{
+        if(channel === undefined) channel = self.channel;
+        if(!channel) cl.error("NO-ACTIVE-CHANNEL");
+        client.s("EDIT", {channel: channel, id: id, text: text});
+    };
+
     self.sendFile = (file, channel)=>{
         if(channel === undefined) channel = self.channel;
         if(!channel) cl.error("NO-ACTIVE-CHANNEL");
