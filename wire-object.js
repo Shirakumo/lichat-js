@@ -42,6 +42,15 @@ cl.defclass("PULL", ["CHANNEL-UPDATE", "TARGET-UPDATE"]);
 cl.defclass("PERMISSIONS", ["CHANNEL-UPDATE"], {
     permissions: []
 });
+cl.defclass("GRANT", ["CHANNEL-UPDATE", "TARGET-UPDATE"], {
+    update: cl.requiredArg("update")
+});
+cl.defclass("DENY", ["CHANNEL-UPDATE", "TARGET-UPDATE"], {
+    update: cl.requiredArg("update")
+});
+cl.defclass("CAPABILITIES", ["CHANNEL-UPDATE"], {
+    updates: []
+});
 cl.defclass("MESSAGE", ["CHANNEL-UPDATE", "TEXT-UPDATE"]);
 cl.defclass("EDIT", ["CHANNEL-UPDATE", "TEXT-UPDATE"]);
 cl.defclass("USERS", ["CHANNEL-UPDATE"], {
@@ -53,6 +62,10 @@ cl.defclass("CHANNELS", ["UPDATE"], {
 cl.defclass("USER-INFO", ["TARGET-UPDATE"], {
     registered: false,
     connections: 1
+});
+cl.defclass("SERVER-INFO", ["TARGET-UPDATE"], {
+    attributes: [],
+    connections: []
 });
 cl.defclass("BACKFILL", ["CHANNEL-UPDATE"]);
 cl.defclass("DATA", ["CHANNEL-UPDATE"], {
