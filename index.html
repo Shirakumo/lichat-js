@@ -13,12 +13,11 @@
     <div class="status" style="display:none"></div>
     <form class="login" action="#">
       <h1>Log In to Lichat</h1>
-      <p>Just pick a username and hit connect. No registration or password is necessary.</p>
       <div><label>Username</label>
         <input type="text" name="username" maxlength="32" placeholder="My Name" autofocus />
       </div>
-      <div><label>Password<span style="font-size:0.5em;display:block">Only required for registered users</span></label>
-        <input type="password" name="password" placeholder="(optional)" />
+      <div style="display:none"><label>Password</label>
+        <input type="password" name="password" placeholder="" />
       </div>
       <div><label>Server Hostname</label>
         <input type="text" name="hostname" value="localhost" required />
@@ -50,6 +49,7 @@
           <a data-action="settings" title="Change some options">Settings</a>
           <a data-action="about" title="About Lichat-JS">About</a>
         </nav>
+        <div class="lichat-topic"></div>
         <div class="lichat-output">
         </div>
         <div class="input-area">

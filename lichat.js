@@ -152,6 +152,10 @@ var CL = function(){
         return symbol;
     };
 
+    self.kw = (name)=>{
+        return self.intern(name, "KEYWORD");
+    };
+
     self.makeSymbol = (name)=>{
         return new Symbol(name);
     };
@@ -543,7 +547,7 @@ var LichatStream = function(string){
     
     return self;
 }
-var LichatVersion = "1.4";
+var LichatVersion = "2.0";
 var IDCounter = Math.floor(Math.random()*(+new Date()));
 var nextID = ()=>{
     var ID = IDCounter;
@@ -551,10 +555,10 @@ var nextID = ()=>{
     return ID;
 };
 
-for(var name of ["WIRE-OBJECT","UPDATE","PING","PONG","CONNECT","DISCONNECT","REGISTER","CHANNEL-UPDATE","TARGET-UPDATE","TEXT-UPDATE","JOIN","LEAVE","CREATE","KICK","PULL","PERMISSIONS","MESSAGE","USERS","CHANNELS","USER-INFO","BACKFILL","DATA","EMOTE","EMOTES","FAILURE","MALFORMED-UPDATE","UPDATE-TOO-LONG","CONNECTION-UNSTABLE","TOO-MANY-CONNECTIONS","UPDATE-FAILURE","INVALID-UPDATE","USERNAME-MISMATCH","INCOMPATIBLE-VERSION","INVALID-PASSWORD","NO-SUCH-PROFILE","USERNAME-TAKEN","NO-SUCH-CHANNEL","ALREADY-IN-CHANNEL","NOT-IN-CHANNEL","CHANNELNAME-TAKEN","BAD-NAME","INSUFFICIENT-PERMISSIONS","INVALID-PERMISSIONS","NO-SUCH-USER","TOO-MANY-UPDATES","BAD-CONTENT-TYPE","NIL","T"]){
+for(var name of ["WIRE-OBJECT","UPDATE","PING","PONG","CONNECT","DISCONNECT","REGISTER","CHANNEL-UPDATE","TARGET-UPDATE","TEXT-UPDATE","JOIN","LEAVE","CREATE","KICK","PULL","PERMISSIONS","MESSAGE","USERS","CHANNELS","USER-INFO","BACKFILL","DATA","EMOTE","EMOTES","FAILURE","MALFORMED-UPDATE","UPDATE-TOO-LONG","CONNECTION-UNSTABLE","TOO-MANY-CONNECTIONS","UPDATE-FAILURE","INVALID-UPDATE","USERNAME-MISMATCH","INCOMPATIBLE-VERSION","INVALID-PASSWORD","NO-SUCH-PROFILE","USERNAME-TAKEN","NO-SUCH-CHANNEL","ALREADY-IN-CHANNEL","NOT-IN-CHANNEL","CHANNELNAME-TAKEN","BAD-NAME","INSUFFICIENT-PERMISSIONS","INVALID-PERMISSIONS","NO-SUCH-USER","TOO-MANY-UPDATES","BAD-CONTENT-TYPE","NIL","T","+","-","CHANNEL-INFO","SET-CHANNEL-INFO","NO-SUCH-CHANNEL-INFO","MALFORMED-CHANNEL-INFO","PAUSE","QUIET","UNQUIET","BAN","UNBAN","IP-BAN","IP-UNBAN","KILL","DESTROY","CLOCK-SKEWED"]){
     cl.intern(name, "LICHAT-PROTOCOL");
 }
-for(var name of ["ID","CLOCK","FROM","PASSWORD","VERSION","EXTENSIONS","CHANNEL","TARGET","TEXT","PERMISSIONS","USERS","CHANNELS","REGISTERED","CONNECTIONS","UPDATE-ID","COMPATIBLE-VERSIONS","CONTENT-TYPE","FILENAME","PAYLOAD","NAME","NAMES","ALLOWED-CONTENT-TYPES"]){
+for(var name of ["ID","CLOCK","FROM","PASSWORD","VERSION","EXTENSIONS","CHANNEL","TARGET","TEXT","PERMISSIONS","USERS","CHANNELS","REGISTERED","CONNECTIONS","UPDATE-ID","COMPATIBLE-VERSIONS","CONTENT-TYPE","FILENAME","PAYLOAD","NAME","NAMES","ALLOWED-CONTENT-TYPES","KEYS","KEY","NEWS","TOPIC","RULES","CONTACT","BY","IP","MASK"]){
     cl.intern(name, "KEYWORD");
 }
 
@@ -619,6 +623,30 @@ cl.defclass("EMOTE", ["UPDATE"], {
     name: cl.requiredArg("name"),
     payload: cl.requiredArg("payload")
 });
+cl.defclass("CHANNEL-INFO", ["CHANNEL-UPDATE"], {
+    keys: true
+});
+cl.defclass("SET-CHANNEL-INFO", ["CHANNEL-UPDATE"], {
+    key: cl.requiredArg("key"),
+    text: cl.requiredArg("text")
+});
+cl.defclass("PAUSE", ["CHANNEL-UPDATE"], {
+    by: cl.requiredArg("by")
+});
+cl.defclass("QUIET", ["CHANNEL-UPDATE","TARGET-UPDATE"]);
+cl.defclass("UNQUIET", ["CHANNEL-UPDATE","TARGET-UPDATE"]);
+cl.defclass("KILL", ["TARGET-UPDATE"]);
+cl.defclass("DESTROY", ["CHANNEL-UPDATE"]);
+cl.defclass("BAN", ["TARGET-UPDATE"]);
+cl.defclass("UNBAN", ["TARGET-UPDATE"]);
+cl.defclass("IP-BAN", [], {
+    ip: cl.requiredArg("ip"),
+    mask: cl.requiredArg("mask")
+});
+cl.defclass("IP-UNBAN", [], {
+    ip: cl.requiredArg("ip"),
+    mask: cl.requiredArg("mask")
+});
 cl.defclass("FAILURE", ["TEXT-UPDATE"]);
 cl.defclass("MALFORMED-UPDATE", ["FAILURE"]);
 cl.defclass("UPDATE-TOO-LONG", ["FAILURE"]);
@@ -646,6 +674,11 @@ cl.defclass("TOO-MANY-UPDATES", ["UPDATE-FAILURE"]);
 cl.defclass("BAD-CONTENT-TYPE", ["UPDATE-FAILURE"], {
     "allowed-content-types": []
 });
+cl.defclass("NO-SUCH-CHANNEL-INFO", ["UPDATE-FAILURE"], {
+    key: cl.requiredArg("key")
+});
+cl.defclass("MALFORMED-CHANNEL-INFO", ["UPDATE-FAILURE"]);
+cl.defclass("CLOCK-SKEWED", ["UPDATE-FAILURE"]);
 var LichatPrinter = function(){
     var self = this;
 
@@ -940,14 +973,16 @@ var LichatClient = function(options){
     self.handlers = {};
     self.pingDelay = 15000;
     self.emotes = {};
-    self.channels = [];
+    self.channels = {};
     self.ssl = false;
 
     if(window.localStorage){
         self.emotes = JSON.parse(window.localStorage.getItem("emotes")) || {};
     }
 
-    var supportedExtensions = ["shirakumo-data", "shirakumo-backfill", "shirakumo-emotes"];
+    var supportedExtensions = ["shirakumo-data", "shirakumo-backfill", "shirakumo-emotes",
+                               "shirakumo-channel-info", "shirakumo-quiet", "shirakumo-pause",
+                               "shirakumo-server-management", "shirakumo-ip"];
     var availableExtensions = [];
     var internalHandlers = {};
     var idCallbacks = {};
@@ -982,7 +1017,7 @@ var LichatClient = function(options){
 
     self.closeConnection = (socket)=>{
         socket = socket || self.socket;
-        self.channels = [];
+        self.channels = {};
         if(status != "STOPPING"){
             status = "STOPPING";
             if(socket && socket.readyState < 2){
@@ -1165,22 +1200,30 @@ var LichatClient = function(options){
     self.addInternalHandler("JOIN", (ev)=>{
         if(!self.servername)
             self.servername = ev.channel;
-        if(ev.from === self.username && ev.channel !== self.servername){
-            cl.pushnew(ev.channel, self.channels);
-            if(cl.find("shirakumo-backfill", availableExtensions)){
+        if(ev.from === self.username){
+            self.channels[ev.channel.toLowerCase()] = {};
+            if(cl.find("shirakumo-backfill", availableExtensions)
+               && ev.channel !== self.servername){
                 self.s("BACKFILL", {channel: ev.channel});
+            }
+            if(cl.find("shirakumo-channel-info", availableExtensions)){
+                self.s("CHANNEL-INFO", {channel: ev.channel});
             }
         }
     });
 
     self.addInternalHandler("LEAVE", (ev)=>{
         if(ev.from === self.username){
-            self.channels = cl.remove(ev.channel, self.channels);
+            delete self.channels[ev.from];
         }
     });
 
     self.addInternalHandler("EMOTE", (ev)=>{
         self.addEmote(ev);
+    });
+
+    self.addInternalHandler("SET-CHANNEL-INFO", (ev)=>{
+        self.channels[ev.channel.toLowerCase()][ev.key] = ev.text;
     });
 };
 var LichatUI = function(chat,client){
@@ -1191,6 +1234,7 @@ var LichatUI = function(chat,client){
     var users = chat.querySelector(".lichat-user-list");
     var output = chat.querySelector(".lichat-output");
     var input = chat.querySelector(".lichat-input");
+    var topic = chat.querySelector(".lichat-topic");
 
     self.commandPrefix = "/";
     self.channel = null;
@@ -1453,6 +1497,10 @@ var LichatUI = function(chat,client){
             channels.querySelector(".active").classList.remove("active");
         channels.querySelector("[data-channel=\""+name+"\"]").classList.add("active");
         channel.style.display = "";
+        if(topic){
+            var text = client.channels[name][cl.kw("TOPIC")];
+            topic.innerText = text || "";
+        }
         self.channel = name;
         self.rebuildUserList();
         return channel;
@@ -1560,7 +1608,7 @@ var LichatUI = function(chat,client){
                 let unescaped = self.unescapeHTML(wordStr);
                 word.length = 0;
                 if(unescaped.match(URLRegex)){
-                    out.push(`\u200B<a href="${unescaped} class="userlink" target="_blank">${wordStr}</a>\u200B`);
+                    out.push(`\u200B<a href="${unescaped}" class="userlink" target="_blank">${wordStr}</a>\u200B`);
                 }else{
                     out.push(wordStr);
                 }
@@ -1795,6 +1843,30 @@ var LichatUI = function(chat,client){
         self.showMessage(update);
     });
 
+    client.addHandler("SET-CHANNEL-INFO", (update)=>{
+        if(self.channel == update.channel.toLowerCase() && update.key == cl.kw("TOPIC") && topic){
+            topic.innerText = update.text;
+        }
+    });
+
+    client.addHandler("PAUSE", (update)=>{
+        if(update.by <= 0)
+            update.text = " ** Paused mode has been deactivated. You can now chat freely.";
+        else
+            update.text = " ** Paused mode has been activated. You may only message every "+update.by+" seconds.";
+        self.showMessage(update);
+    });
+
+    client.addHandler("QUIET", (update)=>{
+        update.text = " ** "+update.target+" has been quieted. Their messages will no longer be visible.";
+        self.showMessage(udpate);
+    });
+
+    client.addHandler("UNQUIET", (update)=>{
+        update.text = " ** "+update.target+" has been unquieted. Their messages will be visible again.";
+        self.showMessage(udpate);
+    });
+
     client.addHandler("FAILURE", (update)=>{
         self.showMessage(update);
     });
@@ -1817,18 +1889,21 @@ var LichatUI = function(chat,client){
         self.showMessage({html: text});
     }, "Show all available commands");
 
-    self.addCommand("register", (password)=>{
+    self.addCommand("register", (...args)=>{
+        password = args.join(" ");
         if(password.length<6)
             cl.error("PASSWORD-TOO-SHORT",{text: "Your password must be at least six characters long."});
         client.s("REGISTER", {password: password});
     }, "Register your username with a password.");
 
-    self.addCommand("create", (name)=>{
+    self.addCommand("create", (...args)=>{
+        name = args.join(" ");
         if(!name) name = null;
         client.s("CREATE", {channel: name});
     }, "Create a new channel. Not specifying a name will create an anonymous channel.");
 
-    self.addCommand("join", (name)=>{
+    self.addCommand("join", (...args)=>{
+        name = args.join(" ");
         if(!name) cl.error("MISSING-ARGUMENT",{text: "You must supply the name of the channel to join."});
         if(self.channelExists(name)){
             self.changeChannel(name);
@@ -1837,7 +1912,8 @@ var LichatUI = function(chat,client){
         }
     }, "Join an existing channel.");
 
-    self.addCommand("leave", (name)=>{
+    self.addCommand("leave", (...args)=>{
+        name = args.join(" ");
         if(!name) name = self.channel;
         if(self.channelExists(name))
             client.s("LEAVE", {channel: name});
@@ -1855,7 +1931,8 @@ var LichatUI = function(chat,client){
         client.s("KICK", {channel:name, target:user});
     }, "Kick a user from a channel. Not specifying a name will leave the current channel.");
 
-    self.addCommand("users", (name)=>{
+    self.addCommand("users", (...args)=>{
+        name = args.join(" ");
         if(!name) name = self.channel;
         client.s("USERS", {channel:name});
     }, "Fetch a list of users from a channel. Not specifying a name will leave the current channel.");
@@ -1864,7 +1941,8 @@ var LichatUI = function(chat,client){
         client.s("CHANNELS", {});
     }, "Fetch a list of public channels.");
 
-    self.addCommand("info", (user)=>{
+    self.addCommand("info", (...args)=>{
+        user = args.join(" ");
         if(!user) cl.error("MISSING-ARGUMENT",{text: "You must supply the name of a user to query."});
         client.s("USER-INFO", {target:user});
     }, "Fetch information about a user.");
@@ -1901,6 +1979,47 @@ var LichatUI = function(chat,client){
         }
         self.showMessage({html: text});
     }, "Show the available emotes.");
+
+    self.addCommand("topic", (...args)=>{
+        text = args.join(" ");
+        client.s("SET-CHANNEL-INFO", {channel: self.channel, key: cl.kw("TOPIC"), text: text});
+    });
+
+    self.addCommand("pause", (seconds)=>{
+        client.s("PAUSE", {channel: self.channel, by: parseInt(seconds)});
+    });
+
+    self.addCommand("quiet", (...args)=>{
+        client.s("QUIET", {channel: self.channel, target: args.join(args)});
+    });
+
+    self.addCommand("unquiet", (...args)=>{
+        client.s("UNQUIET", {channel: self.channel, target: args.join(args)});
+    });
+
+    self.addCommand("kill", (...args)=>{
+        client.s("KILL", {target: args.join(args)});
+    });
+
+    self.addCommand("destroy", (...args)=>{
+        client.s("DESTROY", {channel: args.join(args)});
+    });
+
+    self.addCommand("ban", (...args)=>{
+        client.s("BAN", {target: args.join(args)});
+    });
+
+    self.addCommand("unban", (...args)=>{
+        client.s("UNBAN", {target: args.join(args)});
+    });
+
+    self.addCommand("ip-ban", (ip, mask)=>{
+        client.s("IP-BAN", {ip: ip, mask: mask});
+    });
+
+    self.addCommand("ip-unban", (ip, mask)=>{
+        client.s("IP-UNBAN", {ip: ip, mask: mask});
+    });
 
     self.initControls = ()=>{
         input.addEventListener("keydown", (ev)=>{

@@ -152,6 +152,10 @@ var CL = function(){
         return symbol;
     };
 
+    self.kw = (name)=>{
+        return self.intern(name, "KEYWORD");
+    };
+
     self.makeSymbol = (name)=>{
         return new Symbol(name);
     };
