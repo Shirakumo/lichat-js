@@ -242,6 +242,7 @@ var LichatUI = function(chat,client){
         for(let child of channel.childNodes){
             if(parseInt(child.dataset.id) === options.id &&
                child.dataset.from === options.from){
+                // TODO: How do we mark a message as edited?
                 let span = child.lastElementChild;
                 if(options.text) span.innerText = options.text;
                 if(options.html) span.innerHTML = options.html;
