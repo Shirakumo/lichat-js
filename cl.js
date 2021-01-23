@@ -47,6 +47,12 @@ var CL = function(){
         if(initforms === undefined) initforms = {};
         if(constructor === undefined) constructor=()=>{};
         directSuperclasses = self.mapcar(self.findClass, directSuperclasses);
+        if(typeof name == 'string'){
+            self.intern(name, "LICHAT-PROTOCOL");
+        }
+        for(initarg in initforms){
+            self.intern(initarg.toUpperCase(), "KEYWORD");
+        }
 
         var c = function(initargs){
             var iself = this;
