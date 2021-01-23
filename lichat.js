@@ -86,6 +86,7 @@ var CL = function(){
             return classes[name];
         if(error)
             cl.error("NO-SUCH-CLASS",{name: name});
+        return null;
     };
 
     self.classOf = (instance)=>{
@@ -105,6 +106,7 @@ var CL = function(){
                 cl.error("MISSING-INITARG",{object:e, initarg:name, text: "The initarg "+name+" is missing."});
             else
                 return e[name];
+            return null;
         };
     };
 
@@ -245,7 +247,7 @@ var CL = function(){
 
     self.retFrom = (name, value)=>{
         throw new Return(name, value);
-    }
+    };
 
     self.ret = (value)=>{
         throw new Return(null, value);
@@ -260,6 +262,7 @@ var CL = function(){
                     return form.apply(form, r.args);
                 }
             }
+            return null;
         };
         self.handlerCase(form, "Restart", handleRestart);
     };
@@ -297,7 +300,7 @@ var CL = function(){
             }
         }
         return target;
-    }
+    };
 
     self.remove = (el, arr, key)=>{
         key = key || ((a)=>a);
@@ -466,7 +469,7 @@ Condition.prototype = Object.create(StandardObject.prototype);
 Condition.prototype.report = function(){
     var self = this;
     return "Condition of type ["+self.type+"]"+(self.text?": "+self.text:"");
-}
+};
 
 // Special objects
 var Return = function(name, value){
@@ -490,7 +493,7 @@ var Symbol = function(name, pkg){
     self.pkg = pkg || null;
     self.toString = ()=>{
         return self.name;
-    }
+    };
     return self;
 };
 
@@ -513,9 +516,8 @@ var LichatStream = function(string){
             return character;
         }else if(errorp){
             cl.error("END-OF-STREAM");
-        }else{
-            return null;
         }
+        return null;
     };
 
     self.unreadChar = ()=>{
@@ -532,9 +534,8 @@ var LichatStream = function(string){
             return self.string[i];
         }else if(errorp){
             cl.error("END-OF-STREAM");
-        }else{
-            return null;
         }
+        return null;
     };
 
     self.writeChar = (character)=>{
@@ -549,10 +550,10 @@ var LichatStream = function(string){
 
     self.toString = ()=>{
         return self.string;
-    }
+    };
     
     return self;
-}
+};
 var LichatVersion = "2.0";
 var IDCounter = Math.floor(Math.random()*(+new Date()));
 var nextID = ()=>{
@@ -797,7 +798,7 @@ var LichatPrinter = function(){
 var LichatReader = function(){
     var self = this;
 
-    self.whitespace = "\u0009\u000A\u000B\u000C\u000D\u0020\u0085\u00A0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2008\u2009\u200A\u2028\u2029\u202F\u205F\u3000\u180E\u200B\u200C\u200D\u2060\uFEFF"
+    self.whitespace = "\u0009\u000A\u000B\u000C\u000D\u0020\u0085\u00A0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2008\u2009\u200A\u2028\u2029\u202F\u205F\u3000\u180E\u200B\u200C\u200D\u2060\uFEFF";
     self.invalidSymbol = cl.makeSymbol("INVALID-SYMBOL");
 
     self.isWhitespace = (character)=>{
@@ -1239,9 +1240,9 @@ var LichatClient = function(options){
         self.channels[ev.channel.toLowerCase()][ev.key] = ev.text;
     });
 };
-var LichatUI = function(chat,client){
+var LichatUI = function(chat, cclient){
     var self = this;
-    var client = client;
+    var client = cclient;
 
     var channels = chat.querySelector(".lichat-channel-list");
     var users = chat.querySelector(".lichat-user-list");
@@ -1267,13 +1268,13 @@ var LichatUI = function(chat,client){
         return "rgb("+Math.min(200, Math.max(50, r))
             +","+Math.min(180, Math.max(80, g))
             +","+Math.min(180, Math.max(80, b))+")";
-    }
+    };
 
     self.formatTime = (time)=>{
         var date = new Date(time*1000);
-        var pd = (a)=>{return (a<10)?"0"+a:""+a;}
+        var pd = (a)=>{return (a<10)?"0"+a:""+a;};
         return pd(date.getHours())+":"+pd(date.getMinutes())+":"+pd(date.getSeconds());
-    }
+    };
 
     self.invokeCommand = (command, ...args)=>{
         var fun = self.commands[command];
@@ -1285,7 +1286,7 @@ var LichatUI = function(chat,client){
     };
 
     self.addCommand = (prefix, handler, documentation)=>{
-        handler.documentation = documentation
+        handler.documentation = documentation;
         self.commands[prefix] = handler;
     };
 
@@ -1374,7 +1375,7 @@ var LichatUI = function(chat,client){
                 + ((autoComplete.pretext === "" && match[match.length-1] !== ":")? ": ": " ");
             autoComplete.index = (autoComplete.index+1)%matches.length;
         }
-    }
+    };
 
     self.constructElement = (tag, options)=>{
         var el = document.createElement(tag);
@@ -1673,16 +1674,16 @@ var LichatUI = function(chat,client){
             default: return a;
             }
         });
-    }
+    };
 
     self.escapeHTML = (text)=>{
         return text.replace(/([<>"&\n])/g, (a,b)=>{
             switch(b){
-            case "<": return "&lt;"
-            case ">": return "&gt;"
-            case "\"": return "&quot;"
-            case "&": return "&amp;"
-            case "\n": return "<br>"
+            case "<": return "&lt;";
+            case ">": return "&gt;";
+            case "\"": return "&quot;";
+            case "&": return "&amp;";
+            case "\n": return "<br>";
             default: return a;
             }
         });
@@ -1690,7 +1691,7 @@ var LichatUI = function(chat,client){
 
     self.escapeRegex = (text)=>{
         return text.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
-    }
+    };
 
     self.markSelf = (text, name)=>{
         name = name || client.username || "anonymous";
@@ -1950,7 +1951,7 @@ var LichatUI = function(chat,client){
         var text = "Available commands:";
         for(var name in self.commands){
             text += "<br/><label class='command'>"+self.commandPrefix+name+"</label>"
-                +(self.commands[name].documentation || "")
+                + (self.commands[name].documentation || "");
         }
         self.showMessage({html: text});
     }, "Show all available commands");
@@ -2121,10 +2122,15 @@ var LichatUI = function(chat,client){
                 }
                 return false;
             }
+            return true;
         });
     };
 
     self.initControls();
 
     return self;
-}
+};
+
+// TODO: Add per-channel notification settings
+// TODO: Allow picking notification sounds
+// TODO: Set channel name in title bar

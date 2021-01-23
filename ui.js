@@ -1,6 +1,6 @@
-var LichatUI = function(chat,client){
+var LichatUI = function(chat, cclient){
     var self = this;
-    var client = client;
+    var client = cclient;
 
     var channels = chat.querySelector(".lichat-channel-list");
     var users = chat.querySelector(".lichat-user-list");
@@ -26,13 +26,13 @@ var LichatUI = function(chat,client){
         return "rgb("+Math.min(200, Math.max(50, r))
             +","+Math.min(180, Math.max(80, g))
             +","+Math.min(180, Math.max(80, b))+")";
-    }
+    };
 
     self.formatTime = (time)=>{
         var date = new Date(time*1000);
-        var pd = (a)=>{return (a<10)?"0"+a:""+a;}
+        var pd = (a)=>{return (a<10)?"0"+a:""+a;};
         return pd(date.getHours())+":"+pd(date.getMinutes())+":"+pd(date.getSeconds());
-    }
+    };
 
     self.invokeCommand = (command, ...args)=>{
         var fun = self.commands[command];
@@ -44,7 +44,7 @@ var LichatUI = function(chat,client){
     };
 
     self.addCommand = (prefix, handler, documentation)=>{
-        handler.documentation = documentation
+        handler.documentation = documentation;
         self.commands[prefix] = handler;
     };
 
@@ -133,7 +133,7 @@ var LichatUI = function(chat,client){
                 + ((autoComplete.pretext === "" && match[match.length-1] !== ":")? ": ": " ");
             autoComplete.index = (autoComplete.index+1)%matches.length;
         }
-    }
+    };
 
     self.constructElement = (tag, options)=>{
         var el = document.createElement(tag);
@@ -432,16 +432,16 @@ var LichatUI = function(chat,client){
             default: return a;
             }
         });
-    }
+    };
 
     self.escapeHTML = (text)=>{
         return text.replace(/([<>"&\n])/g, (a,b)=>{
             switch(b){
-            case "<": return "&lt;"
-            case ">": return "&gt;"
-            case "\"": return "&quot;"
-            case "&": return "&amp;"
-            case "\n": return "<br>"
+            case "<": return "&lt;";
+            case ">": return "&gt;";
+            case "\"": return "&quot;";
+            case "&": return "&amp;";
+            case "\n": return "<br>";
             default: return a;
             }
         });
@@ -449,7 +449,7 @@ var LichatUI = function(chat,client){
 
     self.escapeRegex = (text)=>{
         return text.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
-    }
+    };
 
     self.markSelf = (text, name)=>{
         name = name || client.username || "anonymous";
@@ -709,7 +709,7 @@ var LichatUI = function(chat,client){
         var text = "Available commands:";
         for(var name in self.commands){
             text += "<br/><label class='command'>"+self.commandPrefix+name+"</label>"
-                +(self.commands[name].documentation || "")
+                + (self.commands[name].documentation || "");
         }
         self.showMessage({html: text});
     }, "Show all available commands");
@@ -880,10 +880,15 @@ var LichatUI = function(chat,client){
                 }
                 return false;
             }
+            return true;
         });
     };
 
     self.initControls();
 
     return self;
-}
+};
+
+// TODO: Add per-channel notification settings
+// TODO: Allow picking notification sounds
+// TODO: Set channel name in title bar

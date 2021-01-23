@@ -11,9 +11,8 @@ var LichatStream = function(string){
             return character;
         }else if(errorp){
             cl.error("END-OF-STREAM");
-        }else{
-            return null;
         }
+        return null;
     };
 
     self.unreadChar = ()=>{
@@ -30,9 +29,8 @@ var LichatStream = function(string){
             return self.string[i];
         }else if(errorp){
             cl.error("END-OF-STREAM");
-        }else{
-            return null;
         }
+        return null;
     };
 
     self.writeChar = (character)=>{
@@ -47,7 +45,7 @@ var LichatStream = function(string){
 
     self.toString = ()=>{
         return self.string;
-    }
+    };
     
     return self;
-}
+};

@@ -86,6 +86,7 @@ var CL = function(){
             return classes[name];
         if(error)
             cl.error("NO-SUCH-CLASS",{name: name});
+        return null;
     };
 
     self.classOf = (instance)=>{
@@ -105,6 +106,7 @@ var CL = function(){
                 cl.error("MISSING-INITARG",{object:e, initarg:name, text: "The initarg "+name+" is missing."});
             else
                 return e[name];
+            return null;
         };
     };
 
@@ -245,7 +247,7 @@ var CL = function(){
 
     self.retFrom = (name, value)=>{
         throw new Return(name, value);
-    }
+    };
 
     self.ret = (value)=>{
         throw new Return(null, value);
@@ -260,6 +262,7 @@ var CL = function(){
                     return form.apply(form, r.args);
                 }
             }
+            return null;
         };
         self.handlerCase(form, "Restart", handleRestart);
     };
@@ -297,7 +300,7 @@ var CL = function(){
             }
         }
         return target;
-    }
+    };
 
     self.remove = (el, arr, key)=>{
         key = key || ((a)=>a);
@@ -466,7 +469,7 @@ Condition.prototype = Object.create(StandardObject.prototype);
 Condition.prototype.report = function(){
     var self = this;
     return "Condition of type ["+self.type+"]"+(self.text?": "+self.text:"");
-}
+};
 
 // Special objects
 var Return = function(name, value){
@@ -490,7 +493,7 @@ var Symbol = function(name, pkg){
     self.pkg = pkg || null;
     self.toString = ()=>{
         return self.name;
-    }
+    };
     return self;
 };
 
