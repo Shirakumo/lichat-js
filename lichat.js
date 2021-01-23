@@ -47,6 +47,12 @@ var CL = function(){
         if(initforms === undefined) initforms = {};
         if(constructor === undefined) constructor=()=>{};
         directSuperclasses = self.mapcar(self.findClass, directSuperclasses);
+        if(typeof name == 'string'){
+            self.intern(name, "LICHAT-PROTOCOL");
+        }
+        for(initarg in initforms){
+            self.intern(initarg.toUpperCase(), "KEYWORD");
+        }
 
         var c = function(initargs){
             var iself = this;
@@ -555,13 +561,6 @@ var nextID = ()=>{
     return ID;
 };
 
-for(var name of ["WIRE-OBJECT","UPDATE","PING","PONG","CONNECT","DISCONNECT","REGISTER","CHANNEL-UPDATE","TARGET-UPDATE","TEXT-UPDATE","JOIN","LEAVE","CREATE","KICK","PULL","PERMISSIONS","MESSAGE","USERS","CHANNELS","USER-INFO","BACKFILL","DATA","EMOTE","EMOTES","FAILURE","MALFORMED-UPDATE","UPDATE-TOO-LONG","CONNECTION-UNSTABLE","TOO-MANY-CONNECTIONS","UPDATE-FAILURE","INVALID-UPDATE","USERNAME-MISMATCH","INCOMPATIBLE-VERSION","INVALID-PASSWORD","NO-SUCH-PROFILE","USERNAME-TAKEN","NO-SUCH-CHANNEL","ALREADY-IN-CHANNEL","NOT-IN-CHANNEL","CHANNELNAME-TAKEN","BAD-NAME","INSUFFICIENT-PERMISSIONS","INVALID-PERMISSIONS","NO-SUCH-USER","TOO-MANY-UPDATES","BAD-CONTENT-TYPE","NIL","T","+","-","CHANNEL-INFO","SET-CHANNEL-INFO","NO-SUCH-CHANNEL-INFO","MALFORMED-CHANNEL-INFO","PAUSE","QUIET","UNQUIET","BAN","UNBAN","IP-BAN","IP-UNBAN","KILL","DESTROY","CLOCK-SKEWED"]){
-    cl.intern(name, "LICHAT-PROTOCOL");
-}
-for(var name of ["ID","CLOCK","FROM","PASSWORD","VERSION","EXTENSIONS","CHANNEL","TARGET","TEXT","PERMISSIONS","USERS","CHANNELS","REGISTERED","CONNECTIONS","UPDATE-ID","COMPATIBLE-VERSIONS","CONTENT-TYPE","FILENAME","PAYLOAD","NAME","NAMES","ALLOWED-CONTENT-TYPES","KEYS","KEY","NEWS","TOPIC","RULES","CONTACT","BY","IP","MASK"]){
-    cl.intern(name, "KEYWORD");
-}
-
 cl.defclass("WIRE-OBJECT", []);
 cl.defclass("UPDATE", ["WIRE-OBJECT"], {
     clock: cl.getUniversalTime,
@@ -598,7 +597,17 @@ cl.defclass("PULL", ["CHANNEL-UPDATE", "TARGET-UPDATE"]);
 cl.defclass("PERMISSIONS", ["CHANNEL-UPDATE"], {
     permissions: []
 });
+cl.defclass("GRANT", ["CHANNEL-UPDATE", "TARGET-UPDATE"], {
+    update: cl.requiredArg("update")
+});
+cl.defclass("DENY", ["CHANNEL-UPDATE", "TARGET-UPDATE"], {
+    update: cl.requiredArg("update")
+});
+cl.defclass("CAPABILITIES", ["CHANNEL-UPDATE"], {
+    updates: []
+});
 cl.defclass("MESSAGE", ["CHANNEL-UPDATE", "TEXT-UPDATE"]);
+cl.defclass("EDIT", ["CHANNEL-UPDATE", "TEXT-UPDATE"]);
 cl.defclass("USERS", ["CHANNEL-UPDATE"], {
     users: []
 });
@@ -608,6 +617,10 @@ cl.defclass("CHANNELS", ["UPDATE"], {
 cl.defclass("USER-INFO", ["TARGET-UPDATE"], {
     registered: false,
     connections: 1
+});
+cl.defclass("SERVER-INFO", ["TARGET-UPDATE"], {
+    attributes: [],
+    connections: []
 });
 cl.defclass("BACKFILL", ["CHANNEL-UPDATE"]);
 cl.defclass("DATA", ["CHANNEL-UPDATE"], {
@@ -1295,6 +1308,12 @@ var LichatUI = function(chat,client){
         client.s("MESSAGE", {channel: channel, text: text});
     };
 
+    self.sendEdit = (text, id, channel)=>{
+        if(channel === undefined) channel = self.channel;
+        if(!channel) cl.error("NO-ACTIVE-CHANNEL");
+        client.s("EDIT", {channel: channel, id: id, text: text});
+    };
+
     self.sendFile = (file, channel)=>{
         if(channel === undefined) channel = self.channel;
         if(!channel) cl.error("NO-ACTIVE-CHANNEL");
@@ -1369,6 +1388,9 @@ var LichatUI = function(chat,client){
             var sub = self.constructElement(tag, options.elements[tag]);
             el.appendChild(sub);
         }
+        for(var data in (options.dataset||{})){
+            el.dataset[data] = options.dataset[data];
+        }
         return el;
     };
 
@@ -1390,13 +1412,18 @@ var LichatUI = function(chat,client){
         return (element.scrollHeight - element.scrollTop - element.clientHeight) < 10;
     };
 
-    var lastInserted = null;
-    self.showMessage = (options)=>{
+    self.ensureMessageOptions = (options)=>{
         if(!options.clock) options.clock = cl.getUniversalTime();
         if(!options.from) options.from = "System";
         if(!options.type) options.type = "INFO";
         if(!options.channel) options.channel = self.channel;
         if(!options.text && !options.html) cl.error("NO-MESSAGE-TEXT",{message:options});
+        return options;
+    };
+
+    var lastInserted = null;
+    self.showMessage = (options)=>{
+        options = self.ensureMessageOptions(options);
         if(cl.classOf(options)){
             classList = cl.mapcar((a)=>a.className.toLowerCase(), cl.classOf(options).superclasses);
             classList.push(cl.classOf(options).className);
@@ -1408,6 +1435,7 @@ var LichatUI = function(chat,client){
         // Construct element
         var el = self.constructElement("div", {
             classes: classList,
+            dataset: {id: options.id,from: options.from},
             elements: {"time": {text: self.formatTime(timestamp),
                                 attributes: {datetime: ""+timestamp}},
                        "a": {text: options.from,
@@ -1452,6 +1480,21 @@ var LichatUI = function(chat,client){
         }else{
             return self.showMessage({from: "System",
                                      text: e+""});
+        }
+    };
+
+    self.editMessage = (options)=>{
+        options = self.ensureMessageOptions(options);
+        let channel = self.channelElement(options.channel);
+        for(let child of channel.childNodes){
+            if(parseInt(child.dataset.id) === options.id &&
+               child.dataset.from === options.from){
+                // TODO: How do we mark a message as edited?
+                let span = child.lastElementChild;
+                if(options.text) span.innerText = options.text;
+                if(options.html) span.innerHTML = options.html;
+                break;
+            }
         }
     };
 
@@ -1756,6 +1799,14 @@ var LichatUI = function(chat,client){
         self.showMessage(update);
     });
 
+    client.addHandler("EDIT", (update)=>{
+        if(document.hidden){
+            self.notify(update);
+        }
+        update.html = self.formatUserText(update.text);
+        self.editMessage(update);
+    });
+
     client.addHandler("DATA", (update)=>{
         switch(update["content-type"]){
         case "image/gif":
@@ -1868,6 +1919,21 @@ var LichatUI = function(chat,client){
     });
 
     client.addHandler("FAILURE", (update)=>{
+        self.showMessage(update);
+    });
+
+    client.addHandler("CAPABILITIES", (update)=>{
+        update.text = " ** You can perform the following here: "+update.updates.map((s)=>s.name).join(", ");
+        self.showMessage(update);
+    });
+
+    client.addHandler("DENY", (update)=>{
+        update.text = " ** "+update.target+" has been denied from "+update.update.name+"ing.";
+        self.showMessage(update);
+    });
+
+    client.addHandler("GRANT", (update)=>{
+        update.text = " ** "+update.target+" has been allowed to "+update.update.name+".";
         self.showMessage(update);
     });
 
@@ -2019,6 +2085,22 @@ var LichatUI = function(chat,client){
 
     self.addCommand("ip-unban", (ip, mask)=>{
         client.s("IP-UNBAN", {ip: ip, mask: mask});
+    });
+
+    self.addCommand("capabilities", ()=>{
+        client.s("CAPABILITIES", {channel: self.channel});
+    });
+
+    self.addCommand("grant", (update, target)=>{
+        client.s("GRANT", {channel: self.channel, target: target, update: cl.findSymbol(update, "LICHAT-PROTOCOL")});
+    });
+
+    self.addCommand("deny", (update, target)=>{
+        client.s("DENY", {channel: self.channel, target: target, update: cl.findSymbol(update, "LICHAT-PROTOCOL")});
+    });
+
+    self.addCommand("server-info", (...args)=>{
+        client.s("SERVER-INFO", {target: args.join(args)});
     });
 
     self.initControls = ()=>{
