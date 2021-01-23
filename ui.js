@@ -681,6 +681,21 @@ var LichatUI = function(chat,client){
         self.showMessage(update);
     });
 
+    client.addHandler("CAPABILITIES", (update)=>{
+        update.text = " ** You can perform the following here: "+update.updates.map((s)=>s.name).join(", ");
+        self.showMessage(update);
+    });
+
+    client.addHandler("DENY", (update)=>{
+        update.text = " ** "+update.target+" has been denied from "+update.update.name+"ing.";
+        self.showMessage(update);
+    });
+
+    client.addHandler("GRANT", (update)=>{
+        update.text = " ** "+update.target+" has been allowed to "+update.update.name+".";
+        self.showMessage(update);
+    });
+
     client.addHandler("UPDATE", (update)=>{
         // Some events are uninteresting, so they should be ignored entirely.
         if(!cl.find(cl.classOf(update).className,
@@ -829,6 +844,22 @@ var LichatUI = function(chat,client){
 
     self.addCommand("ip-unban", (ip, mask)=>{
         client.s("IP-UNBAN", {ip: ip, mask: mask});
+    });
+
+    self.addCommand("capabilities", ()=>{
+        client.s("CAPABILITIES", {channel: self.channel});
+    });
+
+    self.addCommand("grant", (update, target)=>{
+        client.s("GRANT", {channel: self.channel, target: target, update: cl.findSymbol(update, "LICHAT-PROTOCOL")});
+    });
+
+    self.addCommand("deny", (update, target)=>{
+        client.s("DENY", {channel: self.channel, target: target, update: cl.findSymbol(update, "LICHAT-PROTOCOL")});
+    });
+
+    self.addCommand("server-info", (...args)=>{
+        client.s("SERVER-INFO", {target: args.join(args)});
     });
 
     self.initControls = ()=>{
