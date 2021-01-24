@@ -682,7 +682,7 @@ var LichatUI = function(chat, cclient){
     });
 
     client.addHandler("CAPABILITIES", (update)=>{
-        update.text = " ** You can perform the following here: "+update.updates.map((s)=>s.name).join(", ");
+        update.text = " ** You can perform the following here: "+update.permitted.map((s)=>s.name).join(", ");
         self.showMessage(update);
     });
 

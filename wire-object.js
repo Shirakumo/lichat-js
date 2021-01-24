@@ -49,7 +49,7 @@ cl.defclass("DENY", ["CHANNEL-UPDATE", "TARGET-UPDATE"], {
     update: cl.requiredArg("update")
 });
 cl.defclass("CAPABILITIES", ["CHANNEL-UPDATE"], {
-    updates: []
+    permitted: []
 });
 cl.defclass("MESSAGE", ["CHANNEL-UPDATE", "TEXT-UPDATE"]);
 cl.defclass("EDIT", ["CHANNEL-UPDATE", "TEXT-UPDATE"]);
