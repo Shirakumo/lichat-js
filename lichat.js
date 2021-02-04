@@ -605,7 +605,7 @@ cl.defclass("DENY", ["CHANNEL-UPDATE", "TARGET-UPDATE"], {
     update: cl.requiredArg("update")
 });
 cl.defclass("CAPABILITIES", ["CHANNEL-UPDATE"], {
-    updates: []
+    permitted: []
 });
 cl.defclass("MESSAGE", ["CHANNEL-UPDATE", "TEXT-UPDATE"]);
 cl.defclass("EDIT", ["CHANNEL-UPDATE", "TEXT-UPDATE"]);
@@ -1413,6 +1413,11 @@ var LichatUI = function(chat, cclient){
         return (element.scrollHeight - element.scrollTop - element.clientHeight) < 10;
     };
 
+    self.scrollToBottom = (element)=>{
+        element = element || channel;
+        element.scrollTop = element.scrollHeight - element.clientHeight;
+    };
+
     self.ensureMessageOptions = (options)=>{
         if(!options.clock) options.clock = cl.getUniversalTime();
         if(!options.from) options.from = "System";
@@ -1453,7 +1458,7 @@ var LichatUI = function(chat, cclient){
             for(var i=0; i<elements.length; i++){
                 elements[i].addEventListener("load", function(){
                     if(lastInserted === el)
-                        el.scrollIntoView();
+                        self.scrollToBottom(channel);
                 });
             }
         }
@@ -1469,7 +1474,7 @@ var LichatUI = function(chat, cclient){
         }
         if(!inserted){
             channel.appendChild(el);
-            el.scrollIntoView();
+            self.scrollToBottom(channel);
         }
         return el;
     };
@@ -1924,7 +1929,7 @@ var LichatUI = function(chat, cclient){
     });
 
     client.addHandler("CAPABILITIES", (update)=>{
-        update.text = " ** You can perform the following here: "+update.updates.map((s)=>s.name).join(", ");
+        update.text = " ** You can perform the following here: "+update.permitted.map((s)=>s.name).join(", ");
         self.showMessage(update);
     });
 
