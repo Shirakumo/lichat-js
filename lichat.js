@@ -1413,11 +1413,6 @@ var LichatUI = function(chat, cclient){
         return (element.scrollHeight - element.scrollTop - element.clientHeight) < 10;
     };
 
-    self.scrollToBottom = (element)=>{
-        element = element || channel;
-        element.scrollTop = element.scrollHeight - element.clientHeight;
-    };
-
     self.ensureMessageOptions = (options)=>{
         if(!options.clock) options.clock = cl.getUniversalTime();
         if(!options.from) options.from = "System";
@@ -1458,7 +1453,7 @@ var LichatUI = function(chat, cclient){
             for(var i=0; i<elements.length; i++){
                 elements[i].addEventListener("load", function(){
                     if(lastInserted === el)
-                        self.scrollToBottom(channel);
+                        el.scrollIntoView();
                 });
             }
         }
@@ -1474,7 +1469,7 @@ var LichatUI = function(chat, cclient){
         }
         if(!inserted){
             channel.appendChild(el);
-            self.scrollToBottom(channel);
+            el.scrollIntoView();
         }
         return el;
     };
@@ -1548,7 +1543,7 @@ var LichatUI = function(chat, cclient){
         channel.style.display = "";
         if(topic){
             var text = client.channels[name][cl.kw("TOPIC")];
-            topic.innerText = text || "";
+            topic.innerHTML = self.replaceEmotes(self.linkifyURLs(self.escapeHTML(text || "")));
         }
         self.channel = name;
         self.rebuildUserList();
@@ -1902,7 +1897,7 @@ var LichatUI = function(chat, cclient){
 
     client.addHandler("SET-CHANNEL-INFO", (update)=>{
         if(self.channel == update.channel.toLowerCase() && update.key == cl.kw("TOPIC") && topic){
-            topic.innerText = update.text;
+            topic.innerHTML = self.replaceEmotes(self.linkifyURLs(self.escapeHTML(update.text)));
         }
     });
 
@@ -1929,7 +1924,7 @@ var LichatUI = function(chat, cclient){
     });
 
     client.addHandler("CAPABILITIES", (update)=>{
-        update.text = " ** You can perform the following here: "+update.permitted.map((s)=>s.name).join(", ");
+        update.text = " ** You can perform the following here: "+update.updates.map((s)=>s.name).join(", ");
         self.showMessage(update);
     });
 
