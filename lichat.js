@@ -1558,20 +1558,19 @@ var LichatUI = function(chat, cclient){
                       :  "regular"],
             attributes: {"data-channel": name,
                          "style": "color:"+(settings.color || "")},
-            elements: [
-                {
-                    tag: "nav",
-                    attributes: {"style": "display:none"},
-                    elements: [
-                        {tag: "a", classes: ["info"], text: "Info"},
-                        {tag: "a", classes: ["permissions"], text: "Permissions"},
-                        {tag: "a", classes: ["settings"], text: "Settings"},
-                        {tag: "a", classes: ["pull"], text: "Invite"},
-                        {tag: "a", classes: ["leave"], text: "Leave"},
-                    ]
-                }]
+            elements: [{
+                tag: "nav",
+                attributes: {"style": "display:none"},
+                elements: [
+                    {tag: "a", classes: ["info"], text: "Info"},
+                    {tag: "a", classes: ["permissions"], text: "Permissions"},
+                    {tag: "a", classes: ["settings"], text: "Settings"},
+                    {tag: "a", classes: ["pull"], text: "Invite"},
+                    {tag: "a", classes: ["leave"], text: "Leave"},
+                ]
+            }]
         });
-        nav = menu.querySelector("nav");
+        var nav = menu.querySelector("nav");
         nav.querySelector("a.info").addEventListener("click", ()=>{
             nav.style.display = "none";
             var els = [];
@@ -1692,7 +1691,46 @@ var LichatUI = function(chat, cclient){
                 classes: [(name === client.servername)? "server"
                           : "regular"],
                 attributes: {"data-user": name,
-                             "style": "color:"+self.objectColor(name)}
+                             "style": "color:"+self.objectColor(name)},
+                elements: [{
+                    tag: "nav",
+                    attributes: {"style": "display:none"},
+                    elements: [
+                        {tag: "a", classes: ["info"], text: "Info"},
+                        {tag: "a", classes: ["quiet"], text: "Quiet"},
+                        {tag: "a", classes: ["unquiet"], text: "Unquiet"},
+                        {tag: "a", classes: ["kick"], text: "Kick"},
+                        {tag: "a", classes: ["kickban"], text: "Kickban"},
+                    ]
+                }]
+            });
+            var nav = menu.querySelector("nav");
+            nav.querySelector("a.info").addEventListener("click", ()=>{
+                nav.style.display = "none";
+                self.popup({tag:"span", text: "TODO"});
+            });
+            nav.querySelector("a.kick").addEventListener("click", ()=>{
+                nav.style.display = "none";
+                client.s("KICK", {channel: self.channel, target: name});
+            });
+            nav.querySelector("a.quiet").addEventListener("click", ()=>{
+                nav.style.display = "none";
+                client.s("QUIET", {channel: self.channel, target: name});
+            });
+            nav.querySelector("a.unquiet").addEventListener("click", ()=>{
+                nav.style.display = "none";
+                client.s("UNQUIET", {channel: self.channel, target: name});
+            });
+            nav.querySelector("a.kickban").addEventListener("click", ()=>{
+                nav.style.display = "none";
+                if(window.confirm("Are you sure you want to ban "+name+" from "+self.channel+"?")){
+                    client.s("DENY", {channel: self.channel, target: name, update: cl.li("JOIN")});
+                    client.s("KICK", {channel: self.channel, target: name});
+                }
+            });
+            menu.addEventListener("contextmenu", (ev)=>{
+                nav.style.display = (nav.style.display == "none")? "block" : "none";
+                ev.preventDefault();
             });
             users.appendChild(menu);
         }
