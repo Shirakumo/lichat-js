@@ -10,6 +10,7 @@ var LichatUI = function(chat, cclient){
 
     self.commandPrefix = "/";
     self.channel = null;
+    self.channelSettings = {};
     self.notifyBy = [];
     self.commands = {};
     self.notifySound = chat.querySelector(".lichat-notify");
@@ -141,16 +142,41 @@ var LichatUI = function(chat, cclient){
         if(options.text) el.innerText = options.text;
         if(options.html) el.innerHTML = options.html;
         for(var attr in (options.attributes||{})){
-            el.setAttribute(attr, options.attributes[attr]);
+            if(options.attributes[attr])
+                el.setAttribute(attr, options.attributes[attr]);
         }
-        for(var tag in (options.elements||{})){
-            var sub = self.constructElement(tag, options.elements[tag]);
+        for(var i in (options.elements||[])){
+            var element = options.elements[i];
+            var sub = self.constructElement(element.tag, element);
             el.appendChild(sub);
         }
         for(var data in (options.dataset||{})){
             el.dataset[data] = options.dataset[data];
         }
         return el;
+    };
+
+    self.popup = (content, okCallback)=>{
+        var el = self.constructElement("div", {
+            classes: ["popup-background"],
+            elements: [{
+                tag: "div",
+                classes: ["popup"],
+                attributes: {"style": "display:block"},
+                elements: [
+                    content,
+                    {tag: "button", attributes: {"type": "submit"}, text: "Ok"}
+                ]
+            }]
+        });
+        el.addEventListener("click", (ev)=>{
+            if(ev.target == el) document.body.removeChild(el);
+        });
+        el.querySelector("button[type=submit]").addEventListener("click", ()=>{
+            if(okCallback) okCallback(el);
+            document.body.removeChild(el);
+        });
+        document.body.appendChild(el);
     };
 
     self.channelElement = (name)=>{
@@ -195,13 +221,15 @@ var LichatUI = function(chat, cclient){
         var el = self.constructElement("div", {
             classes: classList,
             dataset: {id: options.id,from: options.from},
-            elements: {"time": {text: self.formatTime(timestamp),
-                                attributes: {datetime: ""+timestamp}},
-                       "a": {text: options.from,
-                             classes: ["username"],
-                             attributes: {style: "color:"+self.objectColor(options.from),
-                                          title: options.from}},
-                       "span": {text: options.text, html: options.html}}
+            elements: [{tag: "time",
+                        text: self.formatTime(timestamp),
+                        attributes: {datetime: ""+timestamp}},
+                       {tag: "a",
+                        text: options.from,
+                        classes: ["username"],
+                        attributes: {style: "color:"+self.objectColor(options.from),
+                                     title: options.from}},
+                       {tag: "span", text: options.text, html: options.html}]
         });
         // Handle scrolling deferral.
         var channel = self.channelElement(options.channel);
@@ -263,6 +291,8 @@ var LichatUI = function(chat, cclient){
             classes: ["lichat-channel"],
             attributes: {"data-channel": name, "style": "display:none;"}
         });
+        var settings = self.channelSettings[name] || {};
+        self.channelSettings[name] = settings;
         el.users = [];
         output.appendChild(el);
         var menu = self.constructElement("a", {
@@ -270,10 +300,88 @@ var LichatUI = function(chat, cclient){
             classes: [(name.indexOf("@")===0)? "anonymous"
                       :(name === client.servername)? "primary"
                       :  "regular"],
-            attributes: {"data-channel": name}
+            attributes: {"data-channel": name,
+                         "style": "color:"+(settings.color || "")},
+            elements: [
+                {
+                    tag: "nav",
+                    attributes: {"style": "display:none"},
+                    elements: [
+                        {tag: "a", classes: ["info"], text: "Info"},
+                        {tag: "a", classes: ["permissions"], text: "Permissions"},
+                        {tag: "a", classes: ["settings"], text: "Settings"},
+                        {tag: "a", classes: ["pull"], text: "Invite"},
+                        {tag: "a", classes: ["leave"], text: "Leave"},
+                    ]
+                }]
+        });
+        nav = menu.querySelector("nav");
+        nav.querySelector("a.info").addEventListener("click", ()=>{
+            nav.style.display = "none";
+            var els = [];
+            for(var key in client.channels[name]){
+                els.push({
+                    tag: "div",
+                    classes: ["row"],
+                    elements: [
+                        {tag: "label", text: key},
+                        {tag: "input",
+                         dataset: {"key": new LichatPrinter().toString(key)},
+                         attributes: {type: "text", value: client.channels[name][key]}}
+                    ]
+                });
+            }
+            self.popup({tag:"div", elements: els}, (el)=>{
+                for(var field of el.querySelectorAll("input[type=text]")){
+                    var key = new LichatReader().fromString(field.dataset.key);
+                    if(field.value != client.channels[name][key]){
+                        client.s("SET-CHANNEL-INFO", {channel: name, key: key, text: field.value});
+                    }
+                }
+            });
+        });
+        nav.querySelector("a.permissions").addEventListener("click", ()=>{
+            nav.style.display = "none";
+            self.popup({tag:"span", text: "TODO"});
+        });
+        nav.querySelector("a.settings").addEventListener("click", ()=>{
+            nav.style.display = "none";
+            self.popup({tag:"div", elements: [
+                {tag: "div", classes: ["row"], elements: [
+                    {tag: "label", text: "Color"},
+                    {tag: "input", attributes: {type: "color", value: settings["color"]}}
+                ]},
+                {tag: "div", classes: ["row"], elements: [
+                    {tag: "label", text: "Notify"},
+                    {tag: "select", elements: [
+                        {tag: "option", text: "on messages", attributes: {value: "any", selected: settings['notify'] == "any"}},
+                        {tag: "option", text: "on mentions", attributes: {value: "mention", selected: settings['notify'] == "mention"}},
+                        {tag: "option", text: "never", attributes: {value: "none", selected: settings['notify'] == "never"}}
+                    ]}
+                ]}
+            ]}, (el)=>{
+                settings["color"] = el.querySelector("input[type=color]").value;
+                settings["notify"] = el.querySelector("select").value;
+                menu.style.color = settings["color"];
+            });
+        });
+        nav.querySelector("a.pull").addEventListener("click", ()=>{
+            nav.style.display = "none";
+            var user = window.prompt("Username to pull into "+name);
+            if(user){
+                client.s("PULL", {channel: name, target: user});
+            }
+        });
+        nav.querySelector("a.leave").addEventListener("click", ()=>{
+            nav.style.display = "none";
+            client.s("LEAVE", {channel: name});
         });
         menu.addEventListener("click", ()=>{
             self.changeChannel(name);
+        });
+        menu.addEventListener("contextmenu", (ev)=>{
+            nav.style.display = (nav.style.display == "none")? "block" : "none";
+            ev.preventDefault();
         });
         channels.appendChild(menu);
         return self.changeChannel(name);
@@ -511,6 +619,11 @@ var LichatUI = function(chat, cclient){
     self.notify = (update)=>{
         updates++;
         document.title = "("+updates+") "+title;
+        var settings = self.channelSettings[update.channel];
+        if(settings && (settings["notify"] == "none"
+                        || (settings["notify"] == "mention"
+                            && (!update.text || update.text.search(client.username) == -1))))
+            return false;
         if(cl.find("sound", self.notifyBy) && self.notifySound){
             self.notifySound.play();
         }
@@ -529,6 +642,7 @@ var LichatUI = function(chat, cclient){
                 });
             }
         }
+        return true;
     };
 
     self.requestNotifyPermissions = ()=>{

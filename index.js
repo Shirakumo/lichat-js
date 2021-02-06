@@ -91,6 +91,7 @@ var setup = ()=>{
     login.querySelector("input[name=channel]").value =  params.channel  || load("channel", login.querySelector("input[name=channel]").value);
     ui.notifyBy = load("notifyBy", []);
     ui.notifySound.volume = load("volume", 0.5);
+    ui.channelSettings = load("channelSettings", {});
     for(var value of ui.notifyBy){
         settings.querySelector("[name=notifyBy][value="+value+"]").checked = true;
     }
@@ -128,6 +129,7 @@ settings.querySelector("button").addEventListener("click", (ev)=>{
     ui.notifySound.volume = parseFloat(settings.querySelector("[name=volume]").value);
     save("notifyBy", ui.notifyBy);
     save("volume", ui.notifySound.volume);
+    save("channelSettings", ui.channelSettings);
     settings.style.display = "none";
 });
 
