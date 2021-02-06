@@ -247,7 +247,12 @@ var LichatClient = function(options){
         if(!self.servername)
             self.servername = ev.channel;
         if(ev.from === self.username){
-            self.channels[ev.channel.toLowerCase()] = {};
+            var info = {};
+            info[cl.kw("NEWS")] = "";
+            info[cl.kw("TOPIC")] = "";
+            info[cl.kw("RULES")] = "";
+            info[cl.kw("CONTACT")] = "";
+            self.channels[ev.channel.toLowerCase()] = info;
             if(cl.find("shirakumo-backfill", availableExtensions)
                && ev.channel !== self.servername){
                 self.s("BACKFILL", {channel: ev.channel});
