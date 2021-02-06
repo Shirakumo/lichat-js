@@ -248,10 +248,10 @@ var LichatClient = function(options){
             self.servername = ev.channel;
         if(ev.from === self.username){
             var info = {};
-            info[cl.kw("NEWS")] = "";
-            info[cl.kw("TOPIC")] = "";
-            info[cl.kw("RULES")] = "";
-            info[cl.kw("CONTACT")] = "";
+            info[":NEWS"] = "";
+            info[":TOPIC"] = "";
+            info[":RULES"] = "";
+            info[":CONTACT"] = "";
             self.channels[ev.channel.toLowerCase()] = info;
             if(cl.find("shirakumo-backfill", availableExtensions)
                && ev.channel !== self.servername){
@@ -274,6 +274,6 @@ var LichatClient = function(options){
     });
 
     self.addInternalHandler("SET-CHANNEL-INFO", (ev)=>{
-        self.channels[ev.channel.toLowerCase()][ev.key] = ev.text;
+        self.channels[ev.channel.toLowerCase()][LichatPrinter.toString(ev.key)] = ev.text;
     });
 };

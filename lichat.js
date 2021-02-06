@@ -792,13 +792,13 @@ var LichatPrinter = function(){
         }
     };
 
-    self.toString = (wireable)=>{
-        var stream = new LichatStream();
-        self.toWire(wireable, stream);
-        return stream.string;
-    };
-
     return self;
+};
+
+LichatPrinter.toString = (wireable)=>{
+    var stream = new LichatStream();
+    new LichatPrinter().toWire(wireable, stream);
+    return stream.string;
 };
 var LichatReader = function(){
     var self = this;
@@ -853,7 +853,7 @@ var LichatReader = function(){
     };
 
     self.readSexprKeyword = (stream)=>{
-        return self.safeFindSymbol(self.readSexprToken(stream), "KEYWORD");
+        return cl.intern(self.readSexprToken(stream), "KEYWORD");
     };
 
     self.readSexprNumber = (stream)=>{
@@ -969,11 +969,11 @@ var LichatReader = function(){
         }
     };
 
-    self.fromString = (string)=>{
-        return self.fromWire(new LichatStream(string));
-    };
-
     return self;
+};
+
+LichatReader.fromString = (string)=>{
+    return new LichatReader().fromWire(new LichatStream(string));
 };
 var LichatDefaultPort = 1113;
 
@@ -1225,10 +1225,10 @@ var LichatClient = function(options){
             self.servername = ev.channel;
         if(ev.from === self.username){
             var info = {};
-            info[cl.kw("NEWS")] = "";
-            info[cl.kw("TOPIC")] = "";
-            info[cl.kw("RULES")] = "";
-            info[cl.kw("CONTACT")] = "";
+            info[":NEWS"] = "";
+            info[":TOPIC"] = "";
+            info[":RULES"] = "";
+            info[":CONTACT"] = "";
             self.channels[ev.channel.toLowerCase()] = info;
             if(cl.find("shirakumo-backfill", availableExtensions)
                && ev.channel !== self.servername){
@@ -1251,7 +1251,7 @@ var LichatClient = function(options){
     });
 
     self.addInternalHandler("SET-CHANNEL-INFO", (ev)=>{
-        self.channels[ev.channel.toLowerCase()][ev.key] = ev.text;
+        self.channels[ev.channel.toLowerCase()][LichatPrinter.toString(ev.key)] = ev.text;
     });
 };
 var LichatUI = function(chat, cclient){
@@ -1584,16 +1584,16 @@ var LichatUI = function(chat, cclient){
                     elements: [
                         {tag: "label", text: key},
                         {tag: "input",
-                         dataset: {"key": new LichatPrinter().toString(key)},
+                         dataset: {"key": key},
                          attributes: {type: "text", value: client.channels[name][key]}}
                     ]
                 });
             }
             self.popup({tag:"div", elements: els}, (el)=>{
                 for(var field of el.querySelectorAll("input[type=text]")){
-                    var key = new LichatReader().fromString(field.dataset.key);
+                    var key = field.dataset.key;
                     if(field.value != client.channels[name][key]){
-                        client.s("SET-CHANNEL-INFO", {channel: name, key: key, text: field.value});
+                        client.s("SET-CHANNEL-INFO", {channel: name, key: LichatReader.fromString(key), text: field.value});
                     }
                 }
             });
@@ -1666,7 +1666,7 @@ var LichatUI = function(chat, cclient){
         channels.querySelector("[data-channel=\""+name+"\"]").classList.add("active");
         channel.style.display = "";
         if(topic){
-            var text = client.channels[name][cl.kw("TOPIC")];
+            var text = client.channels[name][":TOPIC"];
             topic.innerHTML = self.replaceEmotes(self.linkifyURLs(self.escapeHTML(text || "")));
         }
         self.channel = name;

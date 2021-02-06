@@ -328,16 +328,16 @@ var LichatUI = function(chat, cclient){
                     elements: [
                         {tag: "label", text: key},
                         {tag: "input",
-                         dataset: {"key": new LichatPrinter().toString(key)},
+                         dataset: {"key": key},
                          attributes: {type: "text", value: client.channels[name][key]}}
                     ]
                 });
             }
             self.popup({tag:"div", elements: els}, (el)=>{
                 for(var field of el.querySelectorAll("input[type=text]")){
-                    var key = new LichatReader().fromString(field.dataset.key);
+                    var key = field.dataset.key;
                     if(field.value != client.channels[name][key]){
-                        client.s("SET-CHANNEL-INFO", {channel: name, key: key, text: field.value});
+                        client.s("SET-CHANNEL-INFO", {channel: name, key: LichatReader.fromString(key), text: field.value});
                     }
                 }
             });
@@ -410,7 +410,7 @@ var LichatUI = function(chat, cclient){
         channels.querySelector("[data-channel=\""+name+"\"]").classList.add("active");
         channel.style.display = "";
         if(topic){
-            var text = client.channels[name][cl.kw("TOPIC")];
+            var text = client.channels[name][":TOPIC"];
             topic.innerHTML = self.replaceEmotes(self.linkifyURLs(self.escapeHTML(text || "")));
         }
         self.channel = name;

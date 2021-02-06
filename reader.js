@@ -51,7 +51,7 @@ var LichatReader = function(){
     };
 
     self.readSexprKeyword = (stream)=>{
-        return self.safeFindSymbol(self.readSexprToken(stream), "KEYWORD");
+        return cl.intern(self.readSexprToken(stream), "KEYWORD");
     };
 
     self.readSexprNumber = (stream)=>{
@@ -167,9 +167,9 @@ var LichatReader = function(){
         }
     };
 
-    self.fromString = (string)=>{
-        return self.fromWire(new LichatStream(string));
-    };
-
     return self;
+};
+
+LichatReader.fromString = (string)=>{
+    return new LichatReader().fromWire(new LichatStream(string));
 };
