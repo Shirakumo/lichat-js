@@ -1264,6 +1264,9 @@ var LichatUI = function(chat, cclient){
     var input = chat.querySelector(".lichat-input");
     var topic = chat.querySelector(".lichat-topic");
 
+    var updates = 0;
+    var title = document.title;
+
     self.commandPrefix = "/";
     self.channel = null;
     self.channelSettings = {};
@@ -1668,6 +1671,7 @@ var LichatUI = function(chat, cclient){
         }
         self.channel = name;
         self.rebuildUserList();
+        self.updateTitle();
         return channel;
     };
 
@@ -1707,7 +1711,7 @@ var LichatUI = function(chat, cclient){
             var nav = menu.querySelector("nav");
             nav.querySelector("a.info").addEventListener("click", ()=>{
                 nav.style.display = "none";
-                self.popup({tag:"span", text: "TODO"});
+                self.popup({tag:"span", text: "TODO: this"});
             });
             nav.querySelector("a.kick").addEventListener("click", ()=>{
                 nav.style.display = "none";
@@ -1908,11 +1912,13 @@ var LichatUI = function(chat, cclient){
         return self.replaceEmotes(self.markSelf(self.linkifyURLs(self.escapeHTML(text))));
     };
 
-    var updates = 0;
-    var title = document.title;
+    self.updateTitle = ()=>{
+        document.title = ((updates<=0)?"":"("+updates+") ")+self.channel+" | "+client.servername;
+    };
+    
     self.notify = (update)=>{
         updates++;
-        document.title = "("+updates+") "+title;
+        self.updateTitle();
         var settings = self.channelSettings[update.channel];
         if(settings && (settings["notify"] == "none"
                         || (settings["notify"] == "mention"
@@ -1953,9 +1959,8 @@ var LichatUI = function(chat, cclient){
     document.addEventListener("visibilitychange", (ev)=>{
         if(document.hidden){
             updates = 0;
-        }else{
-            document.title = title;
         }
+        self.updateTitle();
     });
 
     client.addHandler("MESSAGE", (update)=>{
@@ -2297,6 +2302,5 @@ var LichatUI = function(chat, cclient){
     return self;
 };
 
-// TODO: Add per-channel notification settings
+// TODO: Finish channel and user context menus.
 // TODO: Allow picking notification sounds
-// TODO: Set channel name in title bar
