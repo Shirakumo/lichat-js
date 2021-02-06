@@ -126,8 +126,7 @@ var CL = function(){
                || instance.isInstanceOf(type)){
                 return true;
             }
-        }else{
-            if(!window[type]) cl.error("INVALID-TYPE",{type: type});
+        }else if(window[type]){
             if(window[type].prototype.isPrototypeOf(instance)
                || instance.constructor === window[type].prototype.constructor){
                 return true;

@@ -167,5 +167,9 @@ var LichatReader = function(){
         }
     };
 
+    self.fromString = (string)=>{
+        return self.fromWire(new LichatStream(string));
+    };
+
     return self;
 };

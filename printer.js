@@ -98,5 +98,11 @@ var LichatPrinter = function(){
         }
     };
 
+    self.toString = (wireable)=>{
+        var stream = new LichatStream();
+        self.toWire(wireable, stream);
+        return stream.string;
+    };
+
     return self;
 };
