@@ -1927,7 +1927,8 @@ var LichatUI = function(chat, cclient){
     };
 
     self.updateTitle = ()=>{
-        document.title = ((updates<=0)?"":"("+updates+") ")+self.channel+" | "+client.servername;
+        if(self.channel && client.servername)
+            document.title = ((updates<=0)?"":"("+updates+") ")+self.channel+" | "+client.servername;
     };
     
     self.notify = (update)=>{
