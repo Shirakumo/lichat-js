@@ -289,8 +289,8 @@ var LichatUI = function(chat, cclient){
         }
     };
 
-    self.addChannel = (name)=>{
-        let name = name.toLowerCase();
+    self.addChannel = (n)=>{
+        let name = n.toLowerCase();
         var el = self.constructElement("div", {
             classes: ["lichat-channel"],
             attributes: {"data-channel": name, "style": "display:none;"}
@@ -436,8 +436,8 @@ var LichatUI = function(chat, cclient){
 
     self.rebuildUserList = ()=>{
         users.innerHTML = "";
-        for(name of self.channelElement(self.channel).users){
-            let name = name;
+        for(n of self.channelElement(self.channel).users){
+            let name = n;
             var menu = self.constructElement("a", {
                 text: name,
                 classes: [(name === client.servername)? "server"

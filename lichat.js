@@ -1554,8 +1554,8 @@ var LichatUI = function(chat, cclient){
         }
     };
 
-    self.addChannel = (name)=>{
-        let name = name.toLowerCase();
+    self.addChannel = (n)=>{
+        let name = n.toLowerCase();
         var el = self.constructElement("div", {
             classes: ["lichat-channel"],
             attributes: {"data-channel": name, "style": "display:none;"}
@@ -1701,8 +1701,8 @@ var LichatUI = function(chat, cclient){
 
     self.rebuildUserList = ()=>{
         users.innerHTML = "";
-        for(name of self.channelElement(self.channel).users){
-            let name = name;
+        for(n of self.channelElement(self.channel).users){
+            let name = n;
             var menu = self.constructElement("a", {
                 text: name,
                 classes: [(name === client.servername)? "server"
@@ -2188,6 +2188,13 @@ var LichatUI = function(chat, cclient){
         client.s("KICK", {channel:name, target:user});
     }, "Kick a user from a channel. Not specifying a name will leave the current channel.");
 
+    self.addCommand("kickban", (user, name)=>{
+        if(!user) cl.error("MISSING-ARGUMENT",{text: "You must supply the name of a user to kick."});
+        if(!name) name = self.channel;
+        client.s("DENY", {channel: name, target: user, update: cl.li("JOIN")});
+        client.s("KICK", {channel: name, target: user});
+    }, "Kick and ban a user from a channel. Not specifying a name will leave the current channel.");
+    
     self.addCommand("users", (...args)=>{
         name = args.join(" ");
         if(!name) name = self.channel;
@@ -2291,63 +2298,71 @@ var LichatUI = function(chat, cclient){
     self.addCommand("topic", (...args)=>{
         text = args.join(" ");
         client.s("SET-CHANNEL-INFO", {channel: self.channel, key: cl.kw("TOPIC"), text: text});
-    });
+    }, "Update the channel topic.");
 
     self.addCommand("pause", (seconds)=>{
         client.s("PAUSE", {channel: self.channel, by: parseInt(seconds)});
-    });
+    }, "Change the channel's pause mode.");
 
     self.addCommand("quiet", (...args)=>{
         client.s("QUIET", {channel: self.channel, target: args.join(" ")});
-    });
+    }, "Quiet another user in the current channel.");
 
     self.addCommand("unquiet", (...args)=>{
         client.s("UNQUIET", {channel: self.channel, target: args.join(" ")});
-    });
+    }, "Unquiet another user in the current channel.");
 
     self.addCommand("kill", (...args)=>{
         client.s("KILL", {target: args.join(" ")});
-    });
+    }, "Kill a user from the server.");
 
     self.addCommand("destroy", (...args)=>{
         client.s("DESTROY", {channel: args.join(" ")});
-    });
+    }, "Destroy a channel from the server.");
 
     self.addCommand("ban", (...args)=>{
         client.s("BAN", {target: args.join(" ")});
-    });
+    }, "Ban a username from the server.");
 
     self.addCommand("unban", (...args)=>{
         client.s("UNBAN", {target: args.join(" ")});
-    });
+    }, "Unban a username from the server.");
 
     self.addCommand("ip-ban", (ip, mask)=>{
         client.s("IP-BAN", {ip: ip, mask: mask});
-    });
+    }, "Ban an IP address from the server.");
 
     self.addCommand("ip-unban", (ip, mask)=>{
         client.s("IP-UNBAN", {ip: ip, mask: mask});
-    });
+    }, "Unban an IP address from the server.");
 
     self.addCommand("capabilities", ()=>{
         client.s("CAPABILITIES", {channel: self.channel});
-    });
+    }, "Request information on which capabilities you have in the current channel.");
 
     self.addCommand("grant", (update, ...target)=>{
         client.s("GRANT", {channel: self.channel, target: target.join(" "), update: cl.findSymbol(update, "LICHAT-PROTOCOL")});
-    });
+    }, "Grant permission for an update to another user.");
 
     self.addCommand("deny", (update, ...target)=>{
         client.s("DENY", {channel: self.channel, target: target.join(" "), update: cl.findSymbol(update, "LICHAT-PROTOCOL")});
-    });
+    }, "Deny permission for an update to another user.");
 
     self.addCommand("server-info", (...args)=>{
         client.s("SERVER-INFO", {target: args.join(" ")});
-    });
+    }, "Request server information on another user.");
 
     self.addCommand("set", (key, ...text)=>{
         client.s("SET-USER-INFO", {key: LichatReader.fromString(key), text: text.join(" ")});
-    });
+    }, "Set user information. By default the following keys are available: :birthday :contact :location :public-key :real-name :status");
+
+    self.addCommand("away", ()=>{
+        client.s("SET-USER-INFO", {key: cl.kw("STATUS"), text: "away"});
+    }, "Set yourself as being away. You can return by using /status");
+
+    self.addCommand("status", (...text)=>{
+        client.s("SET-USER-INFO", {key: cl.kw("STATUS"), text: text.join(" ")});
+    }, "Set your status to a new value.");
 
     self.initControls = ()=>{
         input.addEventListener("keydown", (ev)=>{
