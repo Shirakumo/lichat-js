@@ -246,3 +246,4 @@ ui.addCommand("theme", (theme)=>{
 }, "Change the theme. Available: light, dark");
 
 setup();
+// TODO: Don't quit out on connection failure after establishment. Try to reconnect instead.
