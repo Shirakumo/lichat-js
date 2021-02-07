@@ -290,7 +290,7 @@ var LichatUI = function(chat, cclient){
     };
 
     self.addChannel = (name)=>{
-        name = name.toLowerCase();
+        let name = name.toLowerCase();
         var el = self.constructElement("div", {
             classes: ["lichat-channel"],
             attributes: {"data-channel": name, "style": "display:none;"}
@@ -384,6 +384,8 @@ var LichatUI = function(chat, cclient){
         });
         menu.addEventListener("contextmenu", (ev)=>{
             nav.style.display = (nav.style.display == "none")? "block" : "none";
+            nav.style.top = ev.clientY+"px";
+            nav.style.left = ev.clientX+"px";
             ev.preventDefault();
         });
         channels.appendChild(menu);
@@ -435,6 +437,7 @@ var LichatUI = function(chat, cclient){
     self.rebuildUserList = ()=>{
         users.innerHTML = "";
         for(name of self.channelElement(self.channel).users){
+            let name = name;
             var menu = self.constructElement("a", {
                 text: name,
                 classes: [(name === client.servername)? "server"
@@ -479,6 +482,8 @@ var LichatUI = function(chat, cclient){
             });
             menu.addEventListener("contextmenu", (ev)=>{
                 nav.style.display = (nav.style.display == "none")? "block" : "none";
+                nav.style.top = ev.clientY+"px";
+                nav.style.left = ev.clientX+"px";
                 ev.preventDefault();
             });
             users.appendChild(menu);
@@ -929,8 +934,8 @@ var LichatUI = function(chat, cclient){
     }, "Fetch a list of public channels.");
 
     self.addCommand("info", (...args)=>{
-        user = args.join(" ");
-        if(!user) cl.error("MISSING-ARGUMENT",{text: "You must supply the name of a user to query."});
+        var target = args.join(" ");
+        if(!target) cl.error("MISSING-ARGUMENT",{text: "You must supply the name of a user to query."});
         var el = self.popup({tag:"div", classes: ["info"]}).querySelector("div.info");
         var showField = (field, parent)=>{
             parent.appendChild(self.constructElement("div", {
@@ -941,7 +946,7 @@ var LichatUI = function(chat, cclient){
                 ]
             }));
         };
-        client.s("USER-INFO", {target: user}, (u)=>{
+        client.s("USER-INFO", {target: target}, (u)=>{
             if(cl.typep(u, "USER-INFO")){
                 for(var field of u.fields){
                     if(field != "id" && field != "clock" && field != "from" && field != "target" && field != "info"){
@@ -966,7 +971,7 @@ var LichatUI = function(chat, cclient){
                 el.appendChild = "Failed to fetch user info.";
             }
         });
-        client.s("SERVER-INFO", {target: user}, (u)=>{
+        client.s("SERVER-INFO", {target: target}, (u)=>{
             if(cl.typep(u, "SERVER-INFO")){
                 for(field of u.attributes) showField(field, el);
                 el.appendChild(self.constructElement("div", {
