@@ -61,7 +61,8 @@ cl.defclass("CHANNELS", ["UPDATE"], {
 });
 cl.defclass("USER-INFO", ["TARGET-UPDATE"], {
     registered: false,
-    connections: 1
+    connections: 1,
+    info: []
 });
 cl.defclass("SERVER-INFO", ["TARGET-UPDATE"], {
     attributes: [],
@@ -84,9 +85,11 @@ cl.defclass("EMOTE", ["UPDATE"], {
 cl.defclass("CHANNEL-INFO", ["CHANNEL-UPDATE"], {
     keys: true
 });
-cl.defclass("SET-CHANNEL-INFO", ["CHANNEL-UPDATE"], {
-    key: cl.requiredArg("key"),
-    text: cl.requiredArg("text")
+cl.defclass("SET-CHANNEL-INFO", ["CHANNEL-UPDATE", "TEXT-UPDATE"], {
+    key: cl.requiredArg("key")
+});
+cl.defclass("SET-USER-INFO", ["TEXT-UPDATE"], {
+    key: cl.requiredArg("key")
 });
 cl.defclass("PAUSE", ["CHANNEL-UPDATE"], {
     by: cl.requiredArg("by")
@@ -136,4 +139,8 @@ cl.defclass("NO-SUCH-CHANNEL-INFO", ["UPDATE-FAILURE"], {
     key: cl.requiredArg("key")
 });
 cl.defclass("MALFORMED-CHANNEL-INFO", ["UPDATE-FAILURE"]);
+cl.defclass("NO-SUCH-USER-INFO", ["UPDATE-FAILURE"], {
+    key: cl.requiredArg("key")
+});
+cl.defclass("MALFORMED-USER-INFO", ["UPDATE-FAILURE"]);
 cl.defclass("CLOCK-SKEWED", ["UPDATE-FAILURE"]);
