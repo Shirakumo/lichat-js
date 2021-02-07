@@ -1888,13 +1888,12 @@ var LichatUI = function(chat, cclient){
     };
 
     self.escapeHTML = (text)=>{
-        return text.replace(/([<>"&\n])/g, (a,b)=>{
+        return text.replace(/([<>"&])/g, (a,b)=>{
             switch(b){
             case "<": return "&lt;";
             case ">": return "&gt;";
             case "\"": return "&quot;";
             case "&": return "&amp;";
-            case "\n": return "<br>";
             default: return a;
             }
         });
@@ -2349,5 +2348,5 @@ var LichatUI = function(chat, cclient){
     return self;
 };
 
-// TODO: Finish channel and user context menus.
+// TODO: Finish channel context menu.
 // TODO: Allow picking notification sounds
