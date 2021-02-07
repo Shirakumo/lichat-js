@@ -86,12 +86,13 @@ var LichatClient = function(options){
         return wireable;
     };
 
-    self.s = (type, args)=>{
+    self.s = (type, args, cb)=>{
         args = args || {};
         var socket = args.socket || self.socket;
         if(!args.from) args.from = self.username;
         delete args.socket;
         var update = cl.makeInstance(type, args);
+        if(cb) self.addCallback(update.id, cb);
         return self.send(socket, update);
     };
 

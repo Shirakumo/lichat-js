@@ -22,7 +22,7 @@ var LichatReader = function(){
         if(pkg === null){
             return cl.makeSymbol(name);
         }
-        return cl.findSymbol(name, pkg) || self.invalidSymbol;
+        return cl.intern(name, pkg);
     };
 
     self.readSexprList = (stream)=>{

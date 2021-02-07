@@ -191,7 +191,9 @@
           :text-align left)
    (input :flex-grow 1
           :min-width 0
-          :box-sizing border-box))
+          :box-sizing border-box)
+   (.connection
+    :margin 0 0 0.5em 0))
   ((:or input[type=submit] button)
    :margin 5px 0 0 0
    :width 100%))
@@ -209,7 +211,8 @@
    :display flex
    (label :min-width 8em
           :display inline-block)
-   (input :flex-grow 1))
+   (input :flex-grow 1)
+   ())
   (button :width 100%))
  (.popup-background
   :position fixed

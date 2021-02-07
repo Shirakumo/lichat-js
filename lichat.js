@@ -824,7 +824,7 @@ var LichatReader = function(){
         if(pkg === null){
             return cl.makeSymbol(name);
         }
-        return cl.findSymbol(name, pkg) || self.invalidSymbol;
+        return cl.intern(name, pkg);
     };
 
     self.readSexprList = (stream)=>{
@@ -1063,12 +1063,13 @@ var LichatClient = function(options){
         return wireable;
     };
 
-    self.s = (type, args)=>{
+    self.s = (type, args, cb)=>{
         args = args || {};
         var socket = args.socket || self.socket;
         if(!args.from) args.from = self.username;
         delete args.socket;
         var update = cl.makeInstance(type, args);
+        if(cb) self.addCallback(update.id, cb);
         return self.send(socket, update);
     };
 
@@ -1436,6 +1437,7 @@ var LichatUI = function(chat, cclient){
             document.body.removeChild(el);
         });
         document.body.appendChild(el);
+        return el;
     };
 
     self.channelElement = (name)=>{
@@ -1711,7 +1713,52 @@ var LichatUI = function(chat, cclient){
             var nav = menu.querySelector("nav");
             nav.querySelector("a.info").addEventListener("click", ()=>{
                 nav.style.display = "none";
-                self.popup({tag:"span", text: "TODO: this"});
+                var el = self.popup({tag:"div", classes: ["info"]}).querySelector("div.info");
+                client.s("USER-INFO", {target: name}, (u)=>{
+                    if(cl.typep(u, "USER-INFO")){
+                        for(var field of u.fields){
+                            if(field != "id" && field != "clock" && field != "from" && field != "target"){
+                                el.appendChild(self.constructElement("div", {
+                                    classes: ["row"],
+                                    elements: [
+                                        {tag: "label", text: field},
+                                        {tag: "span", text: u[field]}
+                                    ]
+                                }));
+                            }
+                        }
+                    }else{
+                        el.appendChild = "Failed to fetch user info.";
+                    }
+                });
+                client.s("SERVER-INFO", {target: name}, (u)=>{
+                    if(cl.typep(u, "SERVER-INFO")){
+                        var showFields = (fields, parent)=>{
+                            for(var field of fields){
+                                parent.appendChild(self.constructElement("div", {
+                                    classes: ["row"],
+                                    elements: [
+                                        {tag: "label", text: ""+field[0]},
+                                        {tag: "span", text: ""+field[1]}
+                                    ]
+                                }));
+                            }
+                        };
+                        showFields(u.attributes, el);
+                        el.appendChild(self.constructElement("div", {
+                            classes: ["row"],
+                            elements: [
+                                {tag: "label", text: "Connections"},
+                                {tag: "div", classes: ["connections"]}
+                            ]
+                        }));
+                        for(var connection of u.connections){
+                            var conn = self.constructElement("div", {classes: ["connection"]});
+                            el.querySelector(".connections").appendChild(conn);
+                            showFields(connection, conn);
+                        }
+                    }
+                });
             });
             nav.querySelector("a.kick").addEventListener("click", ()=>{
                 nav.style.display = "none";
