@@ -616,7 +616,8 @@ cl.defclass("CHANNELS", ["UPDATE"], {
 });
 cl.defclass("USER-INFO", ["TARGET-UPDATE"], {
     registered: false,
-    connections: 1
+    connections: 1,
+    info: []
 });
 cl.defclass("SERVER-INFO", ["TARGET-UPDATE"], {
     attributes: [],
@@ -639,9 +640,11 @@ cl.defclass("EMOTE", ["UPDATE"], {
 cl.defclass("CHANNEL-INFO", ["CHANNEL-UPDATE"], {
     keys: true
 });
-cl.defclass("SET-CHANNEL-INFO", ["CHANNEL-UPDATE"], {
-    key: cl.requiredArg("key"),
-    text: cl.requiredArg("text")
+cl.defclass("SET-CHANNEL-INFO", ["CHANNEL-UPDATE", "TEXT-UPDATE"], {
+    key: cl.requiredArg("key")
+});
+cl.defclass("SET-USER-INFO", ["TEXT-UPDATE"], {
+    key: cl.requiredArg("key")
 });
 cl.defclass("PAUSE", ["CHANNEL-UPDATE"], {
     by: cl.requiredArg("by")
@@ -691,6 +694,10 @@ cl.defclass("NO-SUCH-CHANNEL-INFO", ["UPDATE-FAILURE"], {
     key: cl.requiredArg("key")
 });
 cl.defclass("MALFORMED-CHANNEL-INFO", ["UPDATE-FAILURE"]);
+cl.defclass("NO-SUCH-USER-INFO", ["UPDATE-FAILURE"], {
+    key: cl.requiredArg("key")
+});
+cl.defclass("MALFORMED-USER-INFO", ["UPDATE-FAILURE"]);
 cl.defclass("CLOCK-SKEWED", ["UPDATE-FAILURE"]);
 var LichatPrinter = function(){
     var self = this;
@@ -1005,7 +1012,8 @@ var LichatClient = function(options){
 
     var supportedExtensions = ["shirakumo-data", "shirakumo-backfill", "shirakumo-emotes",
                                "shirakumo-channel-info", "shirakumo-quiet", "shirakumo-pause",
-                               "shirakumo-server-management", "shirakumo-ip"];
+                               "shirakumo-server-management", "shirakumo-ip", "shirakumo-user-info",
+                               "shirakumo-icon"];
     var availableExtensions = [];
     var internalHandlers = {};
     var idCallbacks = {};
@@ -1713,52 +1721,7 @@ var LichatUI = function(chat, cclient){
             var nav = menu.querySelector("nav");
             nav.querySelector("a.info").addEventListener("click", ()=>{
                 nav.style.display = "none";
-                var el = self.popup({tag:"div", classes: ["info"]}).querySelector("div.info");
-                client.s("USER-INFO", {target: name}, (u)=>{
-                    if(cl.typep(u, "USER-INFO")){
-                        for(var field of u.fields){
-                            if(field != "id" && field != "clock" && field != "from" && field != "target"){
-                                el.appendChild(self.constructElement("div", {
-                                    classes: ["row"],
-                                    elements: [
-                                        {tag: "label", text: field},
-                                        {tag: "span", text: u[field]}
-                                    ]
-                                }));
-                            }
-                        }
-                    }else{
-                        el.appendChild = "Failed to fetch user info.";
-                    }
-                });
-                client.s("SERVER-INFO", {target: name}, (u)=>{
-                    if(cl.typep(u, "SERVER-INFO")){
-                        var showFields = (fields, parent)=>{
-                            for(var field of fields){
-                                parent.appendChild(self.constructElement("div", {
-                                    classes: ["row"],
-                                    elements: [
-                                        {tag: "label", text: ""+field[0]},
-                                        {tag: "span", text: ""+field[1]}
-                                    ]
-                                }));
-                            }
-                        };
-                        showFields(u.attributes, el);
-                        el.appendChild(self.constructElement("div", {
-                            classes: ["row"],
-                            elements: [
-                                {tag: "label", text: "Connections"},
-                                {tag: "div", classes: ["connections"]}
-                            ]
-                        }));
-                        for(var connection of u.connections){
-                            var conn = self.constructElement("div", {classes: ["connection"]});
-                            el.querySelector(".connections").appendChild(conn);
-                            showFields(connection, conn);
-                        }
-                    }
-                });
+                self.invokeCommand("info", name);
             });
             nav.querySelector("a.kick").addEventListener("click", ()=>{
                 nav.style.display = "none";
@@ -2155,6 +2118,11 @@ var LichatUI = function(chat, cclient){
         self.showMessage(update);
     });
 
+    client.addHandler("SET-USER-INFO", (update)=>{
+        update.text = " ** "+update.key+" has been updated.";
+        self.showMessage(update);
+    });
+
     client.addHandler("UPDATE", (update)=>{
         // Some events are uninteresting, so they should be ignored entirely.
         if(!cl.find(cl.classOf(update).className,
@@ -2228,12 +2196,63 @@ var LichatUI = function(chat, cclient){
     self.addCommand("info", (...args)=>{
         user = args.join(" ");
         if(!user) cl.error("MISSING-ARGUMENT",{text: "You must supply the name of a user to query."});
-        client.s("USER-INFO", {target:user});
+        var el = self.popup({tag:"div", classes: ["info"]}).querySelector("div.info");
+        var showField = (field, parent)=>{
+            parent.appendChild(self.constructElement("div", {
+                classes: ["row"],
+                elements: [
+                    {tag: "label", text: ""+field[0]},
+                    {tag: "span", text: ""+field[1]}
+                ]
+            }));
+        };
+        client.s("USER-INFO", {target: user}, (u)=>{
+            if(cl.typep(u, "USER-INFO")){
+                for(var field of u.fields){
+                    if(field != "id" && field != "clock" && field != "from" && field != "target" && field != "info"){
+                        showField([field, u[field]], el);
+                    }
+                }
+                for(var field of (u.info || [])){
+                    if(field[0].name == "ICON"){
+                        var parts = field[1].split(" ");
+                        el.appendChild(self.constructElement("div", {
+                            classes: ["row"],
+                            elements: [
+                                {tag: "label", text: "Icon"},
+                                {tag: "img", classes: ["icon"], attributes: {src: "data:"+parts[0]+";base64,"+parts[1]}}
+                            ]
+                        }));
+                    }else{
+                        showField([(""+field[0]).toLowerCase(), field[1]], el);
+                    }
+                }
+            }else{
+                el.appendChild = "Failed to fetch user info.";
+            }
+        });
+        client.s("SERVER-INFO", {target: user}, (u)=>{
+            if(cl.typep(u, "SERVER-INFO")){
+                for(field of u.attributes) showField(field, el);
+                el.appendChild(self.constructElement("div", {
+                    classes: ["row"],
+                    elements: [
+                        {tag: "label", text: "Connections"},
+                        {tag: "div", classes: ["connections"]}
+                    ]
+                }));
+                for(var connection of u.connections){
+                    var conn = self.constructElement("div", {classes: ["connection"]});
+                    el.querySelector(".connections").appendChild(conn);
+                    for(field of connection) showField(field, conn);
+                }
+            }
+        });
     }, "Fetch information about a user.");
 
     self.addCommand("message", (name, ...args)=>{
         if(!name) cl.error("MISSING-ARGUMENT",{text: "You must supply the name of a channel to message to."});;
-        client.s("KICK", {channel:name, text:args.join(" ")});
+        client.s("MESSAGE", {channel:name, text:args.join(" ")});
     }, "Send a message to a channel. Note that you must be in the channel to send to it.");
 
     self.addCommand("contact", (...users)=>{
@@ -2274,27 +2293,27 @@ var LichatUI = function(chat, cclient){
     });
 
     self.addCommand("quiet", (...args)=>{
-        client.s("QUIET", {channel: self.channel, target: args.join(args)});
+        client.s("QUIET", {channel: self.channel, target: args.join(" ")});
     });
 
     self.addCommand("unquiet", (...args)=>{
-        client.s("UNQUIET", {channel: self.channel, target: args.join(args)});
+        client.s("UNQUIET", {channel: self.channel, target: args.join(" ")});
     });
 
     self.addCommand("kill", (...args)=>{
-        client.s("KILL", {target: args.join(args)});
+        client.s("KILL", {target: args.join(" ")});
     });
 
     self.addCommand("destroy", (...args)=>{
-        client.s("DESTROY", {channel: args.join(args)});
+        client.s("DESTROY", {channel: args.join(" ")});
     });
 
     self.addCommand("ban", (...args)=>{
-        client.s("BAN", {target: args.join(args)});
+        client.s("BAN", {target: args.join(" ")});
     });
 
     self.addCommand("unban", (...args)=>{
-        client.s("UNBAN", {target: args.join(args)});
+        client.s("UNBAN", {target: args.join(" ")});
     });
 
     self.addCommand("ip-ban", (ip, mask)=>{
@@ -2309,16 +2328,20 @@ var LichatUI = function(chat, cclient){
         client.s("CAPABILITIES", {channel: self.channel});
     });
 
-    self.addCommand("grant", (update, target)=>{
-        client.s("GRANT", {channel: self.channel, target: target, update: cl.findSymbol(update, "LICHAT-PROTOCOL")});
+    self.addCommand("grant", (update, ...target)=>{
+        client.s("GRANT", {channel: self.channel, target: target.join(" "), update: cl.findSymbol(update, "LICHAT-PROTOCOL")});
     });
 
-    self.addCommand("deny", (update, target)=>{
-        client.s("DENY", {channel: self.channel, target: target, update: cl.findSymbol(update, "LICHAT-PROTOCOL")});
+    self.addCommand("deny", (update, ...target)=>{
+        client.s("DENY", {channel: self.channel, target: target.join(" "), update: cl.findSymbol(update, "LICHAT-PROTOCOL")});
     });
 
     self.addCommand("server-info", (...args)=>{
-        client.s("SERVER-INFO", {target: args.join(args)});
+        client.s("SERVER-INFO", {target: args.join(" ")});
+    });
+
+    self.addCommand("set", (key, ...text)=>{
+        client.s("SET-USER-INFO", {key: LichatReader.fromString(key), text: text.join(" ")});
     });
 
     self.initControls = ()=>{

@@ -206,13 +206,16 @@
   :background white
   :padding 10px
   :border 3px solid black
-  :box-shadow 0 0 50px black
+  :box-shadow 0 0 2px black
   (.row
    :display flex
    (label :min-width 8em
-          :display inline-block)
+          :display inline-block
+          :text-transform capitalize)
    (input :flex-grow 1)
-   ())
+   (img :max-width 100%)
+   (img.icon :max-width 128px
+             :max-height 128px))
   (button :width 100%))
  (.popup-background
   :position fixed

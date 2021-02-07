@@ -28,7 +28,8 @@ var LichatClient = function(options){
 
     var supportedExtensions = ["shirakumo-data", "shirakumo-backfill", "shirakumo-emotes",
                                "shirakumo-channel-info", "shirakumo-quiet", "shirakumo-pause",
-                               "shirakumo-server-management", "shirakumo-ip"];
+                               "shirakumo-server-management", "shirakumo-ip", "shirakumo-user-info",
+                               "shirakumo-icon"];
     var availableExtensions = [];
     var internalHandlers = {};
     var idCallbacks = {};
