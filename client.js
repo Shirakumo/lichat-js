@@ -227,6 +227,10 @@ var LichatClient = function(options){
         return emote;
     };
 
+    self.isAvailable = (name)=>{
+        return cl.find(name, availableExtensions);
+    };
+
     self.addInternalHandler("CONNECT", (ev)=>{
         availableExtensions = ev.extensions;
         if(cl.find("shirakumo-emotes", availableExtensions)){
