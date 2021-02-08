@@ -371,7 +371,7 @@ var LichatUI = function(chat, cclient){
         self.channelSettings[name] = settings;
         el.users = [];
         output.appendChild(el);
-        var menu = self.constructElement("a", {
+        let menu = self.constructElement("a", {
             text: name,
             classes: [(name.indexOf("@")===0)? "anonymous"
                       :(name === client.servername)? "primary"
@@ -390,7 +390,8 @@ var LichatUI = function(chat, cclient){
                 ]
             }]
         });
-        var nav = menu.querySelector("nav");
+        channels.appendChild(menu);
+        let nav = menu.querySelector("nav");
         nav.querySelector("a.info").addEventListener("click", ()=>{
             nav.style.display = "none";
             var els = [];
@@ -460,7 +461,6 @@ var LichatUI = function(chat, cclient){
             nav.style.left = ev.clientX+"px";
             ev.preventDefault();
         });
-        channels.appendChild(menu);
         return self.changeChannel(name);
     };
 
@@ -508,9 +508,8 @@ var LichatUI = function(chat, cclient){
 
     self.rebuildUserList = ()=>{
         users.innerHTML = "";
-        for(n of self.channelElement(self.channel).users){
-            let name = n;
-            var menu = self.constructElement("a", {
+        for(let name of self.channelElement(self.channel).users){
+            let menu = self.constructElement("a", {
                 text: name,
                 classes: [(name === client.servername)? "server"
                           : "regular"],
@@ -528,7 +527,8 @@ var LichatUI = function(chat, cclient){
                     ]
                 }]
             });
-            var nav = menu.querySelector("nav");
+            users.appendChild(menu);
+            let nav = menu.querySelector("nav");
             nav.querySelector("a.info").addEventListener("click", ()=>{
                 nav.style.display = "none";
                 self.invokeCommand("info", name);
@@ -558,7 +558,6 @@ var LichatUI = function(chat, cclient){
                 nav.style.left = ev.clientX+"px";
                 ev.preventDefault();
             });
-            users.appendChild(menu);
         }
     };
 
@@ -931,7 +930,7 @@ var LichatUI = function(chat, cclient){
     client.addHandler("UPDATE", (update)=>{
         // Some events are uninteresting, so they should be ignored entirely.
         if(!cl.find(cl.classOf(update).className,
-                    ["PING", "PONG", "EMOTES", "EMOTE"])){
+                    ["PING", "PONG", "EMOTES", "EMOTE", "USER-INFO", "SERVER-INFO"])){
             if(!update.text) update.text = "Received update of type "+update.type;
             self.showMessage(update);
         }

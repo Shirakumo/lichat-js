@@ -80,7 +80,8 @@ var LichatClient = function(options){
     self.send = (socket, wireable)=>{
         if(!socket || socket.readyState != 1)
             cl.error("NOT-CONNECTED",{text: "The client is not connected."});
-        cl.format("[Lichat] Send:~s", wireable);
+        if(!cl.typep(wireable, "PING") && !cl.typep(wireable, "PONG"))
+            cl.format("[Lichat] Send:~s", wireable);
         var stream = new LichatStream();
         printer.toWire(wireable, stream);
         socket.send(stream.string+'\u0000');
@@ -141,7 +142,8 @@ var LichatClient = function(options){
     };
 
     self.process = (update)=>{
-        cl.format("[Lichat] Update:~s",update);
+        if(!cl.typep(update, "PING") && !cl.typep(update, "PONG"))
+            cl.format("[Lichat] Update:~s",update);
         var callbacks = idCallbacks[update.id];
         if(callbacks){
             for(callback of callbacks){
