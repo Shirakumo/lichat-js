@@ -2,6 +2,9 @@
  :min-height 100%
  :position relative)
 
+ (.hidden
+  :display none !important)
+
 (:let ((flavor-bg "#0088EE")
        (flavor-fg "#FFFFFF")
        (primary-bg "#EEEEEE")
