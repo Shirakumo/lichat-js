@@ -243,17 +243,21 @@ var LichatUI = function(chat, cclient){
             // FIXME: I don't like this. Think on it.
             messageElements[2].handlers = {'click': handleMessageClick};
             messageElements.push({
-                tag: "form",
-                classes: ["edit-content", "hidden"],
+                tag: "div",
+                classes: ["edit-content", "input-area", "hidden"],
                 elements: [
                     {tag: "textarea",
                      text: options.text},
-                    {tag: "input",
-                     attributes: {type: "submit", value: "Edit"},
-                     handlers: {"click": sendEdit}},
-                    {tag: "input",
-                     attributes: {type: "submit", value: "Cancel"},
-                     handlers: {"click": hideEdit}}]
+                    {tag: "div",
+                     elements: [
+                     {tag: "input",
+                      classes: ["edit-accept"],
+                      attributes: {type: "submit", value: "Edit"},
+                      handlers: {"click": sendEdit}},
+                     {tag: "input",
+                      classes: ["edit-cancel"],
+                      attributes: {type: "submit", value: "Cancel"},
+                      handlers: {"click": cancelEdit}}]}]
             });
         }
         // Construct element
@@ -292,26 +296,32 @@ var LichatUI = function(chat, cclient){
 
         function handleMessageClick(event) {
             if(el.dataset.from === client.username){
-                let form = el.querySelector("form.edit-content");
+                let form = el.querySelector(".edit-content");
                 if(!form.classList.toggle("hidden",false)){
-                    el.querySelector("span.content").classList.add("hidden");
+                    el.querySelector(".content").classList.add("hidden");
                 }
             }
         }
 
-        function hideEdit(event){
-            event.preventDefault();
-            let form = event.target.closest("form.edit-content");
+        function hideEdit(form){
             if(form.classList.toggle("hidden",true)){
-                el.querySelector("span.content").classList.remove("hidden");
+                el.querySelector(".content").classList.remove("hidden");
             }
+        }
+
+        function cancelEdit(event){
+            event.preventDefault();
+            let form = event.target.closest(".edit-content");
+            let span = el.querySelector(".content");
+            form.querySelector("textarea").value = span.innerText;
+            hideEdit(form);
             return false;
         }
 
         function sendEdit(event){
             event.preventDefault();
-            let form = event.target.closest("form.edit-content");
-            let span = el.querySelector("span.content");
+            let form = event.target.closest(".edit-content");
+            let span = el.querySelector(".content");
             let text = form.querySelector("textarea").value;
             if(text !== span.innerText){
                 client.s("EDIT", {
@@ -321,7 +331,7 @@ var LichatUI = function(chat, cclient){
                 });
                 span.innerText = text;
             }
-            hideEdit(event);
+            hideEdit(form);
             return false;
         }
     };
