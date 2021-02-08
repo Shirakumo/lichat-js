@@ -880,14 +880,6 @@ var LichatUI = function(chat, cclient){
         self.showMessage(update);
     });
 
-    client.addHandler("USER-INFO", (update)=>{
-        update.text = " ** "+update.target+" is "+
-            ((update.registered)
-             ? ("registered with "+update.connections+" connections")
-             : "not registered");
-        self.showMessage(update);
-    });
-
     client.addHandler("SET-CHANNEL-INFO", (update)=>{
         if(self.channel == update.channel.toLowerCase() && update.key == cl.kw("TOPIC") && topic){
             topic.innerHTML = self.replaceEmotes(self.linkifyURLs(self.escapeHTML(update.text)));
@@ -1201,3 +1193,4 @@ var LichatUI = function(chat, cclient){
 
 // TODO: Finish channel context menu.
 // TODO: Allow picking notification sounds
+// TODO: Easy UI for setting user and channel icons from files.
