@@ -1211,6 +1211,10 @@ var LichatClient = function(options){
         return emote;
     };
 
+    self.isAvailable = (name)=>{
+        return cl.find(name, availableExtensions);
+    };
+
     self.addInternalHandler("CONNECT", (ev)=>{
         availableExtensions = ev.extensions;
         if(cl.find("shirakumo-emotes", availableExtensions)){
@@ -1421,6 +1425,9 @@ var LichatUI = function(chat, cclient){
         for(var data in (options.dataset||{})){
             el.dataset[data] = options.dataset[data];
         }
+        for(var handler in (options.handlers||{})){
+            el.addEventListener(handler,options.handlers[handler]);
+        }
         return el;
     };
 
@@ -1486,19 +1493,55 @@ var LichatUI = function(chat, cclient){
         }
         if(options.from === client.username) cl.push("self", classList);
         var timestamp = cl.universalToUnix(options.clock);
+        var messageElements = [{
+            tag: "time",
+            text: self.formatTime(timestamp),
+            attributes: {datetime: ""+timestamp}},{
+            tag: "a",
+            text: options.from,
+            classes: ["username"],
+            attributes: {style: "color:"+self.objectColor(options.from),
+                         title: options.from}},{
+            tag: "span",
+            classes: ["content"],
+            text: options.text,
+            html: options.html}];
+        // Extended functionality
+        if(client.isAvailable("shirakumo-edit") &&
+           0 <= classList.indexOf("MESSAGE")){
+            // FIXME: I don't like this. Think on it.
+            messageElements[2].handlers = {'click': handleMessageClick};
+            messageElements.push({
+                tag: "form",
+                classes: ["edit-content", "hidden"],
+                elements: [
+                    {tag: "textarea",
+                     text: options.text},
+                    {tag: "input",
+                     attributes: {type: "submit", value: "Edit"},
+                     handlers: {"click": (event)=>{
+                        event.preventDefault();
+                        let form = event.target.closest("form.edit-content");
+                        let text = form.querySelector("textarea").value;
+                        client.s("EDIT", {
+                            channel: options.channel,
+                            id: options.id,
+                            text: text
+                        });
+                        el.querySelector("span.content").innerText = text;
+                        hideEdit(event);
+                        return false;
+                     }}},
+                    {tag: "input",
+                     attributes: {type: "submit", value: "Cancel"},
+                     handlers: {"click": hideEdit}}]
+            });
+        }
         // Construct element
         var el = self.constructElement("div", {
             classes: classList,
             dataset: {id: options.id,from: options.from},
-            elements: [{tag: "time",
-                        text: self.formatTime(timestamp),
-                        attributes: {datetime: ""+timestamp}},
-                       {tag: "a",
-                        text: options.from,
-                        classes: ["username"],
-                        attributes: {style: "color:"+self.objectColor(options.from),
-                                     title: options.from}},
-                       {tag: "span", text: options.text, html: options.html}]
+            elements: messageElements
         });
         // Handle scrolling deferral.
         var channel = self.channelElement(options.channel);
@@ -1527,6 +1570,24 @@ var LichatUI = function(chat, cclient){
             el.scrollIntoView();
         }
         return el;
+
+        function handleMessageClick(event) {
+            if(el.dataset.from === client.username){
+                let form = el.querySelector("form.edit-content");
+                if(!form.classList.toggle("hidden",false)){
+                    el.querySelector("span.content").classList.add("hidden");
+                }
+            }
+        }
+
+        function hideEdit(event){
+            event.preventDefault();
+            let form = event.target.closest("form.edit-content");
+            if(form.classList.toggle("hidden",true)){
+                el.querySelector("span.content").classList.remove("hidden");
+            }
+            return false;
+        }
     };
 
     self.showError = (e)=>{
@@ -1546,7 +1607,7 @@ var LichatUI = function(chat, cclient){
             if(parseInt(child.dataset.id) === options.id &&
                child.dataset.from === options.from){
                 // TODO: How do we mark a message as edited?
-                let span = child.lastElementChild;
+                let span = child.querySelector("span.content");
                 if(options.text) span.innerText = options.text;
                 if(options.html) span.innerHTML = options.html;
                 break;
