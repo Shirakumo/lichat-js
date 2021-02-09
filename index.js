@@ -18,22 +18,6 @@ var fail = function(reason){
     ui.reset();
 };
 
-var save = (name, value)=>{
-    if(window.localStorage){
-        window.localStorage.setItem(name, JSON.stringify(value));
-    }
-    return value;
-};
-
-var load = (name, def)=>{
-    if(window.localStorage){
-        var value = window.localStorage.getItem(name);
-        return (value)? JSON.parse(value) : def;
-    }else{
-        return def;
-    }
-};
-
 var urlParams = (url)=>{
     if(!url) url = window.location.href;
     var params = {};
@@ -68,7 +52,7 @@ var changeTheme = (theme)=>{
     
     login.querySelector("select[name=theme]").value = theme;
     document.querySelector("body").setAttribute("class", theme);
-    save("theme", theme);
+    ui.save("theme", theme);
     return theme;
 };
 
@@ -84,19 +68,16 @@ var setup = ()=>{
         if(params.channel) login.querySelector("input[name=channel]").parentNode.style.display = "none";
         if(params.theme) login.querySelector("select[name=theme]").parentNode.style.display = "none";
     }
-    login.querySelector("input[name=username]").value = params.username || load("username", login.querySelector("input[name=username]").value);
-    login.querySelector("input[name=password]").value = params.password || load("password", login.querySelector("input[name=password]").value);
-    login.querySelector("input[name=hostname]").value = params.hostname || load("hostname", login.querySelector("input[name=hostname]").value);
-    login.querySelector("input[name=port]").value =     params.port     || load("port", defaultPort);
-    login.querySelector("input[name=channel]").value =  params.channel  || load("channel", login.querySelector("input[name=channel]").value);
-    ui.notifyBy = load("notifyBy", []);
-    ui.notifySound.volume = load("volume", 0.5);
-    ui.channelSettings = load("channelSettings", {});
+    login.querySelector("input[name=username]").value = params.username || ui.load("username", login.querySelector("input[name=username]").value);
+    login.querySelector("input[name=password]").value = params.password || ui.load("password", login.querySelector("input[name=password]").value);
+    login.querySelector("input[name=hostname]").value = params.hostname || ui.load("hostname", login.querySelector("input[name=hostname]").value);
+    login.querySelector("input[name=port]").value =     params.port     || ui.load("port", defaultPort);
+    login.querySelector("input[name=channel]").value =  params.channel  || ui.load("channel", login.querySelector("input[name=channel]").value);
     for(var value of ui.notifyBy){
         settings.querySelector("[name=notifyBy][value="+value+"]").checked = true;
     }
     settings.querySelector("[name=volume]").value = ""+ui.notifySound.volume;
-    changeTheme(params.theme || load("theme", "light"));
+    changeTheme(params.theme || ui.load("theme", "light"));
 };
 
 var addEmoteToUI = (name)=>{
@@ -127,9 +108,7 @@ settings.querySelector("button").addEventListener("click", (ev)=>{
     }
     ui.notifyBy = Array.from(settings.querySelectorAll("[name=notifyBy]")).filter((e)=>e.checked).map((e)=>e.value);
     ui.notifySound.volume = parseFloat(settings.querySelector("[name=volume]").value);
-    save("notifyBy", ui.notifyBy);
-    save("volume", ui.notifySound.volume);
-    save("channelSettings", ui.channelSettings);
+    ui.save();
     settings.style.display = "none";
 });
 
@@ -180,11 +159,11 @@ login.addEventListener("submit", (ev)=>{
     client.hostname = login.querySelector("input[name=hostname]").value;
     client.port = parseInt(login.querySelector("input[name=port]").value);
     client.ssl = (client.port === 1114);
-    save("username", client.username);
-    save("password", client.password);
-    save("hostname", client.hostname);
-    save("port", client.port);
-    save("channel", login.querySelector("input[name=channel]").value);
+    ui.save("username", client.username);
+    ui.save("password", client.password);
+    ui.save("hostname", client.hostname);
+    ui.save("port", client.port);
+    ui.save("channel", login.querySelector("input[name=channel]").value);
     stat.style.display = "block";
     stat.innerHTML = "Connecting...";
     client.openConnection();

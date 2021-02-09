@@ -17,8 +17,37 @@ var LichatUI = function(chat, cclient){
     self.notifyBy = [];
     self.commands = {};
     self.notifySound = chat.querySelector(".lichat-notify");
+    self.notifySound.volume = 0.5;
     self.icon = document.querySelector("head link[rel=\"shortcut icon\"]");
     self.icon = (self.icon)?self.icon.getAttribute("href"):"/favicon.ico";
+    
+    self.save = (name, value)=>{
+        if(name == undefined){
+            self.save("channelSettings", self.channelSettings);
+            self.save("notifyBy", self.notifyBy);
+            self.save("notifySound.volume", self.notifySound.volume);
+            return self;
+        }else if(window.localStorage){
+            window.localStorage.setItem("lichat.ui."+name, JSON.stringify(value));
+            return value;
+        }else{
+            return value;
+        }
+    };
+
+    self.load = (name, def)=>{
+        if(name == undefined){
+            self.channelSettings = self.load("channelSettings", self.channelSettings);
+            self.notifyBy = self.load("notifyBy", self.notifyBy);
+            self.notifySound.volume = self.load("notifySound.volume", self.notifySound.volume);
+            return self;
+        }else if(window.localStorage){
+            var value = window.localStorage.getItem("lichat.ui."+name);
+            return (value)? JSON.parse(value) : def;
+        }else{
+            return def;
+        }
+    };
 
     self.objectColor = (object)=>{
         var hash = cl.sxhash(object);
@@ -438,6 +467,7 @@ var LichatUI = function(chat, cclient){
             ]}, (el)=>{
                 settings["color"] = el.querySelector("input[type=color]").value;
                 settings["notify"] = el.querySelector("select").value;
+                self.save();
                 menu.style.color = settings["color"];
             });
         });
@@ -1186,6 +1216,7 @@ var LichatUI = function(chat, cclient){
     };
 
     self.initControls();
+    self.load();
 
     return self;
 };
