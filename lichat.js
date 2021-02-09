@@ -1285,6 +1285,7 @@ var LichatUI = function(chat, cclient){
     self.commandPrefix = "/";
     self.channel = null;
     self.channelSettings = {};
+    self.userSettings = {};
     self.notifyBy = [];
     self.commands = {};
     self.notifySound = chat.querySelector(".lichat-notify");
@@ -1295,6 +1296,7 @@ var LichatUI = function(chat, cclient){
     self.save = (name, value)=>{
         if(name == undefined){
             self.save("channelSettings", self.channelSettings);
+            self.save("userSettings", self.userSettings);
             self.save("notifyBy", self.notifyBy);
             self.save("notifySound.volume", self.notifySound.volume);
             return self;
@@ -1309,6 +1311,7 @@ var LichatUI = function(chat, cclient){
     self.load = (name, def)=>{
         if(name == undefined){
             self.channelSettings = self.load("channelSettings", self.channelSettings);
+            self.userSettings = self.load("userSettings", self.userSettings);
             self.notifyBy = self.load("notifyBy", self.notifyBy);
             self.notifySound.volume = self.load("notifySound.volume", self.notifySound.volume);
             return self;
@@ -1810,12 +1813,12 @@ var LichatUI = function(chat, cclient){
     self.rebuildUserList = ()=>{
         users.innerHTML = "";
         for(let name of self.channelElement(self.channel).users){
+            let settings = self.userSettings[name] || {};
             let menu = self.constructElement("a", {
                 text: name,
-                classes: [(name === client.servername)? "server"
-                          : "regular"],
+                classes: [(name === client.servername)? "server" : "regular"],
                 attributes: {"data-user": name,
-                             "style": "color:"+self.objectColor(name)},
+                             "style": "color:"+(settings["color"] || self.objectColor(name))},
                 elements: [{
                     tag: "nav",
                     attributes: {"style": "display:none"},
