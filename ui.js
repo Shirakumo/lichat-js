@@ -1224,15 +1224,15 @@ var LichatUI = function(chat, cclient){
     return self;
 };
 
-// TODO: Channel permissions editor
-// TODO: Allow picking notification sounds
-// TODO: Easy UI for setting user and channel icons from files
-// TODO: Show message history
-// TODO: Check channel capabilities and trim context menu
-// TODO: Make context menus disappear if clicking elsewhere
-// TOOD: Cancel edit if clicking outside
-// TODO: Allow configuring user colors and muting
 // TODO: Don't exit to login window on disconnect, try to reconnect
+// TODO: Fix notifications not showing right / title not clearing on focus
+// TODO: Make context menus disappear if clicking elsewhere
+// TODO: Check channel capabilities and trim context menu
+// TODO: Show message history
+// TOOD: Cancel edit if clicking outside
+// TODO: Channel permissions editor
+// TODO: Allow configuring user colors and muting
+// TODO: Allow picking notification sounds
 // TODO: Show icons for users and channels in list
+// TODO: Easy UI for setting user and channel icons from files
 // TODO: Show away/status in user list
-
