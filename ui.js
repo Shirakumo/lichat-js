@@ -810,8 +810,8 @@ var LichatUI = function(chat, cclient){
         }
     };
 
-    document.addEventListener("visibilitychange", (ev)=>{
-        if(document.hidden){
+    document.addEventListener("visibilitychange", ()=>{
+        if(document.visibilityState === 'visible'){
             updates = 0;
         }
         self.updateTitle();
@@ -1225,7 +1225,7 @@ var LichatUI = function(chat, cclient){
 };
 
 // TODO: Don't exit to login window on disconnect, try to reconnect
-// TODO: Fix notifications not showing right / title not clearing on focus
+// TODO: Track unread messages per channel and show in channel list
 // TODO: Make context menus disappear if clicking elsewhere
 // TODO: Check channel capabilities and trim context menu
 // TODO: Show message history
