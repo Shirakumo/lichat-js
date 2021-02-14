@@ -1710,6 +1710,7 @@ var LichatUI = function(chat, cclient){
             nav.style.display = "none";
             var els = [];
             for(var key in client.channels[name]){
+                if(key == "unread") continue;
                 els.push({
                     tag: "div",
                     classes: ["row"],
@@ -1751,6 +1752,7 @@ var LichatUI = function(chat, cclient){
                 ]}
             ]}, (el)=>{
                 settings["color"] = el.querySelector("input[type=color]").value;
+                if(settings["color"] == "#000000") delete settings["color"];
                 settings["notify"] = el.querySelector("select").value;
                 self.save();
                 menu.style.color = settings["color"];

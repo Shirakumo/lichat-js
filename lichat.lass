@@ -254,6 +254,7 @@
     (a :overflow hidden
        :white-space nowrap
        :text-overflow ellipsis)
+    (.unread :float right)
     ((:and .unread :before) :content "(")
     ((:and .unread :after) :content ")")
     (nav
