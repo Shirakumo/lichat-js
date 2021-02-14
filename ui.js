@@ -435,8 +435,13 @@ var LichatUI = function(chat, cclient){
         });
         channels.appendChild(menu);
         let nav = menu.querySelector("nav");
-        nav.querySelector("a.info").addEventListener("click", ()=>{
+        let hideNav;
+        hideNav = ()=>{
             nav.style.display = "none";
+            document.removeEventListener("click", hideNav);
+        };
+        nav.querySelector("a.info").addEventListener("click", ()=>{
+            hideNav();
             var els = [];
             for(var key in client.channels[name]){
                 if(key == "unread") continue;
@@ -461,11 +466,11 @@ var LichatUI = function(chat, cclient){
             });
         });
         nav.querySelector("a.permissions").addEventListener("click", ()=>{
-            nav.style.display = "none";
+            hideNav();
             self.popup({tag:"span", text: "TODO"});
         });
         nav.querySelector("a.settings").addEventListener("click", ()=>{
-            nav.style.display = "none";
+            hideNav();
             self.popup({tag:"div", elements: [
                 {tag: "div", classes: ["row"], elements: [
                     {tag: "label", text: "Color"},
@@ -488,14 +493,14 @@ var LichatUI = function(chat, cclient){
             });
         });
         nav.querySelector("a.pull").addEventListener("click", ()=>{
-            nav.style.display = "none";
+            hideNav();
             var user = window.prompt("Username to pull into "+name);
             if(user){
                 client.s("PULL", {channel: name, target: user});
             }
         });
         nav.querySelector("a.leave").addEventListener("click", ()=>{
-            nav.style.display = "none";
+            hideNav();
             client.s("LEAVE", {channel: name});
         });
         menu.addEventListener("click", ()=>{
@@ -506,6 +511,7 @@ var LichatUI = function(chat, cclient){
             nav.style.top = ev.clientY+"px";
             nav.style.left = ev.clientX+"px";
             ev.preventDefault();
+            document.addEventListener("click", hideNav);
         });
         return self.changeChannel(name);
     };
@@ -589,12 +595,17 @@ var LichatUI = function(chat, cclient){
             });
             users.appendChild(menu);
             let nav = menu.querySelector("nav");
-            nav.querySelector("a.info").addEventListener("click", ()=>{
+            let hideNav;
+            hideNav = ()=>{
                 nav.style.display = "none";
+                document.removeEventListener("click", hideNav);
+            };
+            nav.querySelector("a.info").addEventListener("click", ()=>{
+                hideNav();
                 self.invokeCommand("info", name);
             });
             nav.querySelector("a.kick").addEventListener("click", ()=>{
-                nav.style.display = "none";
+                hideNav();
                 client.s("KICK", {channel: self.channel, target: name});
             });
             nav.querySelector("a.quiet").addEventListener("click", ()=>{
@@ -602,11 +613,11 @@ var LichatUI = function(chat, cclient){
                 client.s("QUIET", {channel: self.channel, target: name});
             });
             nav.querySelector("a.unquiet").addEventListener("click", ()=>{
-                nav.style.display = "none";
+                hideNav();
                 client.s("UNQUIET", {channel: self.channel, target: name});
             });
             nav.querySelector("a.kickban").addEventListener("click", ()=>{
-                nav.style.display = "none";
+                hideNav();
                 if(window.confirm("Are you sure you want to ban "+name+" from "+self.channel+"?")){
                     client.s("DENY", {channel: self.channel, target: name, update: cl.li("JOIN")});
                     client.s("KICK", {channel: self.channel, target: name});
@@ -616,6 +627,7 @@ var LichatUI = function(chat, cclient){
                 nav.style.display = (nav.style.display == "none")? "block" : "none";
                 nav.style.top = ev.clientY+"px";
                 nav.style.left = ev.clientX+"px";
+                document.addEventListener("click", hideNav);
                 ev.preventDefault();
             });
         }
@@ -1244,7 +1256,6 @@ var LichatUI = function(chat, cclient){
 };
 
 // TODO: Don't exit to login window on disconnect, try to reconnect
-// TODO: Make context menus disappear if clicking elsewhere
 // TODO: Check channel capabilities and trim context menu
 // TODO: Show message history
 // TOOD: Cancel edit if clicking outside
