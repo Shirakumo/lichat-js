@@ -6,6 +6,15 @@ var about = document.querySelector(".about");
 var settings = document.querySelector(".settings");
 var client = new LichatClient();
 var ui = new LichatUI(chat, client);
+var connected = false;
+var tryReconnect = false;
+var reconnect;
+reconnect = ()=>{
+    if(!tryReconnect) return;
+    ui.showMessage({from: "System", text: "Attempting to reconnect..."});
+    client.openConnection();
+    setTimeout(reconnect, 60000);
+};
 
 var fail = function(reason){
     chat.style.display = "none";
@@ -115,7 +124,11 @@ settings.querySelector("button").addEventListener("click", (ev)=>{
 client.handleFailure = (e)=>{
     if(console)
         console.log("Failure:",e);
-    if(e instanceof Condition){
+    if(connected){
+        ui.showError(e);
+        tryReconnect = true;
+        setTimeout(reconnect, 1000);
+    }else if(e instanceof Condition){
         if(e.update && (e.update.type == "INVALID-PASSWORD" || e.update.type == "NO-SUCH-PROFILE")){
             var pwfield = login.querySelector("input[name=password]");
             if(pwfield){
@@ -130,12 +143,15 @@ client.handleFailure = (e)=>{
 };
 
 client.addHandler("DISCONNECT", (update)=>{
+    connected = True;
     fail("Disconnected");
 });
 
 client.addHandler("CONNECT", (update)=>{
     stat.style.display = "none";
     chat.style.display = "";
+    connected = True;
+    tryReconnect = False;
 
     var channel = login.querySelector("input[name=channel]").value;
     if(channel){
