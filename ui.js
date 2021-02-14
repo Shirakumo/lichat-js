@@ -174,7 +174,6 @@ var LichatUI = function(chat, cclient){
     self.constructElement = (tag, options)=>{
         var el = document.createElement(tag);
         el.setAttribute("class", (options.classes||[]).join(" "));
-        if(options.text) el.innerText = options.text;
         if(options.html) el.innerHTML = options.html;
         for(var attr in (options.attributes||{})){
             if(options.attributes[attr])
@@ -188,6 +187,7 @@ var LichatUI = function(chat, cclient){
         for(var data in (options.dataset||{})){
             el.dataset[data] = options.dataset[data];
         }
+        if(options.text) el.appendChild(document.createTextNode(options.text));
         for(var handler in (options.handlers||{})){
             el.addEventListener(handler,options.handlers[handler]);
         }
