@@ -1502,6 +1502,11 @@ var LichatUI = function(chat, cclient){
            }catch(e){return false;}
     };
 
+    self.isChannelVisible = (name)=>{
+        return document.visibilityState === 'visible'
+            && self.channel === (name || self.channel).toLowerCase();
+    };
+
     self.isAtBottom = (element)=>{
         element = element || channel;
         return (element.scrollHeight - element.scrollTop - element.clientHeight) < 10;
@@ -1595,6 +1600,10 @@ var LichatUI = function(chat, cclient){
             channel.appendChild(el);
             el.scrollIntoView();
         }
+        if(!self.isChannelVisible(options.channel)){
+            self.updateUnreadCount(options.channel, "new");
+            self.notify(options);
+        }
         return el;
 
         function handleMessageClick(event) {
@@ -1681,7 +1690,9 @@ var LichatUI = function(chat, cclient){
                       :  "regular"],
             attributes: {"data-channel": name,
                          "style": "color:"+(settings.color || "")},
-            elements: [{
+            elements: [
+                {tag: "span", classes:["unread"]},
+                {
                 tag: "nav",
                 attributes: {"style": "display:none"},
                 elements: [
@@ -1780,6 +1791,20 @@ var LichatUI = function(chat, cclient){
         }
     };
 
+    self.updateUnreadCount = (name, change)=>{
+        name = name.toLowerCase();
+        var el = channels.querySelector("[data-channel=\""+name+"\"] .unread");
+        if(change == "new"){
+            client.channels[name]["unread"] = 1 + (client.channels[name]["unread"] || 0);
+            el.classList.remove("hidden");
+            el.innerText = client.channels[name]["unread"];
+        }else if(change == "clear"){
+            client.channels[name]["unread"] = 0;
+            el.classList.add("hidden");
+        }
+        self.updateTitle();
+    };
+
     self.changeChannel = (name)=>{
         name = name.toLowerCase();
         var channel = self.channelElement(name);
@@ -1793,8 +1818,8 @@ var LichatUI = function(chat, cclient){
             topic.innerHTML = self.replaceEmotes(self.linkifyURLs(self.escapeHTML(text || "")));
         }
         self.channel = name;
+        self.updateUnreadCount(name, "clear");
         self.rebuildUserList();
-        self.updateTitle();
         return channel;
     };
 
@@ -2037,13 +2062,15 @@ var LichatUI = function(chat, cclient){
     };
 
     self.updateTitle = ()=>{
-        if(self.channel && client.servername)
-            document.title = ((updates<=0)?"":"("+updates+") ")+self.channel+" | "+client.servername;
+        if(self.channel && client.servername){
+            var unread = 0;
+            for(let channel in client.channels)
+                unread += client.channels[channel]["unread"];
+            document.title = ((unread<=0)?"":"("+unread+") ")+self.channel+" | "+client.servername;
+        }
     };
     
     self.notify = (update)=>{
-        updates++;
-        self.updateTitle();
         var settings = self.channelSettings[update.channel];
         if(settings && (settings["notify"] == "none"
                         || (settings["notify"] == "mention"
@@ -2081,25 +2108,18 @@ var LichatUI = function(chat, cclient){
         }
     };
 
-    document.addEventListener("visibilitychange", (ev)=>{
-        if(document.hidden){
-            updates = 0;
+    document.addEventListener("visibilitychange", ()=>{
+        if(document.visibilityState === 'visible' && self.channel){
+            self.updateUnreadCount(self.channel, "clear");
         }
-        self.updateTitle();
     });
 
     client.addHandler("MESSAGE", (update)=>{
-        if(document.hidden){
-            self.notify(update);
-        }
         update.html = self.formatUserText(update.text);
         self.showMessage(update);
     });
 
     client.addHandler("EDIT", (update)=>{
-        if(document.hidden){
-            self.notify(update);
-        }
         update.html = self.formatUserText(update.text);
         self.editMessage(update);
     });
@@ -2133,9 +2153,6 @@ var LichatUI = function(chat, cclient){
             break;
         default:
             update.html = "<div class=\"data unsupported\">Unsupported data of type "+update["content-type"]+"</div>";
-        }
-        if(document.hidden){
-            self.notify(update);
         }
         self.showMessage(update);
     });
@@ -2495,6 +2512,14 @@ var LichatUI = function(chat, cclient){
     return self;
 };
 
-// TODO: Finish channel context menu.
+// TODO: Don't exit to login window on disconnect, try to reconnect
+// TODO: Make context menus disappear if clicking elsewhere
+// TODO: Check channel capabilities and trim context menu
+// TODO: Show message history
+// TOOD: Cancel edit if clicking outside
+// TODO: Channel permissions editor
+// TODO: Allow configuring user colors and muting
 // TODO: Allow picking notification sounds
-// TODO: Easy UI for setting user and channel icons from files.
+// TODO: Show icons for users and channels in list
+// TODO: Easy UI for setting user and channel icons from files
+// TODO: Show away/status in user list

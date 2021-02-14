@@ -254,6 +254,8 @@
     (a :overflow hidden
        :white-space nowrap
        :text-overflow ellipsis)
+    ((:and .unread :before) :content "(")
+    ((:and .unread :after) :content ")")
     (nav
      :z-index 100
      :position absolute
