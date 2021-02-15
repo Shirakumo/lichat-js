@@ -1543,8 +1543,7 @@ var LichatUI = function(chat, cclient){
                          title: options.from}},{
             tag: "span",
             classes: ["content"],
-            text: options.text,
-            html: options.html}];
+            html: options.html || self.escapeHTML(options.text)}];
         // Extended functionality
         if(client.isAvailable("shirakumo-edit") &&
            0 <= classList.indexOf("MESSAGE") &&
