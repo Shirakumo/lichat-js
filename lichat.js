@@ -1547,8 +1547,9 @@ var LichatUI = function(chat, cclient){
             html: options.html}];
         // Extended functionality
         if(client.isAvailable("shirakumo-edit") &&
-           0 <= classList.indexOf("MESSAGE")){
-            // FIXME: I don't like this. Think on it.
+           0 <= classList.indexOf("MESSAGE") &&
+           options.from === client.username){
+            // Note: The array position for content.
             messageElements[2].handlers = {'click': handleMessageClick};
             messageElements.push({
                 tag: "div",
@@ -1611,6 +1612,7 @@ var LichatUI = function(chat, cclient){
                 let form = el.querySelector(".edit-content");
                 if(!form.classList.toggle("hidden",false)){
                     el.querySelector(".content").classList.add("hidden");
+                    document.addEventListener("click",cancelEditFromDocument);
                 }
             }
         }
@@ -1618,16 +1620,24 @@ var LichatUI = function(chat, cclient){
         function hideEdit(form){
             if(form.classList.toggle("hidden",true)){
                 el.querySelector(".content").classList.remove("hidden");
+                let span = el.querySelector(".content");
+                form.querySelector("textarea").value = span.innerText;
+                document.removeEventListener("click",cancelEditFromDocument);
             }
         }
 
         function cancelEdit(event){
             event.preventDefault();
             let form = event.target.closest(".edit-content");
-            let span = el.querySelector(".content");
-            form.querySelector("textarea").value = span.innerText;
             hideEdit(form);
             return false;
+        }
+
+        function cancelEditFromDocument(event){
+            if(el !== event.target.closest(".MESSAGE")){
+                let form = el.querySelector(".edit-content");
+                if(!form.classList.contains("hidden")) hideEdit(form);
+            }
         }
 
         function sendEdit(event){
@@ -2529,7 +2539,6 @@ var LichatUI = function(chat, cclient){
 // TODO: Don't exit to login window on disconnect, try to reconnect
 // TODO: Check channel capabilities and trim context menu
 // TODO: Show message history
-// TOOD: Cancel edit if clicking outside
 // TODO: Channel permissions editor
 // TODO: Allow configuring user colors and muting
 // TODO: Allow picking notification sounds
