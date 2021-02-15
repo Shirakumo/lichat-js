@@ -149,7 +149,10 @@
          ((:and a :hover) :color "#55AAEE")
          ((:and label (:or .command .emote))
           :color #(flavor-bg)))
-         (.edit-cancel :background #(menu-bg)))))
+         (.edit-cancel :background #(menu-bg)))
+       (.update.message.self
+        ((:and span :hover)
+         :border-left solid 0.2em #(flavor-bg)))))
      ((:and .lichat-channel "::-webkit-scrollbar") :width 10px :height 10px)
      ((:and (:or .lichat-channel .menu) "::-webkit-scrollbar-button") :width 0 :height 0)
      ((:and (:or .lichat-channel .menu) "::-webkit-scrollbar-thumb") :background "#555" :border none)
