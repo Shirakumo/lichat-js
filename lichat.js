@@ -1526,7 +1526,7 @@ var LichatUI = function(chat, cclient){
         options = self.ensureMessageOptions(options);
         if(cl.classOf(options)){
             classList = cl.mapcar((a)=>a.className.toLowerCase(), cl.classOf(options).superclasses);
-            classList.push(cl.classOf(options).className);
+            classList.push(cl.classOf(options).className.toLowerCase());
         }else{
             classList = ["update"];
         }
@@ -1546,7 +1546,7 @@ var LichatUI = function(chat, cclient){
             html: options.html || self.escapeHTML(options.text)}];
         // Extended functionality
         if(client.isAvailable("shirakumo-edit") &&
-           0 <= classList.indexOf("MESSAGE") &&
+           0 <= classList.indexOf("message") &&
            options.from === client.username){
             // Note: The array position for content.
             messageElements[2].handlers = {'click': handleMessageClick};
@@ -1633,7 +1633,7 @@ var LichatUI = function(chat, cclient){
         }
 
         function cancelEditFromDocument(event){
-            if(el !== event.target.closest(".MESSAGE")){
+            if(el !== event.target.closest(".message")){
                 let form = el.querySelector(".edit-content");
                 if(!form.classList.contains("hidden")) hideEdit(form);
             }
