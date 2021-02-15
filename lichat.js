@@ -1342,6 +1342,7 @@ var LichatUI = function(chat, cclient){
     };
 
     self.invokeCommand = (command, ...args)=>{
+        cl.format("Command ~a~a", command, args);
         var fun = self.commands[command];
         if(fun){
             fun.apply(self, args);

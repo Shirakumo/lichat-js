@@ -143,15 +143,15 @@ client.handleFailure = (e)=>{
 };
 
 client.addHandler("DISCONNECT", (update)=>{
-    connected = True;
+    connected = true;
     fail("Disconnected");
 });
 
 client.addHandler("CONNECT", (update)=>{
     stat.style.display = "none";
     chat.style.display = "";
-    connected = True;
-    tryReconnect = False;
+    connected = true;
+    tryReconnect = false;
 
     var channel = login.querySelector("input[name=channel]").value;
     if(channel){
