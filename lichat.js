@@ -1292,6 +1292,9 @@ var LichatUI = function(chat, cclient){
     self.notifySound.volume = 0.5;
     self.icon = document.querySelector("head link[rel=\"shortcut icon\"]");
     self.icon = (self.icon)?self.icon.getAttribute("href"):"/favicon.ico";
+    self.css = document.createElement("style");
+    document.head.appendChild(self.css);
+    self.css = self.css.sheet;
     
     self.save = (name, value)=>{
         if(name == undefined){
@@ -1721,8 +1724,13 @@ var LichatUI = function(chat, cclient){
             nav.style.display = "none";
             document.removeEventListener("click", hideNav);
         };
-        nav.querySelector("a.info").addEventListener("click", ()=>{
-            hideNav();
+        let handle = (field, fn)=>{
+            nav.querySelector(field).addEventListener("click", (ev)=>{
+                hideNav();
+                fn(ev);
+            });
+        };
+        handle("a.info", ()=>{
             var els = [];
             for(var key in client.channels[name]){
                 if(key == "unread") continue;
@@ -1746,12 +1754,10 @@ var LichatUI = function(chat, cclient){
                 }
             });
         });
-        nav.querySelector("a.permissions").addEventListener("click", ()=>{
-            hideNav();
+        handle("a.permissions", ()=>{
             self.popup({tag:"span", text: "TODO"});
         });
-        nav.querySelector("a.settings").addEventListener("click", ()=>{
-            hideNav();
+        handle("a.settings", ()=>{
             self.popup({tag:"div", elements: [
                 {tag: "div", classes: ["row"], elements: [
                     {tag: "label", text: "Color"},
@@ -1773,15 +1779,13 @@ var LichatUI = function(chat, cclient){
                 menu.style.color = settings["color"];
             });
         });
-        nav.querySelector("a.pull").addEventListener("click", ()=>{
-            hideNav();
+        handle("a.pull", ()=>{
             var user = window.prompt("Username to pull into "+name);
             if(user){
                 client.s("PULL", {channel: name, target: user});
             }
         });
-        nav.querySelector("a.leave").addEventListener("click", ()=>{
-            hideNav();
+        handle("a.leave", ()=>{
             client.s("LEAVE", {channel: name});
         });
         menu.addEventListener("click", ()=>{
@@ -1853,6 +1857,21 @@ var LichatUI = function(chat, cclient){
         self.rebuildUserList();
     };
 
+    self.rebuildUserStyles = ()=>{
+        while(0 < self.css.rules.length){
+            self.css.deleteRule(0);
+        }
+        for(var name in self.userSettings){
+            var settings = self.userSettings[name];
+            if(settings["color"]){
+                self.css.insertRule(".update[data-from=\""+name+"\"] .username{color: "+settings["color"]+" !important}", 0);
+            }
+            if(settings["ignore"]){
+                self.css.insertRule(".update[data-from=\""+name+"\"]{display: none !important;}", 0);
+            }
+        }
+    };
+
     self.rebuildUserList = ()=>{
         users.innerHTML = "";
         for(let name of self.channelElement(self.channel).users){
@@ -1871,6 +1890,7 @@ var LichatUI = function(chat, cclient){
                         {tag: "a", classes: ["unquiet"], text: "Unquiet"},
                         {tag: "a", classes: ["kick"], text: "Kick"},
                         {tag: "a", classes: ["kickban"], text: "Kickban"},
+                        {tag: "a", classes: ["settings"], text: "Settings"},
                     ]
                 }]
             });
@@ -1881,28 +1901,49 @@ var LichatUI = function(chat, cclient){
                 nav.style.display = "none";
                 document.removeEventListener("click", hideNav);
             };
-            nav.querySelector("a.info").addEventListener("click", ()=>{
-                hideNav();
+            let handle = (field, fn)=>{
+                nav.querySelector(field).addEventListener("click", (ev)=>{
+                    hideNav();
+                    fn(ev);
+                });
+            };
+            handle("a.info", ()=>{
                 self.invokeCommand("info", name);
             });
-            nav.querySelector("a.kick").addEventListener("click", ()=>{
-                hideNav();
+            handle("a.kick", ()=>{
                 client.s("KICK", {channel: self.channel, target: name});
             });
-            nav.querySelector("a.quiet").addEventListener("click", ()=>{
-                nav.style.display = "none";
+            handle("a.quiet", ()=>{
                 client.s("QUIET", {channel: self.channel, target: name});
             });
-            nav.querySelector("a.unquiet").addEventListener("click", ()=>{
-                hideNav();
+            handle("a.unquiet", ()=>{
                 client.s("UNQUIET", {channel: self.channel, target: name});
             });
-            nav.querySelector("a.kickban").addEventListener("click", ()=>{
-                hideNav();
+            handle("a.kickban", ()=>{
                 if(window.confirm("Are you sure you want to ban "+name+" from "+self.channel+"?")){
                     client.s("DENY", {channel: self.channel, target: name, update: cl.li("JOIN")});
                     client.s("KICK", {channel: self.channel, target: name});
                 }
+            });
+            handle("a.settings", ()=>{
+                self.popup({tag: "div", elements: [
+                    {tag: "div", classes: ["row"], elements: [
+                        {tag: "label", text: "Color"},
+                        {tag: "input", attributes: {type: "color", value: settings["color"]}}
+                    ]},
+                    {tag: "div", classes: ["row"], elements: [
+                        {tag: "label", text: "Ignore"},
+                        {tag: "input", attributes: {type: "checkbox", value: "on", checked: settings["ignore"]}}
+                    ]}
+                ]}, (el)=>{
+                    settings["color"] = el.querySelector("input[type=color]").value;
+                    if(settings["color"] == "#000000") delete settings["color"];
+                    settings["ignore"] = el.querySelector("input[type=checkbox]").checked;
+                    self.userSettings[name] = settings;
+                    self.save();
+                    self.rebuildUserStyles();
+                    menu.style.color = settings["color"] || self.objectColor(name);
+                });
             });
             menu.addEventListener("contextmenu", (ev)=>{
                 nav.style.display = (nav.style.display == "none")? "block" : "none";
@@ -2508,6 +2549,15 @@ var LichatUI = function(chat, cclient){
         client.s("SET-USER-INFO", {key: cl.kw("STATUS"), text: text.join(" ")});
     }, "Set your status to a new value.");
 
+    self.addCommand("ignore", (...user)=>{
+        var name = user.join(" ");
+        var settings = self.userSettings[name] || {};
+        settings["ignore"] = !settings["ignore"];
+        self.userSettings[name] = settings;
+        self.rebuildUserStyles();
+        self.showMessage({text: (settings["ignore"]?"ignored":"unignored")+" "+name+"."});
+    }, "Ignore or unignore a user's messages.");
+
     self.initControls = ()=>{
         input.addEventListener("keydown", (ev)=>{
             if(ev.keyCode === 9){
@@ -2532,6 +2582,7 @@ var LichatUI = function(chat, cclient){
 
     self.initControls();
     self.load();
+    self.rebuildUserStyles();
 
     return self;
 };
@@ -2540,7 +2591,6 @@ var LichatUI = function(chat, cclient){
 // TODO: Check channel capabilities and trim context menu
 // TODO: Show message history
 // TODO: Channel permissions editor
-// TODO: Allow configuring user colors and muting
 // TODO: Allow picking notification sounds
 // TODO: Show icons for users and channels in list
 // TODO: Easy UI for setting user and channel icons from files
