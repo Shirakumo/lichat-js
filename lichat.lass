@@ -2,8 +2,12 @@
  :min-height 100%
  :position relative)
 
- (.hidden
-  :display none !important)
+(.hidden
+ :display none !important)
+(img.icon
+ :max-width 128px
+ :max-height 128px
+ :box-sizing border-box)
 
 (:let ((flavor-bg "#0088EE")
        (flavor-fg "#FFFFFF")

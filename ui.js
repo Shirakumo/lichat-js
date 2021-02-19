@@ -222,6 +222,30 @@ var LichatUI = function(chat, cclient){
         return el;
     };
 
+    self.promptIcon = (cb)=>{
+        var pop = self.popup({tag: "div", elements:[
+            {tag: "img", classes: ["icon"]},
+            {tag: "input", attributes: {type: "file", accept: "image/png,image/gif,*.png,*.gif"}}
+        ]}, (el)=>{
+            var src = el.querySelector("img").getAttribute("src");
+            if(src){
+                var contentType = src.substr(0, src.indexOf(";"));
+                var b64 = src.substr(src.indexOf(",")+1);
+                cb(contentType+" "+b64);
+            }
+        });
+        var image = pop.querySelector("img");
+        var file = pop.querySelector("input[type=file]");
+        file.addEventListener("change", ()=>{
+            var fr = new FileReader();
+            fr.onload = ()=>{
+                image.src = fr.result;
+            };
+            fr.readAsDataURL(file.files[0]);
+        });
+        return pop;
+    };
+
     self.channelElement = (name)=>{
         name = name.toLowerCase();
         var channel = output.querySelector("[data-channel=\""+name+"\"]");
@@ -1142,16 +1166,34 @@ var LichatUI = function(chat, cclient){
                         showField([field, u[field]], el);
                     }
                 }
-                for(var field of (u.info || [])){
+                if(u.info === undefined) return;
+                // Augment with default fields
+                var info = u.info;
+                for(var name of ["ICON", "BIRTHDAY", "CONTACT", "LOCATION", "PUBLIC-KEY", "REAL-NAME", "STATUS"]){
+                    var symbol = cl.kw(name);
+                    var found = false;
+                    for(var field of info){
+                        if(field[0] == symbol) found = true;
+                    }
+                    if(!found) info.push([cl.kw(name), ""]);
+                }
+                // Actually show the fields.
+                for(var field of info){
                     if(field[0].name == "ICON"){
                         var parts = field[1].split(" ");
-                        el.appendChild(self.constructElement("div", {
+                        var image = self.constructElement("div", {
                             classes: ["row"],
                             elements: [
                                 {tag: "label", text: "Icon"},
                                 {tag: "img", classes: ["icon"], attributes: {src: "data:"+parts[0]+";base64,"+parts[1]}}
                             ]
-                        }));
+                        });
+                        el.appendChild(image);
+                        if(target == client.username){
+                            el.addEventListener("click", ()=>self.promptIcon((icon)=>{
+                                client.s("SET-USER-INFO", {key: LichatReader.fromString(":ICON"), text: icon});
+                            }));
+                        }
                     }else{
                         showField([(""+field[0]).toLowerCase(), field[1]], el);
                     }
@@ -1319,10 +1361,14 @@ var LichatUI = function(chat, cclient){
     return self;
 };
 
-// TODO: Check channel capabilities and trim context menu
 // TODO: Show message history
 // TODO: Channel permissions editor
 // TODO: Allow picking notification sounds
 // TODO: Show icons for users and channels in list
-// TODO: Easy UI for setting user and channel icons from files
+// TODO: Unify info display between channels and users, and allow setting your own
+//       if requesting the user info of yourself.
 // TODO: Show away/status in user list
+//       Need to figure out how status updates should be broadcast first.
+// TODO: Check channel capabilities and trim context menu
+//       Should we even do this? Is it worse to show unusable actions than
+//       it is to possibly be out of date because we miss permission changes?
