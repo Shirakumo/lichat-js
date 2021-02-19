@@ -151,11 +151,18 @@ client.addHandler("CONNECT", (update)=>{
     stat.style.display = "none";
     chat.style.display = "";
     connected = true;
-    tryReconnect = false;
 
-    var channel = login.querySelector("input[name=channel]").value;
-    if(channel){
-        setTimeout(()=> ui.invokeCommand("join", channel), 500);
+    if(!tryReconnect){
+        var channel = login.querySelector("input[name=channel]").value;
+        if(channel){
+            setTimeout(()=> ui.invokeCommand("join", channel), 500);
+        }
+    }else{
+        tryReconnect = false;
+        var channels = document.querySelectorAll(".lichat-channel");
+        for(var channel of channels){
+            client.s("JOIN", {channel: channel.dataset.channel});
+        }
     }
     
     window.onbeforeunload = ()=>{

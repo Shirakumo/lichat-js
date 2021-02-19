@@ -1688,6 +1688,9 @@ var LichatUI = function(chat, cclient){
 
     self.addChannel = (n)=>{
         let name = n.toLowerCase();
+        var existing = document.querySelector(".lichat-channel[data-channel=\""+name+"\"]");
+        if(existing) return existing;
+        
         var el = self.constructElement("div", {
             classes: ["lichat-channel"],
             attributes: {"data-channel": name, "style": "display:none;"}
@@ -2587,7 +2590,6 @@ var LichatUI = function(chat, cclient){
     return self;
 };
 
-// TODO: Don't exit to login window on disconnect, try to reconnect
 // TODO: Check channel capabilities and trim context menu
 // TODO: Show message history
 // TODO: Channel permissions editor
