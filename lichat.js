@@ -1,3 +1,36 @@
+// Special objects
+var Return = function(name, value){
+    var self = this;
+    self.name = (name===undefined)?null:name;
+    self.value = (value===undefined)?null:value;
+    return self;
+};
+
+var Restart = function(name, args){
+    var self = this;
+    self.name = name;
+    self.args = (args===undefined)?[]:args;
+    return self;
+};
+
+var Symbol = function(name, pkg){
+    var self = this;
+    if(!name) throw "Cannot create symbol with empty name.";
+    self.name = name;
+    self.pkg = pkg || null;
+    self.toString = ()=>{
+        return self.name;
+    };
+    return self;
+};
+
+var Keyword = function(name){
+    var self = this;
+    Symbol.call(self, name, "KEYWORD");
+    return self;
+};
+Keyword.prototype = Object.create(Symbol.prototype);
+
 var CL = function(){
     var self = this;
     var symbols = {};
@@ -412,6 +445,13 @@ var CL = function(){
         varray.push("");
     });
 
+    self.T = self.intern("T", "LICHAT-PROTOCOL");
+    self.NIL = self.intern("NIL", "LICHAT-PROTOCOL");
+
+    self.null = (arg)=>{
+        return !arg || (arg === self.NIL);
+    };
+
     return self;
 };
 
@@ -469,39 +509,6 @@ Condition.prototype.report = function(){
     var self = this;
     return "Condition of type ["+self.type+"]"+(self.text?": "+self.text:"");
 };
-
-// Special objects
-var Return = function(name, value){
-    var self = this;
-    self.name = (name===undefined)?null:name;
-    self.value = (value===undefined)?null:value;
-    return self;
-};
-
-var Restart = function(name, args){
-    var self = this;
-    self.name = name;
-    self.args = (args===undefined)?[]:args;
-    return self;
-};
-
-var Symbol = function(name, pkg){
-    var self = this;
-    if(!name) throw "Cannot create symbol with empty name.";
-    self.name = name;
-    self.pkg = pkg || null;
-    self.toString = ()=>{
-        return self.name;
-    };
-    return self;
-};
-
-var Keyword = function(name){
-    var self = this;
-    Symbol.call(self, name, "KEYWORD");
-    return self;
-};
-Keyword.prototype = Object.create(Symbol.prototype);
 var LichatStream = function(string){
     var self = this;
     self.string = string || "";
@@ -579,7 +586,8 @@ cl.defclass("REGISTER", ["UPDATE"], {
     password: cl.requiredArg("password")
 });
 cl.defclass("CHANNEL-UPDATE", ["UPDATE"], {
-    channel: cl.requiredArg("channel")
+    channel: cl.requiredArg("channel"),
+    bridge: null
 });
 cl.defclass("TARGET-UPDATE", ["UPDATE"], {
     target: cl.requiredArg("target")
@@ -1013,7 +1021,7 @@ var LichatClient = function(options){
     var supportedExtensions = ["shirakumo-data", "shirakumo-backfill", "shirakumo-emotes",
                                "shirakumo-channel-info", "shirakumo-quiet", "shirakumo-pause",
                                "shirakumo-server-management", "shirakumo-ip", "shirakumo-user-info",
-                               "shirakumo-icon"];
+                               "shirakumo-icon", "shirakumo-bridge"];
     var availableExtensions = [];
     var internalHandlers = {};
     var idCallbacks = {};
@@ -1560,18 +1568,21 @@ var LichatUI = function(chat, cclient){
         }
         if(options.from === client.username) cl.push("self", classList);
         var timestamp = cl.universalToUnix(options.clock);
-        var messageElements = [{
-            tag: "time",
-            text: self.formatTime(timestamp),
-            attributes: {datetime: ""+timestamp}},{
-            tag: "a",
-            text: options.from,
-            classes: ["username"],
-            attributes: {style: "color:"+self.objectColor(options.from),
-                         title: options.from}},{
-            tag: "span",
-            classes: ["content"],
-            html: options.html || self.escapeHTML(options.text)}];
+        var messageElements = [
+            {
+                tag: "time",
+                text: self.formatTime(timestamp),
+                attributes: {datetime: ""+timestamp}},
+            {
+                tag: "a",
+                text: options.from,
+                classes: ["username", cl.null(options.bridge)?"":"bridged"],
+                attributes: {style: "color:"+self.objectColor(options.from),
+                             title: cl.null(options.bridge)?options.from:options.bridge}},
+            {
+                tag: "span",
+                classes: ["content"],
+                html: options.html || self.escapeHTML(options.text)}];
         // Extended functionality
         if(client.isAvailable("shirakumo-edit") &&
            0 <= classList.indexOf("message") &&
@@ -2602,6 +2613,10 @@ var LichatUI = function(chat, cclient){
         self.rebuildUserStyles();
         self.showMessage({text: (settings["ignore"]?"ignored":"unignored")+" "+name+"."});
     }, "Ignore or unignore a user's messages.");
+
+    self.addCommand("send-as", (user, ...text)=>{
+        client.s("MESSAGE", {bridge: user, channel: self.channel, text: text.join(" ")});
+    }, "Send a message assuming the name of another in the current channel. Requires BRIDGE permission.");
 
     self.initControls = ()=>{
         input.addEventListener("keydown", (ev)=>{

@@ -309,6 +309,9 @@
           :overflow hidden
           :white-space nowrap
           :text-overflow ellipsis)
+      ((:and >a.bridged :after)
+       :content "*"
+       :color red)
       (img :max-height 300px)
       (span :word-wrap break-word
             :white-space pre-wrap

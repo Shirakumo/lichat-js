@@ -289,18 +289,21 @@ var LichatUI = function(chat, cclient){
         }
         if(options.from === client.username) cl.push("self", classList);
         var timestamp = cl.universalToUnix(options.clock);
-        var messageElements = [{
-            tag: "time",
-            text: self.formatTime(timestamp),
-            attributes: {datetime: ""+timestamp}},{
-            tag: "a",
-            text: options.from,
-            classes: ["username"],
-            attributes: {style: "color:"+self.objectColor(options.from),
-                         title: options.from}},{
-            tag: "span",
-            classes: ["content"],
-            html: options.html || self.escapeHTML(options.text)}];
+        var messageElements = [
+            {
+                tag: "time",
+                text: self.formatTime(timestamp),
+                attributes: {datetime: ""+timestamp}},
+            {
+                tag: "a",
+                text: options.from,
+                classes: ["username", cl.null(options.bridge)?"":"bridged"],
+                attributes: {style: "color:"+self.objectColor(options.from),
+                             title: cl.null(options.bridge)?options.from:options.bridge}},
+            {
+                tag: "span",
+                classes: ["content"],
+                html: options.html || self.escapeHTML(options.text)}];
         // Extended functionality
         if(client.isAvailable("shirakumo-edit") &&
            0 <= classList.indexOf("message") &&
@@ -1331,6 +1334,10 @@ var LichatUI = function(chat, cclient){
         self.rebuildUserStyles();
         self.showMessage({text: (settings["ignore"]?"ignored":"unignored")+" "+name+"."});
     }, "Ignore or unignore a user's messages.");
+
+    self.addCommand("send-as", (user, ...text)=>{
+        client.s("MESSAGE", {bridge: user, channel: self.channel, text: text.join(" ")});
+    }, "Send a message assuming the name of another in the current channel. Requires BRIDGE permission.");
 
     self.initControls = ()=>{
         input.addEventListener("keydown", (ev)=>{

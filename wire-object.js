@@ -24,7 +24,8 @@ cl.defclass("REGISTER", ["UPDATE"], {
     password: cl.requiredArg("password")
 });
 cl.defclass("CHANNEL-UPDATE", ["UPDATE"], {
-    channel: cl.requiredArg("channel")
+    channel: cl.requiredArg("channel"),
+    bridge: null
 });
 cl.defclass("TARGET-UPDATE", ["UPDATE"], {
     target: cl.requiredArg("target")

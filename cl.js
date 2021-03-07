@@ -1,3 +1,36 @@
+// Special objects
+var Return = function(name, value){
+    var self = this;
+    self.name = (name===undefined)?null:name;
+    self.value = (value===undefined)?null:value;
+    return self;
+};
+
+var Restart = function(name, args){
+    var self = this;
+    self.name = name;
+    self.args = (args===undefined)?[]:args;
+    return self;
+};
+
+var Symbol = function(name, pkg){
+    var self = this;
+    if(!name) throw "Cannot create symbol with empty name.";
+    self.name = name;
+    self.pkg = pkg || null;
+    self.toString = ()=>{
+        return self.name;
+    };
+    return self;
+};
+
+var Keyword = function(name){
+    var self = this;
+    Symbol.call(self, name, "KEYWORD");
+    return self;
+};
+Keyword.prototype = Object.create(Symbol.prototype);
+
 var CL = function(){
     var self = this;
     var symbols = {};
@@ -412,6 +445,13 @@ var CL = function(){
         varray.push("");
     });
 
+    self.T = self.intern("T", "LICHAT-PROTOCOL");
+    self.NIL = self.intern("NIL", "LICHAT-PROTOCOL");
+
+    self.null = (arg)=>{
+        return !arg || (arg === self.NIL);
+    };
+
     return self;
 };
 
@@ -469,36 +509,3 @@ Condition.prototype.report = function(){
     var self = this;
     return "Condition of type ["+self.type+"]"+(self.text?": "+self.text:"");
 };
-
-// Special objects
-var Return = function(name, value){
-    var self = this;
-    self.name = (name===undefined)?null:name;
-    self.value = (value===undefined)?null:value;
-    return self;
-};
-
-var Restart = function(name, args){
-    var self = this;
-    self.name = name;
-    self.args = (args===undefined)?[]:args;
-    return self;
-};
-
-var Symbol = function(name, pkg){
-    var self = this;
-    if(!name) throw "Cannot create symbol with empty name.";
-    self.name = name;
-    self.pkg = pkg || null;
-    self.toString = ()=>{
-        return self.name;
-    };
-    return self;
-};
-
-var Keyword = function(name){
-    var self = this;
-    Symbol.call(self, name, "KEYWORD");
-    return self;
-};
-Keyword.prototype = Object.create(Symbol.prototype);
