@@ -87,6 +87,7 @@ var setup = ()=>{
     }
     settings.querySelector("[name=volume]").value = ""+ui.notifySound.volume;
     changeTheme(params.theme || ui.load("theme", "light"));
+    if(params.autoconnect) login.querySelector("input[type=submit]").click();
 };
 
 var addEmoteToUI = (name)=>{
