@@ -109,6 +109,14 @@ cl.defclass("IP-UNBAN", [], {
     ip: cl.requiredArg("ip"),
     mask: cl.requiredArg("mask")
 });
+cl.defclass("BLOCK", ["TARGET-UPDATE"]);
+cl.defclass("UNBLOCK", ["TARGET-UPDATE"]);
+cl.defclass("REACT", ["CHANNEL-UPDATE"], {
+    target: cl.requiredArg("target"),
+    "update-id": cl.requiredArg("update-id"),
+    emote: cl.requiredArg("emote")
+});
+
 cl.defclass("FAILURE", ["TEXT-UPDATE"]);
 cl.defclass("MALFORMED-UPDATE", ["FAILURE"]);
 cl.defclass("UPDATE-TOO-LONG", ["FAILURE"]);
