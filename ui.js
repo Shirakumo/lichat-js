@@ -649,6 +649,7 @@ var LichatUI = function(chat, cclient){
                         {tag: "a", classes: ["unquiet"], text: "Unquiet"},
                         {tag: "a", classes: ["kick"], text: "Kick"},
                         {tag: "a", classes: ["kickban"], text: "Kickban"},
+                        {tag: "a", classes: ["block"], text: "Block"},
                         {tag: "a", classes: ["settings"], text: "Settings"},
                     ]
                 }]
@@ -682,6 +683,11 @@ var LichatUI = function(chat, cclient){
                 if(window.confirm("Are you sure you want to ban "+name+" from "+self.channel+"?")){
                     client.s("DENY", {channel: self.channel, target: name, update: cl.li("JOIN")});
                     client.s("KICK", {channel: self.channel, target: name});
+                }
+            });
+            handle("a.block", ()=>{
+                if(window.confirm("Are you sure you want to block "+name+"? You will no longer receive any messages from them. In order to unblock them again, use the /unblock command.")){
+                    client.s("BLOCK", {target: name});
                 }
             });
             handle("a.settings", ()=>{
@@ -1334,6 +1340,14 @@ var LichatUI = function(chat, cclient){
         self.rebuildUserStyles();
         self.showMessage({text: (settings["ignore"]?"ignored":"unignored")+" "+name+"."});
     }, "Ignore or unignore a user's messages.");
+
+    self.addCommand("block", (...user)=>{
+        client.s("BLOCK", {target: user.join(" ")});
+    }, "Block a user's messages from reaching you.");
+
+    self.addCommand("unblock", (...user)=>{
+        client.s("UNBLOCK", {target: user.join(" ")});
+    }, "Unblock a user and receive their messages again.");
 
     self.addCommand("send-as", (user, ...text)=>{
         client.s("MESSAGE", {bridge: user, channel: self.channel, text: text.join(" ")});
