@@ -75,7 +75,22 @@
           :color #(flavor-bg))
          (a :color #(flavor-bg))
          ((:and a :hover) :color "#55AAEE")
-         (.edit-cancel :background #(menu-bg))))))
+         (.edit-cancel :background #(menu-bg)))
+        (.actions
+          :background #(flavor-fg)
+          :color #(flavor-bg)
+          (a
+           :display inline-block
+           :padding 0.1em 0.2em))
+        (.reactions
+         :font-family sans-serif
+         (.reaction
+          :background #(flavor-fg)
+          :border 1px solid #(border)
+          (.count :padding 0 0.3em))
+         ((:and .reaction :hover)
+          :background #(border)
+          (.users :display flex))))))
      ((:and .lichat-channel "::-webkit-scrollbar") :width 10px :height 10px)
      ((:and (:or .lichat-channel .menu) "::-webkit-scrollbar-button") :width 0 :height 0)
      ((:and (:or .lichat-channel .menu) "::-webkit-scrollbar-thumb") :background "#AAA" :border none)
@@ -153,7 +168,22 @@
          ((:and a :hover) :color "#55AAEE")
          ((:and label (:or .command .emote))
           :color #(flavor-bg)))
-         (.edit-cancel :background #(menu-bg)))
+        (.edit-cancel :background #(menu-bg))
+        (.actions
+          :background #(menu-bg)
+          :color #(flavor-bg)
+          (a
+           :display inline-block
+           :padding 0.1em 0.2em))
+        (.reactions
+         :font-family sans-serif
+         (.reaction
+          :background #(menu-bg)
+          :border 1px solid #(border)
+          (.count :padding 0 0.3em))
+         ((:and .reaction :hover)
+          :background #(border)
+          (.users :display flex))))
        (.update.message.self
         ((:and span :hover)
          :border-left solid 0.2em #(flavor-bg)))))
@@ -233,6 +263,38 @@
   :position fixed
   :left 0 :right 0 :bottom 0 :top 0
   :background (rgba 0 0 0 0.5))
+ (.emote-list
+  :font-size 1.5em
+  (.tablist
+   :position relative
+   (i
+    :cursor pointer
+    :display inline-block
+    :padding 0 0.5em))
+  (.tabstack
+   :max-width 100%
+   :max-height 50vh
+   :overflow-x hidden
+   :overflow-y scroll
+   (>div
+    :margin 0.5em 0
+    :display flex
+    :flex-wrap wrap
+    :justify-content center
+    (a :text-align center
+       :margin 0.1em
+       :cursor pointer))
+   (.emoji
+    (a :width 1em
+       :height 1em)
+    (img :max-width 1em
+         :max-height 1em))
+   (.emoticons
+    (a :width 50px
+       :height 50px)
+    (img :max-width 50px
+         :max-height 50px
+         :object-fit scale-down))))
  (.lichat-notify
   :display none)
  (.chat
@@ -298,28 +360,70 @@
      (.failure (span :font-weight bold))
      (.data :max-width 100%)
      (.update
+      :position relative
       :display flex
-      :overflow-y hidden
+      :flex-wrap wrap
       (>* :padding 2px 5px 2px 5px)
-      (time :font-size 0.9em
-            :text-align center
-            :vertical-align middle)
-      (>a :min-width 100px
-          :max-width 100px
-          :overflow hidden
-          :white-space nowrap
-          :text-overflow ellipsis)
+      (>time
+       :font-size 0.9em
+       :text-align center
+       :vertical-align middle)
+      (>.username
+       :min-width 100px
+       :max-width 100px
+       :overflow hidden
+       :white-space nowrap
+       :text-overflow ellipsis)
       ((:and >a.bridged :after)
        :content "*"
        :color red)
       (img :max-height 300px)
-      (span :word-wrap break-word
-            :white-space pre-wrap
-            :min-width 0px
-            :flex-grow 1
-            ((:and label (:or .command .emote))
-             :min-width 100px
-             :display inline-block))
+      (.content
+       :word-wrap break-word
+       :white-space pre-wrap
+       :min-width 0px
+       :flex-grow 1
+       :flex 1 0
+       ((:and label (:or .command .emote))
+        :min-width 100px
+        :display inline-block))
+      (.reactions
+       :flex-basis 100%
+       :display flex
+       :justify-content flex-end
+       :list-style none
+       :margin 0 :padding 0
+       (.reaction
+        :position relative
+        :cursor pointer
+        :display inline-block
+        :padding 0.1em 0.2em
+        :margin 0.2em
+        :border-radius 0.2em
+        (img :max-height 1em)
+        (.users
+         :position absolute
+         :right 50%
+         :top 100%
+         :z-index 10000
+         :display none
+         :list-style none
+         :flex-direction column
+         :margin 0 :padding 0
+         (li :margin 0 :padding 0.2em 0.5em))))
+      (.actions
+       :display none
+       :flex-direction column
+       :position absolute
+       :right 0 :top 0
+       (a
+        :cursor pointer
+        :display inline-block
+        :font-family "FontAwesome")
+       ((:and a.react :after)
+        :content "\\f118")
+       ((:and a.reply :after)
+        :content "\\f112"))
       (.edit-content
        :width 100%
        (>textarea :width 100%)
@@ -331,6 +435,9 @@
          :flex-grow 1
          :max-height 3em
          :max-width 4em))))
+     ((:and .update :hover)
+      (.actions
+       :display flex))
      (".update:active"
       :max-height none)))
    (.input-area
@@ -377,11 +484,11 @@
 (:media "(max-width: 800px)"
         (body
          :font-size 12pt
-         (.users :display none !important)))
+         (.chat>.users :display none !important)))
 (:media "(max-width: 600px)"
         (body
          :font-size 11pt
-         (.channels :display none !important)))
+         (.chat>.channels :display none !important)))
 (:media "(max-width: 400px)"
         (body
          :font-size 10pt

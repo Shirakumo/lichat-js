@@ -177,8 +177,9 @@ var LichatUI = function(chat, cclient){
 
     self.constructElement = (tag, options)=>{
         var el = document.createElement(tag);
-        el.setAttribute("class", (options.classes||[]).join(" "));
+        if(options.classes) el.setAttribute("class", (options.classes||[]).join(" "));
         if(options.html) el.innerHTML = options.html;
+        if(options.id) el.setAttribute("id", id);
         for(var attr in (options.attributes||{})){
             if(options.attributes[attr])
                 el.setAttribute(attr, options.attributes[attr]);
@@ -191,15 +192,19 @@ var LichatUI = function(chat, cclient){
         for(var data in (options.dataset||{})){
             el.dataset[data] = options.dataset[data];
         }
-        if(options.text) el.appendChild(document.createTextNode(options.text));
+        for(var attr in (options.style||{})){
+            el.style[attr] = options.style[data];
+        }
         for(var handler in (options.handlers||{})){
             el.addEventListener(handler,options.handlers[handler]);
         }
+        if(options.text) el.appendChild(document.createTextNode(options.text));
         return el;
     };
 
     self.popup = (content, okCallback)=>{
-        var el = self.constructElement("div", {
+        let el = null;
+        el = {
             classes: ["popup-background"],
             elements: [{
                 tag: "div",
@@ -207,17 +212,24 @@ var LichatUI = function(chat, cclient){
                 attributes: {"style": "display:block"},
                 elements: [
                     content,
-                    {tag: "button", attributes: {"type": "submit"}, text: "Ok"}
                 ]
-            }]
-        });
-        el.addEventListener("click", (ev)=>{
-            if(ev.target == el) document.body.removeChild(el);
-        });
-        el.querySelector("button[type=submit]").addEventListener("click", ()=>{
-            if(okCallback) okCallback(el);
-            document.body.removeChild(el);
-        });
+            }],
+            handlers: {click: (ev)=>{
+                if(ev.target == el) document.body.removeChild(el);
+            }}
+        };
+        if(okCallback){
+            el.elements[0].elements.push({
+                tag: "button", 
+                attributes: {"type": "submit"}, 
+                text: "Ok",
+                handlers: {click: ()=>{
+                    if(okCallback) okCallback(el);
+                    document.body.removeChild(el);
+                }}
+            });
+        }
+        el = self.constructElement("div", el);
         document.body.appendChild(el);
         return el;
     };
@@ -303,7 +315,11 @@ var LichatUI = function(chat, cclient){
             {
                 tag: "span",
                 classes: ["content"],
-                html: options.html || self.escapeHTML(options.text)}];
+                html: options.html || self.escapeHTML(options.text)},
+            {
+                tag: "nav",
+                classes: ["actions"],
+                elements: []}];
         // Extended functionality
         if(client.isAvailable("shirakumo-edit") &&
            0 <= classList.indexOf("message") &&
@@ -328,10 +344,19 @@ var LichatUI = function(chat, cclient){
                       handlers: {"click": cancelEdit}}]}]
             });
         }
+        if(client.isAvailable("shirakumo-reactions") && options.id){
+            messageElements[3].elements.push({
+                tag: "a", classes: ["action", "react"], handlers: {'click': handleReaction}
+            });
+            messageElements.push({
+                tag: "ul",
+                classes: ["reactions"]});
+        }
         // Construct element
         var el = self.constructElement("div", {
             classes: classList,
             dataset: {id: options.id,from: options.from},
+            attributes: {id: "message-"+options.id+"-"+options.from},
             elements: messageElements
         });
         // Handle scrolling deferral.
@@ -365,6 +390,12 @@ var LichatUI = function(chat, cclient){
             self.notify(options);
         }
         return el;
+
+        function handleReaction(ev) {
+            self.showEmoteList((emote)=>{
+                client.s("REACT", {channel: options.channel, target: options.from, "update-id": options.id, emote: emote});
+            });
+        }
 
         function handleMessageClick(event) {
             if(el.dataset.from === client.username){
@@ -415,6 +446,10 @@ var LichatUI = function(chat, cclient){
             hideEdit(form);
             return false;
         }
+    };
+
+    self.findMessage = (channel, from, id)=>{
+        return document.getElementById("message-"+id+"-"+from);
     };
 
     self.showError = (e)=>{
@@ -856,6 +891,11 @@ var LichatUI = function(chat, cclient){
         return stream.string;
     };
 
+    self.replaceEmote = (text)=>{
+        var emote = client.emotes[":"+text.toLowerCase()+":"];
+        return (emote)? emote : text;
+    };
+
     self.replaceEmotes = (text)=>{
         // Find starting point
         var start = 0;        
@@ -938,6 +978,58 @@ var LichatUI = function(chat, cclient){
         }
     };
 
+    self.showEmoteList = (cb)=>{
+        // TODO: cache this.
+        let popup = null;
+        let tabHandlers = {click: (ev)=>{
+            popup.querySelector(ev.target.dataset.tab).scrollIntoView();
+        }};
+        let list = {
+            tag: "div",
+            classes: ["emote-list"],
+            elements: [
+                {tag: "nav", classes: ["tablist"], elements: [
+                    {tag: "i",
+                     classes: ["fa", "fa-picture-o"], 
+                     title: "Emoticons", 
+                     dataset: {tab: ".emoticons"}, 
+                     handlers: tabHandlers},
+                    {tag: "i",
+                     classes: ["fa", "fa-smile-o"], 
+                     title: "Emoji", 
+                     dataset: {tab: ".emoji"},
+                     handlers: tabHandlers}
+                ]},
+                {tag: "div", classes: ["tabstack"], elements: [
+                    {tag: "div", classes: ["emoticons"], style: {display: "none"}, elements: []},
+                    {tag: "div", classes: ["emoji"], style: {display: "none"}, elements: []}
+                ]}
+            ]
+        };
+        let add = (tab, name, display) => {
+            display = display || name;
+            list.elements[1].elements[tab].elements.push({
+                tag: "a",
+                html: display,
+                handlers: {click: ()=>{
+                    cb(name);
+                    document.body.removeChild(popup);
+                }}
+            });
+        };
+
+        for(let emote in client.emotes){
+            add(0, emote.substring(1,emote.length-1), client.emotes[emote]);
+        }
+        for(let emoji of allEmojis){
+            if(emoji.length == 1) // Multiple codepoint emojis seem to fail for some reason.
+                add(1, emoji.map(twemoji.convert.fromCodePoint).join());
+        }
+        popup = self.popup(list);
+        twemoji.parse(popup);
+        return popup;
+    };
+
     document.addEventListener("visibilitychange", ()=>{
         if(document.visibilityState === 'visible' && self.channel){
             self.updateUnreadCount(self.channel, "clear");
@@ -952,6 +1044,41 @@ var LichatUI = function(chat, cclient){
     client.addHandler("EDIT", (update)=>{
         update.html = self.formatUserText(update.text);
         self.editMessage(update);
+    });
+
+    client.addHandler("REACT", (update)=>{
+        let msg = self.findMessage(update.channel, update.target, update["update-id"]);
+        let list = msg.querySelector(".reactions");
+        let el = Array.from(list.childNodes).find(el => el.dataset.emote === update.emote);
+        if(!el){
+            el = self.constructElement("li", {
+                dataset: {"emote": update.emote},
+                classes: ["reaction"],
+                elements: [
+                    {tag: "span", classes: ["emote"], html: self.replaceEmote(update.emote)},
+                    {tag: "span", classes: ["count"], text: 0},
+                    {tag: "ul", classes: ["users"]}
+                ]
+            });
+            twemoji.parse(el);
+            el.addEventListener("click", ()=>{
+                var s = {channel: update.channel, target: update.target, emote: update.emote};
+                s["update-id"] = update["update-id"];
+                client.s("REACT", s);
+            });
+            list.appendChild(el);
+        }
+        let users = el.querySelector(".users");
+        let entry = Array.from(users.childNodes).find(el => el.innerText == update.from);
+        if(entry){
+            users.removeChild(entry);
+        }else{
+            users.appendChild(self.constructElement("li", {text: update.from}));
+        }
+        el.querySelector(".count").innerText = ""+users.childNodes.length;
+        if(users.childNodes.length == 0){
+            list.removeChild(el);
+        }
     });
 
     client.addHandler("DATA", (update)=>{
