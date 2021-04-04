@@ -1472,8 +1472,9 @@ var LichatUI = function(chat, cclient){
                 el.setAttribute(attr, options.attributes[attr]);
         }
         for(var i in (options.elements||[])){
-            var element = options.elements[i];
-            var sub = self.constructElement(element.tag, element);
+            var sub = options.elements[i];
+            if(!(sub instanceof HTMLElement))
+                sub = self.constructElement(sub.tag, sub);
             el.appendChild(sub);
         }
         for(var data in (options.dataset||{})){
@@ -2265,11 +2266,10 @@ var LichatUI = function(chat, cclient){
         }
     };
 
-    self.showEmoteList = (cb)=>{
-        // TODO: cache this.
-        let popup = null;
+    var emotePopup = null;
+    var emoteList = (()=>{
         let tabHandlers = {click: (ev)=>{
-            popup.querySelector(ev.target.dataset.tab).scrollIntoView();
+            emotePopup.querySelector(ev.target.dataset.tab).scrollIntoView();
         }};
         let list = {
             tag: "div",
@@ -2299,8 +2299,8 @@ var LichatUI = function(chat, cclient){
                 tag: "a",
                 html: display,
                 handlers: {click: ()=>{
-                    cb(name);
-                    document.body.removeChild(popup);
+                    emotePopup.cb(name);
+                    document.body.removeChild(emotePopup);
                 }}
             });
         };
@@ -2309,12 +2309,18 @@ var LichatUI = function(chat, cclient){
             add(0, emote.substring(1,emote.length-1), client.emotes[emote]);
         }
         for(let emoji of allEmojis){
-            if(emoji.length == 1)
+            if(emoji.length == 1) // Multiple codepoint emojis seem to fail for some reason.
                 add(1, emoji.map(twemoji.convert.fromCodePoint).join());
         }
-        popup = self.popup(list);
-        twemoji.parse(popup);
-        return popup;
+        let el = self.constructElement("div",list);
+        twemoji.parse(el);
+        return el;
+    })();
+
+    self.showEmoteList = (cb)=>{
+        emotePopup = self.popup(emoteList);
+        emotePopup.cb = cb;
+        return emotePopup;
     };
 
     document.addEventListener("visibilitychange", ()=>{
