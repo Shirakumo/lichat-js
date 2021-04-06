@@ -563,7 +563,7 @@ var LichatUI = function(chat, cclient){
                     {tag: "select", elements: [
                         {tag: "option", text: "on messages", attributes: {value: "any", selected: settings['notify'] == "any"}},
                         {tag: "option", text: "on mentions", attributes: {value: "mention", selected: settings['notify'] == "mention"}},
-                        {tag: "option", text: "never", attributes: {value: "none", selected: settings['notify'] == "never"}}
+                        {tag: "option", text: "never", attributes: {value: "never", selected: settings['notify'] == "never"}}
                     ]}
                 ]}
             ]}, (el)=>{
@@ -943,7 +943,7 @@ var LichatUI = function(chat, cclient){
     
     self.notify = (update)=>{
         var settings = self.channelSettings[update.channel];
-        if(settings && (settings["notify"] == "none"
+        if(settings && (settings["notify"] == "never"
                         || (settings["notify"] == "mention"
                             && (!update.text || update.text.search(client.username) == -1))))
             return false;
