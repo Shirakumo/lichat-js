@@ -12,8 +12,8 @@ var reconnect;
 reconnect = ()=>{
     if(!tryReconnect) return;
     ui.showMessage({from: "System", text: "Attempting to reconnect..."});
-    client.openConnection();
     setTimeout(reconnect, 60000);
+    client.openConnection();
 };
 
 var fail = function(reason){
