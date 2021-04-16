@@ -282,6 +282,10 @@ var LichatUI = function(chat, cclient){
         return (element.scrollHeight - element.scrollTop - element.clientHeight) < 10;
     };
 
+    self.scrollToBottom = (element)=>{
+        element.querySelector(".update:last-child").scrollIntoView();
+    };
+
     self.ensureMessageOptions = (options)=>{
         if(!options.clock) options.clock = cl.getUniversalTime();
         if(!options.from) options.from = "System";
@@ -470,6 +474,7 @@ var LichatUI = function(chat, cclient){
     self.editMessage = (options)=>{
         options = self.ensureMessageOptions(options);
         let channel = self.channelElement(options.channel);
+        let shouldScroll = self.isAtBottom(channel);
         for(let child of channel.childNodes){
             if(parseInt(child.dataset.id) === options.id &&
                child.dataset.from === options.from){
@@ -480,6 +485,7 @@ var LichatUI = function(chat, cclient){
                 break;
             }
         }
+        if(shouldScroll) self.scrollToBottom(channel);
     };
 
     self.addChannel = (n)=>{
@@ -1058,8 +1064,11 @@ var LichatUI = function(chat, cclient){
 
     client.addHandler("REACT", (update)=>{
         let msg = self.findMessage(update.channel, update.target, update["update-id"]);
+        let channel = self.channelElement(update.channel);
+        let shouldScroll = self.isAtBottom(channel);
         let list = msg.querySelector(".reactions");
         let el = Array.from(list.childNodes).find(el => el.dataset.emote === update.emote);
+        
         if(!el){
             el = self.constructElement("li", {
                 dataset: {"emote": update.emote},
@@ -1077,6 +1086,7 @@ var LichatUI = function(chat, cclient){
                 client.s("REACT", s);
             });
             list.appendChild(el);
+            if(shouldScroll) self.scrollToBottom(channel);
         }
         let users = el.querySelector(".users");
         let entry = Array.from(users.childNodes).find(el => el.innerText == update.from);
