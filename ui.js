@@ -1505,6 +1505,24 @@ var LichatUI = function(chat, cclient){
     }, "Send a message assuming the name of another in the current channel. Requires BRIDGE permission.");
 
     self.initControls = ()=>{
+        chat.addEventListener("drop", (ev)=>{
+            ev.preventDefault();
+
+            if(ev.dataTransfer.items){
+                for(var i=0; i<ev.dataTransfer.items.length; i++){
+                    if (ev.dataTransfer.items[i].kind === 'file') {
+                        self.sendFile(ev.dataTransfer.items[i].getAsFile());
+                    }
+                }
+            }else{
+                for(var i=0; i<ev.dataTransfer.files.length; i++){
+                    self.sendFile(ev.dataTransfer.files[i]);
+                }
+            }
+        });
+        chat.addEventListener("dragover", (ev)=>{
+            ev.preventDefault();
+        });
         input.addEventListener("keydown", (ev)=>{
             if(ev.keyCode === 9){
                 ev.preventDefault();
