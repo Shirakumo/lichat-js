@@ -1444,6 +1444,20 @@ var LichatUI = function(chat, cclient){
         };
         reader.readAsDataURL(file);
     };
+
+    self.processDataTransfer = (transfer)=>{
+        if(transfer.items){
+            for(var i=0; i<transfer.items.length; i++){
+                if (transfer.items[i].kind === 'file') {
+                    self.sendFile(transfer.items[i].getAsFile());
+                }
+            }
+        }else{
+            for(var i=0; i<transfer.files.length; i++){
+                self.sendFile(transfer.files[i]);
+            }
+        }
+    };
     
     self.processInput = (text, chan)=>{
         if(text === undefined){
@@ -2822,21 +2836,13 @@ var LichatUI = function(chat, cclient){
     self.initControls = ()=>{
         chat.addEventListener("drop", (ev)=>{
             ev.preventDefault();
-
-            if(ev.dataTransfer.items){
-                for(var i=0; i<ev.dataTransfer.items.length; i++){
-                    if (ev.dataTransfer.items[i].kind === 'file') {
-                        self.sendFile(ev.dataTransfer.items[i].getAsFile());
-                    }
-                }
-            }else{
-                for(var i=0; i<ev.dataTransfer.files.length; i++){
-                    self.sendFile(ev.dataTransfer.files[i]);
-                }
-            }
+            self.processDataTransfer(ev.dataTransfer);
         });
         chat.addEventListener("dragover", (ev)=>{
             ev.preventDefault();
+        });
+        chat.addEventListener("paste", (ev)=>{
+            self.processDataTransfer(ev.clipboardData);
         });
         input.addEventListener("keydown", (ev)=>{
             if(ev.keyCode === 9){
