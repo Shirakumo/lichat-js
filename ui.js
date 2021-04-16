@@ -455,8 +455,12 @@ var LichatUI = function(chat, cclient){
 
     self.showError = (e)=>{
         if(e instanceof Condition){
-            return self.showMessage({from: "System",
-                                     text: ""+e.report()});
+            if(e.type == "SOCKET-CLOSE")
+                return self.showMessage({from: "System",
+                                         text: "Connection failed. Attempting reconnect..."});
+            else
+                return self.showMessage({from: "System",
+                                         text: ""+e.report()});
         }else{
             return self.showMessage({from: "System",
                                      text: e+""});

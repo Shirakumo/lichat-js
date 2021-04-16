@@ -37,6 +37,21 @@ var LichatClient = function(options){
     var printer = new LichatPrinter();
     var status = null;
     var pingTimer = null;
+    var reconnectAttempts = 0;
+
+    self.reconnect = ()=>{
+        try{
+            self.openConnection();
+        }catch(e){
+            self.scheduleReconnect();
+        }
+    };
+
+    self.scheduleReconnect = ()=>{
+        reconnectAttempts++;
+        let secs = Math.pow(2, reconnectAttempts);
+        setTimeout(()=>self.reconnect(), secs*1000);
+    };
 
     self.openConnection = ()=>{
         status = "STARTING";
@@ -55,8 +70,10 @@ var LichatClient = function(options){
                     socket: socket,
                     event: e
                 }));
+                self.scheduleReconnect();
+            }else{
+                self.closeConnection(socket);
             }
-            self.closeConnection(socket);
         };
         self.socket = socket;
         return socket;
@@ -129,6 +146,13 @@ var LichatClient = function(options){
                 status = "RUNNING";
                 if(!self.username)
                     self.username = update.from;
+                if(0 < reconnectAttempts){
+                    reconnectAttempts = 0;
+                    for(let channel in self.channels){
+                        if(channel != self.servername)
+                            self.s("JOIN", {channel: channel});
+                    }
+                }
                 self.process(update);
                 break;
             case "RUNNING":

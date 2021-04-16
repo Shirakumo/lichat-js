@@ -1037,6 +1037,21 @@ var LichatClient = function(options){
     var printer = new LichatPrinter();
     var status = null;
     var pingTimer = null;
+    var reconnectAttempts = 0;
+
+    self.reconnect = ()=>{
+        try{
+            self.openConnection();
+        }catch(e){
+            self.scheduleReconnect();
+        }
+    };
+
+    self.scheduleReconnect = ()=>{
+        reconnectAttempts++;
+        let secs = Math.pow(2, reconnectAttempts);
+        setTimeout(()=>self.reconnect(), secs*1000);
+    };
 
     self.openConnection = ()=>{
         status = "STARTING";
@@ -1055,8 +1070,10 @@ var LichatClient = function(options){
                     socket: socket,
                     event: e
                 }));
+                self.scheduleReconnect();
+            }else{
+                self.closeConnection(socket);
             }
-            self.closeConnection(socket);
         };
         self.socket = socket;
         return socket;
@@ -1129,6 +1146,13 @@ var LichatClient = function(options){
                 status = "RUNNING";
                 if(!self.username)
                     self.username = update.from;
+                if(0 < reconnectAttempts){
+                    reconnectAttempts = 0;
+                    for(let channel in self.channels){
+                        if(channel != self.servername)
+                            self.s("JOIN", {channel: channel});
+                    }
+                }
                 self.process(update);
                 break;
             case "RUNNING":
@@ -1673,7 +1697,7 @@ var LichatUI = function(chat, cclient){
             channel.appendChild(el);
             el.scrollIntoView();
         }
-        if(!self.isChannelVisible(options.channel)){
+        if(!self.isChannelVisible(options.channel) && options.channel != client.servername){
             self.updateUnreadCount(options.channel, "new");
             self.notify(options);
         }
@@ -1742,8 +1766,12 @@ var LichatUI = function(chat, cclient){
 
     self.showError = (e)=>{
         if(e instanceof Condition){
-            return self.showMessage({from: "System",
-                                     text: ""+e.report()});
+            if(e.type == "SOCKET-CLOSE")
+                return self.showMessage({from: "System",
+                                         text: "Connection failed. Attempting reconnect..."});
+            else
+                return self.showMessage({from: "System",
+                                         text: ""+e.report()});
         }else{
             return self.showMessage({from: "System",
                                      text: e+""});
@@ -1850,7 +1878,7 @@ var LichatUI = function(chat, cclient){
                     {tag: "select", elements: [
                         {tag: "option", text: "on messages", attributes: {value: "any", selected: settings['notify'] == "any"}},
                         {tag: "option", text: "on mentions", attributes: {value: "mention", selected: settings['notify'] == "mention"}},
-                        {tag: "option", text: "never", attributes: {value: "none", selected: settings['notify'] == "never"}}
+                        {tag: "option", text: "never", attributes: {value: "never", selected: settings['notify'] == "never"}}
                     ]}
                 ]}
             ]}, (el)=>{
@@ -2230,7 +2258,7 @@ var LichatUI = function(chat, cclient){
     
     self.notify = (update)=>{
         var settings = self.channelSettings[update.channel];
-        if(settings && (settings["notify"] == "none"
+        if(settings && (settings["notify"] == "never"
                         || (settings["notify"] == "mention"
                             && (!update.text || update.text.search(client.username) == -1))))
             return false;

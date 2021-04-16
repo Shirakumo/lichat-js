@@ -7,14 +7,6 @@ var settings = document.querySelector(".settings");
 var client = new LichatClient();
 var ui = new LichatUI(chat, client);
 var connected = false;
-var tryReconnect = false;
-var reconnect;
-reconnect = ()=>{
-    if(!tryReconnect) return;
-    ui.showMessage({from: "System", text: "Attempting to reconnect..."});
-    setTimeout(reconnect, 60000);
-    client.openConnection();
-};
 
 var fail = function(reason){
     chat.style.display = "none";
@@ -127,8 +119,6 @@ client.handleFailure = (e)=>{
         console.log("Failure:",e);
     if(connected){
         ui.showError(e);
-        tryReconnect = true;
-        setTimeout(reconnect, 1000);
     }else if(e instanceof Condition){
         if(e.update && (e.update.type == "INVALID-PASSWORD" || e.update.type == "NO-SUCH-PROFILE")){
             var pwfield = login.querySelector("input[name=password]");
@@ -153,17 +143,9 @@ client.addHandler("CONNECT", (update)=>{
     chat.style.display = "";
     connected = true;
 
-    if(!tryReconnect){
-        var channel = login.querySelector("input[name=channel]").value;
-        if(channel){
-            setTimeout(()=> ui.invokeCommand("join", channel), 500);
-        }
-    }else{
-        tryReconnect = false;
-        var channels = document.querySelectorAll(".lichat-channel");
-        for(var channel of channels){
-            client.s("JOIN", {channel: channel.dataset.channel});
-        }
+    var channel = login.querySelector("input[name=channel]").value;
+    if(channel){
+        setTimeout(()=> ui.invokeCommand("join", channel), 500);
     }
     
     window.onbeforeunload = ()=>{
