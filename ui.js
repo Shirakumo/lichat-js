@@ -386,7 +386,7 @@ var LichatUI = function(chat, cclient){
             channel.appendChild(el);
             el.scrollIntoView();
         }
-        if(!self.isChannelVisible(options.channel) && options.channel != client.servername){
+        if(!self.isChannelVisible(options.channel) && !cl.streq(options.channel, client.servername)){
             self.updateUnreadCount(options.channel, "new");
             self.notify(options);
         }

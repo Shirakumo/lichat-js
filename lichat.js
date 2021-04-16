@@ -452,6 +452,10 @@ var CL = function(){
         return !arg || (arg === self.NIL);
     };
 
+    self.streq = (a, b)=>{
+        return a.toLowerCase() == b.toLowerCase();
+    };
+
     return self;
 };
 
@@ -1697,7 +1701,7 @@ var LichatUI = function(chat, cclient){
             channel.appendChild(el);
             el.scrollIntoView();
         }
-        if(!self.isChannelVisible(options.channel) && options.channel != client.servername){
+        if(!self.isChannelVisible(options.channel) && !cl.streq(options.channel, client.servername)){
             self.updateUnreadCount(options.channel, "new");
             self.notify(options);
         }

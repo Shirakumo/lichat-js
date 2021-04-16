@@ -452,6 +452,10 @@ var CL = function(){
         return !arg || (arg === self.NIL);
     };
 
+    self.streq = (a, b)=>{
+        return a.toLowerCase() == b.toLowerCase();
+    };
+
     return self;
 };
 
