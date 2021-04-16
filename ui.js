@@ -1382,6 +1382,10 @@ var LichatUI = function(chat, cclient){
         client.s("MESSAGE", {channel:name, text:args.join(" ")});
     }, "Send a message to a channel. Note that you must be in the channel to send to it.");
 
+    self.addCommand("me", (...text)=>{
+        client.s("MESSAGE", {channel:self.channel, text: "*"+text.join(" ")+"*"});
+    });
+
     self.addCommand("contact", (...users)=>{
         if(users.length === 0) cl.error("MISSING-ARGUMENT",{text: "You must supply the name of at least one user to contact."});;
         var update = cl.makeInstance("CREATE",{from: client.username});
