@@ -377,7 +377,7 @@
       ((:and >a.bridged :after)
        :content "*"
        :color red)
-      (img :max-height 300px)
+      ((:or img video audio) :max-height 300px)
       (.content
        :word-wrap break-word
        :white-space pre-wrap

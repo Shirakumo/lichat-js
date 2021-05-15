@@ -52,7 +52,10 @@ cl.defclass("DENY", ["CHANNEL-UPDATE", "TARGET-UPDATE"], {
 cl.defclass("CAPABILITIES", ["CHANNEL-UPDATE"], {
     permitted: []
 });
-cl.defclass("MESSAGE", ["CHANNEL-UPDATE", "TEXT-UPDATE"]);
+cl.defclass("MESSAGE", ["CHANNEL-UPDATE", "TEXT-UPDATE"], {
+    bridge: null,
+    link: null
+});
 cl.defclass("EDIT", ["CHANNEL-UPDATE", "TEXT-UPDATE"]);
 cl.defclass("USERS", ["CHANNEL-UPDATE"], {
     users: []

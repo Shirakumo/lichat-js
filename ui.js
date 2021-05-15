@@ -192,7 +192,12 @@ var LichatUI = function(chat, cclient){
     self.constructElement = (tag, options)=>{
         var el = document.createElement(tag);
         if(options.classes) el.setAttribute("class", (options.classes||[]).join(" "));
-        if(options.html) el.innerHTML = options.html;
+        if(options.html){
+            if(options.html instanceof HTMLElement)
+                el.appendChild(options.html);
+            else
+                el.innerHTML = options.html;
+        }
         if(options.id) el.setAttribute("id", id);
         for(var attr in (options.attributes||{})){
             if(options.attributes[attr])
@@ -342,7 +347,8 @@ var LichatUI = function(chat, cclient){
         // Extended functionality
         if(client.isAvailable("shirakumo-edit") &&
            0 <= classList.indexOf("message") &&
-           options.from === client.username){
+           options.from === client.username &&
+           options.ineditable != true){
             // Note: The array position for content.
             messageElements[2].handlers = {'click': handleMessageClick};
             messageElements.push({
@@ -1067,7 +1073,38 @@ var LichatUI = function(chat, cclient){
     });
 
     client.addHandler("MESSAGE", (update)=>{
-        update.html = self.formatUserText(update.text);
+        if(cl.typep(update.link, "String")){
+            type = update.link.toLowerCase();
+            element = null;
+            if(type.startsWith("image/")){
+                element = self.constructElement("a", {
+                    attributes: {href: update.text, target: "_blank"},
+                    elements: [{tag: "img", attributes: {alt: update.text, src: update.text}}]
+                });
+            }else if(type.startsWith("video/")){
+                element = self.constructElement("video", {
+                    text: update.text,
+                    attributes: {controls: "controls"},
+                    elements: [
+                        {tag: "source", attributes: {src: update.text, type: update.link}}
+                    ]
+                });
+            }else if(type.startsWith("audio/")){
+                element = self.constructElement("audio", {
+                    text: update.text,
+                    attributes: {controls: "controls"},
+                    elements: [
+                        {tag: "source", attributes: {src: update.text, type: update.link}}
+                    ]
+                });
+            }else{
+                element = self.formatUserText(update.text);
+            }
+            update.html = element;
+            update.ineditable = true;
+        }else{
+            update.html = self.formatUserText(update.text);
+        }
         self.showMessage(update);
     });
 
