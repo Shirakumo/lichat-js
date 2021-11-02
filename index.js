@@ -134,7 +134,7 @@ client.handleFailure = (e)=>{
 };
 
 client.addHandler("DISCONNECT", (update)=>{
-    connected = true;
+    connected = false;
     fail("Disconnected");
 });
 
