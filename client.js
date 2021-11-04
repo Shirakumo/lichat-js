@@ -28,6 +28,10 @@ class LichatChannel{
         this.wasJoined = false;
         this.users = {};
         this.info = {};
+        this.info[":NEWS"] = "";
+        this.info[":TOPIC"] = "";
+        this.info[":RULES"] = "";
+        this.info[":CONTACT"] = "";
     }
 
     get name(){
@@ -36,6 +40,10 @@ class LichatChannel{
 
     get isPresent(){
         return this.users[this._client.username()] !== undefined;
+    }
+
+    get isPrimary(){
+        return this._name == this._client.servername;
     }
 
     joinUser(user){
@@ -69,104 +77,85 @@ class LichatChannel{
 
 class LichatClient{
     constructor(options){
-        var self = this;
-
         options = options || {};
-        if(!options.username) options.username = null;
-        if(!options.password) options.password = null;
-        if(!options.hostname) options.hostname = "localhost";
-        if(!options.port) options.port = LichatDefaultPort;
-        if(!options.handleFailure) options.handleFailure = ()=>{};
-
-        for(var key in options){
-            self[key] = options[key];
-        }
         
-        self.socket = null;
-        self.servername = null;
-        self.handlers = {};
-        self.pingDelay = 15000;
-        self.emotes = {};
-        self.channels = {};
-        self.users = {};
-        self.ssl = false;
+        this.username = options.username;
+        this.password = options.password;
+        this.hostname = options.hostname || "localhost";
+        this.port = options.port || LichatDefaultPort;
+        this.failureHandler = ()=>{};
+        this.socket = null;
+        this.servername = null;
+        this.handlers = {};
+        this.pingDelay = 15000;
+        this.emotes = {};
+        this.channels = {};
+        this.users = {};
+        this.ssl = false;
 
-        if(window.localStorage){
-            self.emotes = JSON.parse(window.localStorage.getItem("lichat-emotes")) || {};
-        }
+        this.supportedExtensions = ["shirakumo-data", "shirakumo-backfill", "shirakumo-emotes",
+                                    "shirakumo-channel-info", "shirakumo-quiet", "shirakumo-pause",
+                                    "shirakumo-server-management", "shirakumo-ip", "shirakumo-user-info",
+                                    "shirakumo-icon", "shirakumo-bridge", "shirakumo-block",
+                                    "shirakumo-reactions", "shirakumo-link"];
+        this.availableExtensions = [];
+        this.internalHandlers = {};
+        this.idCallbacks = {};
+        this.reader = new LichatReader();
+        this.printer = new LichatPrinter();
+        this.status = null;
+        this.pingTimer = null;
+        this.reconnectAttempts = 0;
 
-        var supportedExtensions = ["shirakumo-data", "shirakumo-backfill", "shirakumo-emotes",
-                                   "shirakumo-channel-info", "shirakumo-quiet", "shirakumo-pause",
-                                   "shirakumo-server-management", "shirakumo-ip", "shirakumo-user-info",
-                                   "shirakumo-icon", "shirakumo-bridge", "shirakumo-block",
-                                   "shirakumo-reactions", "shirakumo-link"];
-        self.availableExtensions = [];
-        self.internalHandlers = {};
-        self.idCallbacks = {};
-        self.reader = new LichatReader();
-        self.printer = new LichatPrinter();
-        self.status = null;
-        self.pingTimer = null;
-        self.reconnectAttempts = 0;
-
-        self.addInternalHandler("CONNECT", (ev)=>{
+        this.addInternalHandler("CONNECT", (ev)=>{
             this.availableExtensions = ev.extensions;
             if(this.isAvailable("shirakumo-emotes")){
-                var known = [];
-                for(var emote in self.emotes){
-                    cl.push(emote.replace(/^:|:$/g,""), known);
-                }
-                self.s("EMOTES", {names: known});
+                let known = [];
+                for(let emote in this.emotes)
+                    cl.push(emote, known);
+                this.s("EMOTES", {names: known});
             }
         });
 
-        self.addInternalHandler("PING", (ev)=>{
-            self.s("PONG", {socket: ev.socket});
+        this.addInternalHandler("PING", (ev)=>{
+            this.s("PONG");
         });
 
-        self.addInternalHandler("PONG", (ev)=>{
+        this.addInternalHandler("PONG", (ev)=>{
         });
 
-        self.addInternalHandler("JOIN", (ev)=>{
-            let channel = self.getChannel(ev.channel);
+        this.addInternalHandler("JOIN", (ev)=>{
+            let channel = this.getChannel(ev.channel);
             channel.joinUser(ev.from);
-            if(!self.servername){
-                self.servername = ev.channel;
 
-                for(let channel in self.channels){
-                    let channel = self.channels[channel];
-                    if(channel.wasJoined && channel.name != self.servername)
+            if(!this.servername){
+                this.servername = ev.channel;
+
+                for(let channel in this.channels){
+                    let channel = this.channels[channel];
+                    if(channel.wasJoined && channel.name != this.servername)
                         channel.s("JOIN");
                 }
             }
-            if(ev.from === self.username){
-                var info = {};
-                info[":NEWS"] = "";
-                info[":TOPIC"] = "";
-                info[":RULES"] = "";
-                info[":CONTACT"] = "";
-                channel.info = info;
-                if(cl.find("shirakumo-backfill", self.availableExtensions)
-                   && ev.channel !== self.servername){
-                    self.s("BACKFILL", {channel: ev.channel});
-                }
-                if(cl.find("shirakumo-channel-info", self.availableExtensions)){
-                    self.s("CHANNEL-INFO", {channel: ev.channel});
-                }
+            if(ev.from === this.username){
+                if(this.isAvailable("shirakumo-backfill") && !channel.isPrimary)
+                    this.s("BACKFILL", {channel: ev.channel});
+                if(this.isAvailable("shirakumo-channel-info"))
+                    this.s("CHANNEL-INFO", {channel: ev.channel});
             }
         });
 
-        self.addInternalHandler("LEAVE", (ev)=>{
-            let channel = self.getChannel(ev.channel);
+        this.addInternalHandler("LEAVE", (ev)=>{
+            let channel = this.getChannel(ev.channel);
             channel.leaveUser(ev.from);
         });
 
-        self.addInternalHandler("EMOTE", (ev)=>{
-            self.addEmote(ev);
+        this.addInternalHandler("EMOTE", (ev)=>{
+            this.addEmote(ev);
         });
 
-        self.addInternalHandler("SET-CHANNEL-INFO", (ev)=>{
-            self.channels[ev.channel.toLowerCase()].info[LichatPrinter.toString(ev.key)] = ev.text;
+        this.addInternalHandler("SET-CHANNEL-INFO", (ev)=>{
+            this.channels[ev.channel.toLowerCase()].info[LichatPrinter.toString(ev.key)] = ev.text;
         });
     }
 
@@ -176,95 +165,88 @@ class LichatClient{
         }catch(e){
             this.scheduleReconnect();
         }
-    };
+    }
 
     scheduleReconnect(){
         this.reconnectAttempts++;
         let secs = Math.pow(2, this.reconnectAttempts);
         setTimeout(()=>this.reconnect(), secs*1000);
-    };
+    }
 
     openConnection(){
         this.status = "STARTING";
-        var socket = new WebSocket((this.ssl?"wss://":"ws://")+this.hostname+":"+this.port, "lichat");
-        socket.onopen = ()=>{
-            this.s("CONNECT", {password: this.password || null,
-                               version: LichatVersion,
-                               extensions: supportedExtensions,
-                               socket: socket});
+        this.socket = new WebSocket((this.ssl?"wss://":"ws://")+this.hostname+":"+this.port, "lichat");
+        this.socket.onopen = ()=>{
+            this.s("CONNECT", {
+                password: this.password || null,
+                version: LichatVersion,
+                extensions: this.supportedExtensions
+            });
         };
-        socket.onmessage = (e)=>{this.handleMessage(socket, e);};
-        socket.onclose = (e)=>{
-            if(e.code !== 1000 && self.status != "STOPPING"){
-                this.handleFailure(new Condition("SOCKET-CLOSE", {
+        this.socket.onmessage = (e)=>{
+            this.handleMessage(e);
+        };
+        this.socket.onclose = (e)=>{
+            if(e.code !== 1000 && this.status != "STOPPING"){
+                this.failureHandler(new Condition("SOCKET-CLOSE", {
                     text: "Error "+e.code+" "+e.reason,
-                    socket: socket,
                     event: e
                 }));
                 this.scheduleReconnect();
             }else{
-                this.closeConnection(socket);
+                this.closeConnection();
             }
         };
-        this.socket = socket;
-        return socket;
-    };
+        return this;
+    }
 
-    closeConnection(socket){
-        socket = socket || this.socket;
-        for(let channel in this.channels){
+    closeConnection(){
+        for(let channel in this.channels)
             this.channels[channel].clearUsers();
+        if(this.status != "STOPPING"){
+            this.status = "STOPPING";
+            if(this.socket && socket.readyState < 2)
+                this.socket.close();
+            this.socket = null;
         }
-        if(self.status != "STOPPING"){
-            self.status = "STOPPING";
-            if(socket && socket.readyState < 2){
-                socket.close();
-            }
-            if(this.socket == socket){ 
-                this.socket = null;
-            }
-        }
-        return socket;
-    };
+        return this;
+    }
 
-    send(socket, wireable){
-        if(!socket || socket.readyState != 1)
+    send(wireable){
+        if(!this.socket || this.socket.readyState != 1)
             cl.error("NOT-CONNECTED",{text: "The client is not connected."});
         if(!cl.typep(wireable, "PING") && !cl.typep(wireable, "PONG"))
             cl.format("[Lichat] Send:~s", wireable);
-        var stream = new LichatStream();
+        let stream = new LichatStream();
         this.printer.toWire(wireable, stream);
-        socket.send(stream.string+'\u0000');
+        this.socket.send(stream.string+'\u0000');
         return wireable;
-    };
+    }
 
     s(type, args, cb){
         args = args || {};
-        var socket = args.socket || this.socket;
-        delete args.socket;
         if(!args.from) args.from = this.username;
-        var update = cl.makeInstance(type, args);
+        let update = cl.makeInstance(type, args);
         if(cb) this.addCallback(update.id, cb);
-        return this.send(socket, update);
-    };
+        return this.send(update);
+    }
 
-    startDelayPing(socket){
+    startDelayPing(){
         if(this.pingTimer) clearTimeout(this.pingTimer);
         this.pingTimer = setTimeout(()=>{
-            if(socket.readyState == 1){
-                this.s("PING", {socket: socket});
-                this.startDelayPing(socket);
+            if(this.socket.readyState == 1){
+                this.s("PING");
+                this.startDelayPing();
             }
         }, this.pingDelay);
         return this.pingTimer;
-    };
+    }
 
-    handleMessage(socket, event){
+    handleMessage(event){
         try{
-            var update = this.reader.fromWire(new LichatStream(event.data));
-            this.startDelayPing(socket);
-            update.socket = socket;
-            switch(self.status){
+            let update = this.reader.fromWire(new LichatStream(event.data));
+            this.startDelayPing();
+            switch(this.status){
             case "STARTING":
                 try{
                     if(!(cl.typep(update, "WIRE-OBJECT")))
@@ -272,11 +254,11 @@ class LichatClient{
                     if(update.type !== "CONNECT")
                         cl.error("CONNECTION-FAILED",{text: update.text, update: update});
                 }catch(e){
-                    this.handleFailure(e);
-                    this.closeConnection(socket);
+                    this.failureHandler(e);
+                    this.closeConnection();
                     throw e;
                 }
-                self.status = "RUNNING";
+                this.status = "RUNNING";
                 if(!this.username)
                     this.username = update.from;
                 if(0 < reconnectAttempts)
@@ -291,16 +273,16 @@ class LichatClient{
             cl.format("Error during message handling: ~s", e);
         }
         return this;
-    };
+    }
 
     process(update){
         if(!cl.typep(update, "PING") && !cl.typep(update, "PONG"))
             cl.format("[Lichat] Update:~s",update);
-        var callbacks = idCallbacks[update.id];
+        let callbacks = idCallbacks[update.id];
         if(callbacks){
             for(callback of callbacks){
                 try{
-                    callback(update);
+                    callback.call(this, update);
                 }catch(e){
                     cl.format("Callback error: ~s", e);
                 }
@@ -308,19 +290,19 @@ class LichatClient{
             this.removeCallback(update.id);
         }
         if(!this.maybeCallInternalHandler(update.type, update)){
-            for(var s of cl.classOf(update).superclasses){
+            for(let s of cl.classOf(update).superclasses){
                 if(this.maybeCallInternalHandler(s.className, update))
                     break;
             }
         }
         if(!this.maybeCallHandler(update.type, update)){
-            for(var s of cl.classOf(update).superclasses){
+            for(let s of cl.classOf(update).superclasses){
                 if(this.maybeCallHandler(s.className, update))
                     break;
             }
         }
         return this;
-    };
+    }
 
     maybeCallInternalHandler(type, update){
         if(this.internalHandlers[type]){
@@ -328,17 +310,17 @@ class LichatClient{
             return true;
         }
         return false;
-    };
+    }
 
     addInternalHandler(update, handler){
         this.internalHandlers[update] = handler;
         return this;
-    };
+    }
 
     removeInternalHandler(update){
         delete this.internalHandlers[update];
         return this;
-    };
+    }
 
     maybeCallHandler(type, update){
         if(this.handlers[type]){
@@ -346,17 +328,17 @@ class LichatClient{
             return true;
         }
         return false;
-    };
+    }
 
     addHandler(update, handler){
         this.handlers[update] = handler;
         return this;
-    };
+    }
 
     removeHandler(update){
         delete this.handlers[update];
         return this;
-    };
+    }
 
     addCallback(id, handler){
         if(!idCallbacks[id]){
@@ -365,12 +347,12 @@ class LichatClient{
             idCallbacks[id].push(handler);
         }
         return this;
-    };
+    }
 
     removeCallback(id){
         delete idCallbacks[id];
         return this;
-    };
+    }
 
     getChannel(name){
         let channel = this.channels[name.toLowerCase()];
@@ -379,7 +361,7 @@ class LichatClient{
             this.channels[name.toLowerCase()] = channel;
         }
         return channel;
-    };
+    }
 
     getUser(name){
         let user = this.users[name.toLowerCase()];
@@ -391,15 +373,21 @@ class LichatClient{
     }
 
     addEmote(emote){
-        var name = ":"+emote["name"].toLowerCase().replace(/^:|:$/g,"")+":";
-        this.emotes[name] = {contentType: emote["content-type"], payload: emote["payload"]};
-        if(window.localStorage){
-            window.localStorage.setItem("lichat-emotes", JSON.stringify(this.emotes));
-        }
+        let name = emote["name"].toLowerCase().replace(/^:|:$/g,"");
+        let emote = {
+            contentType: emote["content-type"],
+            payload: emote["payload"],
+            name: emote["name"]
+        };
+        this.emotes[name] = emote;
         return emote;
-    };
+    }
+
+    getEmote(name){
+        return this.emotes[name.toLowerCase().replace(/^:|:$/g,"")];
+    }
 
     isAvailable(name){
         return cl.find(name, this.availableExtensions);
-    };
+    }
 };
