@@ -88,19 +88,17 @@ class LichatChannel{
 class LichatClient{
     constructor(options){
         options = options || {};
-        
+        this.name = options.name;
         this.username = options.username;
         this.password = options.password;
         this.hostname = options.hostname || "localhost";
         this.port = options.port || LichatDefaultPort;
+        this.ssl = options.ssl;
         this.disconnectHandler = ()=>{};
-        this.socket = null;
         this.servername = null;
-        this.handlers = {};
         this.pingDelay = 15000;
         this.channels = {};
         this.users = {};
-        this.ssl = false;
 
         this.supportedExtensions = ["shirakumo-data", "shirakumo-backfill", "shirakumo-emotes",
                                     "shirakumo-channel-info", "shirakumo-quiet", "shirakumo-pause",
@@ -108,12 +106,14 @@ class LichatClient{
                                     "shirakumo-icon", "shirakumo-bridge", "shirakumo-block",
                                     "shirakumo-reactions", "shirakumo-link"];
         this.availableExtensions = [];
-        this.internalHandlers = {};
-        this.idCallbacks = {};
-        this.reader = new LichatReader();
-        this.printer = new LichatPrinter();
-        this.pingTimer = null;
-        this.reconnectAttempts = 0;
+        this._socket = null;
+        this._handlers = {};
+        this._internalHandlers = {};
+        this._idCallbacks = {};
+        this._reader = new LichatReader();
+        this._printer = new LichatPrinter();
+        this._pingTimer = null;
+        this._reconnectAttempts = 0;
 
         this.addInternalHandler("CONNECT", (ev)=>{
             this.availableExtensions = ev.extensions;
@@ -172,23 +172,23 @@ class LichatClient{
     }
 
     scheduleReconnect(){
-        this.reconnectAttempts++;
-        let secs = Math.pow(2, this.reconnectAttempts);
+        this._reconnectAttempts++;
+        let secs = Math.pow(2, this._reconnectAttempts);
         setTimeout(()=>this.reconnect(), secs*1000);
     }
 
     openConnection(){
         return new Promise((ok, fail) => {
-            this.socket = new WebSocket((this.ssl?"wss://":"ws://")+this.hostname+":"+this.port, "lichat");
-            this.socket.onopen = ()=>{
+            this._socket = new WebSocket((this.ssl?"wss://":"ws://")+this.hostname+":"+this.port, "lichat");
+            this._socket.onopen = ()=>{
                 this.s("CONNECT", {
                     password: this.password || null,
                     version: LichatVersion,
                     extensions: this.supportedExtensions
                 }, true);
             };
-            this.socket.onmessage = (e)=>{
-                let update = this.reader.fromWire(new LichatStream(event.data));
+            this._socket.onmessage = (e)=>{
+                let update = this._reader.fromWire(new LichatStream(event.data));
                 try{
                     if(!(cl.typep(update, "WIRE-OBJECT")))
                         fail({text: "non-Update message", update: update});
@@ -204,12 +204,12 @@ class LichatClient{
                 if(0 < reconnectAttempts)
                     reconnectAttempts = 0;
                 
-                this.socket.onmessage = this.handleMessage;
-                this.socket.onclose = this.handleClose;
+                this._socket.onmessage = this.handleMessage;
+                this._socket.onclose = this.handleClose;
                 this.process(update);
                 ok(this);
             };
-            this.socket.onclose = (e)=>{
+            this._socket.onclose = (e)=>{
                 fail(this, e);
             };
         });
@@ -218,22 +218,22 @@ class LichatClient{
     closeConnection(){
         for(let channel in this.channels)
             this.channels[channel].clearUsers();
-        if(this.socket && socket.readyState < 2){
-            this.socket.onclose = ()=>{};
-            this.socket.close();
+        if(this._socket && socket.readyState < 2){
+            this._socket.onclose = ()=>{};
+            this._socket.close();
         }
-        this.socket = null;
+        this._socket = null;
         return this;
     }
 
     send(wireable){
-        if(!this.socket || this.socket.readyState != 1)
+        if(!this._socket || this._socket.readyState != 1)
             cl.error("NOT-CONNECTED",{text: "The client is not connected."});
         if(!cl.typep(wireable, "PING") && !cl.typep(wireable, "PONG"))
             cl.format("[Lichat] Send:~s", wireable);
         let stream = new LichatStream();
-        this.printer.toWire(wireable, stream);
-        this.socket.send(stream.string+'\u0000');
+        this._printer.toWire(wireable, stream);
+        this._socket.send(stream.string+'\u0000');
         return wireable;
     }
 
@@ -252,19 +252,19 @@ class LichatClient{
     }
 
     startDelayPing(){
-        if(this.pingTimer) clearTimeout(this.pingTimer);
-        this.pingTimer = setTimeout(()=>{
-            if(this.socket.readyState == 1){
+        if(this._pingTimer) clearTimeout(this._pingTimer);
+        this._pingTimer = setTimeout(()=>{
+            if(this._socket.readyState == 1){
                 this.s("PING", {}, true);
                 this.startDelayPing();
             }
         }, this.pingDelay);
-        return this.pingTimer;
+        return this._pingTimer;
     }
 
     handleMessage(event){
         try{
-            let update = this.reader.fromWire(new LichatStream(event.data));
+            let update = this._reader.fromWire(new LichatStream(event.data));
             this.startDelayPing();
             this.process(update);
         }catch(e){
@@ -319,38 +319,38 @@ class LichatClient{
     }
 
     maybeCallInternalHandler(type, update){
-        if(this.internalHandlers[type]){
-            this.internalHandlers[type](update);
+        if(this._internalHandlers[type]){
+            this._internalHandlers[type](update);
             return true;
         }
         return false;
     }
 
     addInternalHandler(update, handler){
-        this.internalHandlers[update] = handler;
+        this._internalHandlers[update] = handler;
         return this;
     }
 
     removeInternalHandler(update){
-        delete this.internalHandlers[update];
+        delete this._internalHandlers[update];
         return this;
     }
 
     maybeCallHandler(type, update){
-        if(this.handlers[type]){
-            this.handlers[type](update);
+        if(this._handlers[type]){
+            this._handlers[type](update);
             return true;
         }
         return false;
     }
 
     addHandler(update, handler){
-        this.handlers[update] = handler;
+        this._handlers[update] = handler;
         return this;
     }
 
     removeHandler(update){
-        delete this.handlers[update];
+        delete this._handlers[update];
         return this;
     }
 
