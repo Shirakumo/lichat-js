@@ -1,102 +1,117 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8" />
-    <title>Lichat-JS Client Library</title>
-    <link rel="stylesheet" type="text/css" href="lichat.css" />
-    <script src="https://twemoji.maxcdn.com/v/latest/twemoji.min.js" crossorigin="anonymous"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" crossorigin="anonymous">
+    <meta charset="utf-8">
+    <title>Lichat</title>
+    <link rel="stylesheet" href="stylesheet.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="lichat.js"></script>
   </head>
-  <body class="light">
-    <noscript>
-      JavaScript is required for this to work. Sorry!
-    </noscript>
-    <div class="status" style="display:none"></div>
-    <form class="login" action="#">
-      <h1>Log In to Lichat</h1>
-      <div><label>Username</label>
-        <input type="text" name="username" maxlength="32" placeholder="My Name" autofocus />
-      </div>
-      <div style="display:none"><label>Password</label>
-        <input type="password" name="password" placeholder="" />
-      </div>
-      <div><label>Server Hostname</label>
-        <input type="text" name="hostname" value="chat.tymoon.eu" required />
-      </div>
-      <div><label>Server Port</label>
-        <input type="number" name="port" min="1" max="65535" value="1114" placeholder="1114" required />
-      </div>
-      <div><label>Channel</label>
-        <input type="text" name="channel" value="" maxlength="32" />
-      </div>
-      <div><label>Theme</label>
-        <select name="theme"><option value="light">Light</option><option value="dark">Dark</option></select>
-      </div>
-      <input type="submit" value="Connect" />
-    </form>
-    <main class="chat" style="display:none">
-      <div class="channels">
-        <h2>Channels</h2>
-        <div class="lichat-channel-list">
-        </div>
-      </div>
-      <div class="chat-area">
-        <nav class="menu">
-          <a data-action="create" title="Create a new channel">Create</a>
-          <a data-action="join" title="Join a channel">Join</a>
-          <a data-action="leave" title="Leave this channel">Leave</a>
-          <a data-action="channels" title="Toggle the channel list">Channels</a>
-          <a data-action="users" title="Toggle the user list">Users</a>
-          <a data-action="settings" title="Change some options">Settings</a>
-          <a data-action="about" title="About Lichat-JS">About</a>
+  <body class="client">
+    <nav>
+      <section class="server">
+        <header>
+          <img class="icon">
+          <span class="name">TyNET</span>
+        </header>
+        <ul class="channels">
+          <li class="channel current">
+            <header>
+              <img class="icon">
+              <span class="name">shirakumo</span>
+            </header>
+          </li>
+          <li class="channel update">
+            <header>
+              <img class="icon">
+              <span class="name">stevenchan</span>
+            </header>
+          </li>
+        </ul>
+      </section>
+    </nav>
+    <div class="divider"></div>
+    <main>
+      <header>
+        <img class="icon">
+        <span class="name">shirakumo</span>
+        <span class="topic">Shirakumo dev hangout. Come chat with us about cool stuff!</span>
+        <nav>
+          <a class="search">
+            <i class="fas fa-search"></i>
+          </a>
+          <a class="info">
+            <i class="fas fa-info-circle"></i>
+          </a>
+          <a class="settings">
+            <i class="fas fa-ellipsis-h"></i>
+          </a>
         </nav>
-        <div class="lichat-topic"></div>
-        <div class="lichat-output">
-        </div>
-        <div class="input-area">
-          <textarea class="lichat-input"></textarea>
-          <div class="lichat-extra">
-            <div class="emote-list"></div>
-            <input type="button" id="emotes" name="emotes" />
-            <label for="emotes" title="Add an emote"><i class="fa fa-smile-o" aria-hidden="true"></i></label>
-            <input type="file" id="file" name="file" />
-            <label for="file" title="Send a file"><i class="fa fa-paperclip" aria-hidden="true"></i></label>
+      </header>
+      <section class="output">
+        <div class="message">
+          <header>
+            <time>22:30</time>
+            <img class="icon">
+            <span class="name">Shinmera</span>
+          </header>
+          <div class="content">
+            Helloooooo there my fellow lads, this is a lengthy message that I'm typing up right now in order to test out how messages respond to dynamic changes in width of the chat area and such.
           </div>
-          <input type="submit" value="Send" />
+          <nav>
+            <a class="edit">
+              <i class="fas fa-edit"></i>
+            </a>
+            <a class="reply">
+              <i class="fas fa-reply"></i>
+            </a>
+            <a class="react">
+              <i class="fas fa-surprise"></i>
+            </a>
+            <a class="settings">
+              <i class="fas fa-ellipsis-h"></i>
+            </a>
+          </nav>
         </div>
-      </div>
-      <div class="users">
-        <h2>Users</h2>
-        <div class="lichat-user-list">
+        <div class="message">
+          <header>
+            <time>22:30</time>
+            <img class="icon">
+            <span class="name">Shinmera</span>
+          </header>
+          <div class="content">
+            <img src="https://i1.sndcdn.com/artworks-000122117485-pbverx-t500x500.jpg">
+          </div>
+          <nav>
+            <a class="edit">
+              <i class="fas fa-edit"></i>
+            </a>
+            <a class="reply">
+              <i class="fas fa-reply"></i>
+            </a>
+            <a class="react">
+              <i class="fas fa-surprise"></i>
+            </a>
+            <a class="settings">
+              <i class="fas fa-ellipsis-h"></i>
+            </a>
+          </nav>
         </div>
-      </div>
-      <audio class="lichat-notify">
-        <source src="notify.mp3" type="audio/mp3"/>
-      </audio>
-    </main>
-    <div class="settings popup">
-      <h3>Settings</h3>
-      <div><label>Notifications</label><input type="checkbox" name="notifyBy" value="desktop"/></div>
-      <div><label>Sounds</label><input type="checkbox" name="notifyBy" value="sound"/></div>
-      <div><label>Volume</label><input type="range" name="volume" min="0.0" max="1.0" step="0.1" /></div>
-      <button>Ok</button>
-    </div>
-    <div class="about popup">
-      <h3>This is Lichat-JS, a JavaScript client for Lichat.</h3>
-      <p>
-        Lichat is a light-weight, text-based chat protocol. It is aimed at mid-sized group chats, with many simplifications and improvements over alternative protocols such as IRC and XMPP.
-      </p>
-      <p>
-        Lichat and Lichat-JS are developed and maintained by the Shirakumo collective. You can find more information on the following websites:
-      </p>
-      <ul>
-        <li><a href="http://shirakumo.org" target="_blank">http://shirakumo.org</a></li>
-        <li><a href="http://shirakumo.org/projects/lichat-protocol" target="_blank">http://shirakumo.org/projects/lichat-protocol</a></li>
-        <li><a href="http://shirakumo.org/projects/lichat-js" target="_blank">http://shirakumo.org/projects/lichat-js</a></li>
-      </ul>
-      <button>Ok</button>
-    </div>
-    <script type="text/javascript" src="lichat.js"></script>
-    <script type="text/javascript" src="index.js"></script>
+      </section>
+      <footer>
+        <div class="user me">
+          <img class="icon">
+        </div>
+        <textarea placeholder="Write something..." autofocus></textarea>
+        <nav>
+          <a class="emote">
+            <i class="fas fa-smile"></i>
+          </a>
+          <a class="upload">
+            <i class="fas fa-paperclip"></i>
+          </a>
+        </nav>
+      </footer>
+    </section>
   </body>
 </html>

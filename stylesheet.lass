@@ -1,0 +1,154 @@
+(.client
+ :font-family "sans-serif"
+ :font-size 14pt
+ :margin 0
+ :padding 0
+ :display flex
+ :height 100vh
+ :width 100%
+ :overflow hidden
+ (img.icon
+  :width 1em
+  :height 1em
+  :border-radius 1em
+  :background white
+  :vertical-align middle)
+ (a
+  :cursor pointer
+  :text-shadow 0 0 0 transparent
+  :transition 0.2s text-shadow)
+ ((:and a :hover)
+  :color (hex 0088EE)
+  :text-shadow 0 0 1em (hex 0088EE))
+ (header
+  :align-items center
+  :white-space nowrap
+  (img.icon
+   :object-fit cover
+   :border-radius 1em
+   :background white
+   :border 0.15em solid (hex 303030)
+   :margin 0 0.2em))
+ (>nav
+  :background (hex 101010)
+  :color (hex F0F0F0)
+  :width 15em
+  :padding 0.5em 0 0.5em 0.5em
+  (.server
+   (>header
+    :font-size 1.5em)
+   (>ul
+    :list-style none
+    :padding 0 0 0 1em)
+   (.channel
+    :padding 0.1em 0.2em
+    :position relative
+    :height 1.5em
+    :transition 0.2s background)
+   ((:and .channel :after)
+    :content ""
+    :position absolute
+    :left -0.99em
+    :top 0
+    :bottom 0
+    :width 1em
+    :height 100%
+    :clip-path "polygon(100% 0, 100% 100%, 0 50%)"
+    :transition 0.2s background
+    :background transparent)
+   (.channel.current
+    :color black
+    :background white)
+   ((:and .channel.current :after)
+    :background white)
+   (.channel.update
+    :background (hex 202020))
+   ((:and .channel.update :after)
+    :background (hex 202020))
+   (.channel.alert
+    :background (hex F00000))
+   ((:and .channel.alert :after)
+    :background (hex F00000))
+   ((:and .channel :hover)
+    :background (hex 0088EE))
+   ((:and .channel :hover :after)
+    :background (hex 0088EE))))
+ (.divider
+  :min-width 0.3em
+  :background (hex 303030)
+  :cursor col-resize)
+ (>main
+  :flex-grow 1
+  :display flex
+  :flex-direction column
+  (>header
+   :display flex
+   :background (hex 202020)
+   :color white
+   :font-size 1.5em
+   :padding 0.3em 0.5em
+   (>img.icon
+    :font-size 1.5em
+    :border none)
+   (>.name
+    :min-width 10em)
+   (>.topic
+    :padding 0.5em
+    :flex-grow 1
+    :font-size 0.8em))
+  (>.output
+   :flex-grow 1
+   :overflow-y scroll
+   :padding 0.5em
+   :background (hex 151515)
+   :color white
+   :scrollbar-color white transparent
+   :scrollbar-width thin
+   (>.message
+    :display flex
+    (>header
+     :max-width 10em
+     :min-width 10em
+     :overflow hidden
+     :text-overflow ellipsis
+     (>time
+      :font-variant-numeric tabular-nums))
+    (>.content
+     :flex-grow 1
+     :padding 0 0.5em
+     (img
+      :max-width 100%
+      :max-height 20em))
+    (>nav
+     :white-space nowrap
+     :transition 0.5s color
+     :color (rgba 255 255 255 0.1)))
+   ((:and >.message :hover)
+    (>nav
+     :color (rgba 255 255 255 1))))
+  (">.output::-webkit-scrollbar"
+   :background transparent
+   :width 1em)
+  (">.output::-webkit-scrollbar-thumb"
+   :background white)
+  (>footer
+   :display flex
+   :align-items center
+   :color white
+   :background (hex 202020)
+   :font-size 1.5em
+   :padding 0.2em
+   (>textarea
+    :flex-grow 1
+    :font-size 0.7em
+    :margin 0 0.5em
+    :color white
+    :font-family inherit
+    :box-sizing border-box
+    :transition 0.5s border
+    :border 0.1em solid (hex 505050)
+    :background (hex 505050)
+    :border-radius 0.2em)
+   ((:and >textarea :focus)
+    :outline none !important
+    :border-color (hex 0088EE)))))
