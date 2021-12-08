@@ -41,10 +41,18 @@
     :list-style none
     :padding 0 0 0 1em)
    (.channel
-    :padding 0.1em 0.2em
+    :display flex
     :position relative
     :height 1.5em
-    :transition 0.2s background)
+    :transition 0.2s background
+    (>header
+     :padding 0.1em 0.2em
+     :flex-grow 1
+     :display flex)
+    (>.unread-count
+     :background (hex 505050)
+     :width 1.5em
+     :text-align center))
    ((:and .channel :after)
     :content ""
     :position absolute
@@ -66,9 +74,11 @@
    ((:and .channel.update :after)
     :background (hex 202020))
    (.channel.alert
-    :background (hex F00000))
+    :background (hex C00000)
+    (.unread-count
+     :background (hex FF0000)))
    ((:and .channel.alert :after)
-    :background (hex F00000))
+    :background (hex C00000))
    ((:and .channel :hover)
     :background (hex 0088EE))
    ((:and .channel :hover :after)
@@ -99,12 +109,25 @@
   (>.output
    :flex-grow 1
    :overflow-y scroll
-   :padding 0.5em
    :background (hex 151515)
    :color white
    :scrollbar-color white transparent
    :scrollbar-width thin
+   (>.last-read
+    :border-bottom 0.1em solid red
+    :margin 0.5em 0
+    :position relative)
+   ((:and >.last-read :after)
+    :content ""
+    :position absolute
+    :left 0
+    :top -0.45em
+    :width 1em
+    :height 1em
+    :clip-path "polygon(0 0, 100% 50%, 0 100%)"
+    :background red)
    (>.message
+    :padding 0.2em
     :display flex
     (>header
      :max-width 10em
@@ -116,13 +139,36 @@
     (>.content
      :flex-grow 1
      :padding 0 0.5em
+     ((:and p :first-of-type)
+      :margin-top 0)
+     ((:and p :last-of-type)
+      :margin-bottom 0)
      (img
       :max-width 100%
-      :max-height 20em))
+      :max-height 20em)
+     (.reactions
+      :display flex
+      :flex-wrap wrap
+      (.reaction
+       :background (hex 303030)
+       :padding 0.15em 0.2em
+       :margin 0.1em 0.2em
+       :border-radius 0.4em
+       :transition 0.2s background
+       :text-shadow none
+       :color white
+       (>i :font-style normal
+           :text-shadow none)
+       (>img :max-height 1em)
+       ((:or >i >img) :margin-right 0.2em))
+      ((:and .reaction :hover)
+       :background (hex 505050))))
     (>nav
      :white-space nowrap
      :transition 0.5s color
      :color (rgba 255 255 255 0.1)))
+   ((:and >.message .alert)
+    :background "linear-gradient(90deg, rgba(255,0,0,1) 0%, rgba(255,0,0,0) 10em);")
    ((:and >.message :hover)
     (>nav
      :color (rgba 255 255 255 1))))
