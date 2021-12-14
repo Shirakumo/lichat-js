@@ -60,12 +60,12 @@
               <span class="name" v-bind:class="{me: message.author == currentChannel.client.user}">{{message.author.name}}</span>
             </header>
             <div class="content">
-              <img v-if="message.type == 'image'" v-bind:src="message.text">
-              <video controls v-else-if="message.type == 'video'">
-                <source v-bind:src="message.text" v-bind:type="message['content-type']">
+              <img v-if="message.contentType.includes('image')" v-bind:src="message.text">
+              <video controls v-else-if="message.contentType.includes('video')">
+                <source v-bind:src="message.text" v-bind:type="message.contentType">
               </video>
-              <audio controls v-else-if="message.type == 'audio'">
-                <source v-bind:src="message.text" v-bind:type="message['content-type']">
+              <audio controls v-else-if="message.contentType.includes('audio')">
+                <source v-bind:src="message.text" v-bind:type="message.contentType">
               </audio>
               <p v-else>
                 {{message.text}}

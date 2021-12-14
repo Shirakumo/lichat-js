@@ -1008,6 +1008,57 @@ LichatReader.fromString = (string)=>{
 var LichatDefaultPort = 1113;
 var EmptyIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=";
 
+class LichatReaction{
+    constructor(update, client){
+        if(allEmojis.contains(update.emote))
+            this.text = update.emote;
+        else{
+            let emote = client.getChannel(update.channel).getemote(update.emote);
+            if(!emote) throw "Invalid emote.";
+            this.image = emote;
+        }
+        this.users = [update.from];
+    }
+
+    get count(){
+        return this.users.length;
+    }
+}
+
+class LichatMessage{
+    constructor(update, client){
+        this._client = client;
+        this.id = update.id;
+        this.author = client.getUser(update.from);
+        this.channel = (update.channel)? client.getChannel(update.channel) : client.primaryChannel;
+        this.reactions = {};
+        this.text = update.text || "";
+        if(cl.typep(update, "MESSAGE"))
+            this.contentType = update.link;
+        else this.contentType = this._data["content-type"] || "text/plain";
+    }
+
+    get time(){
+        let local = cl.universalToUnix(this._data.clock);
+        let date = new Date(local*1000);
+        let pad = (x)=>(x<10?"0":"")+x;
+        return pad(date.getHours())+":"+pad(date.getMinutes());
+    }
+
+    addReaction(update){
+        let reaction = this.reactions[update.emote];
+        if(!reaction){
+            reaction = new LichatReaction(update, this._client);
+            this.reactions[update.emote] = reaction;
+        }else if(reaction.users.contains(update.from)){
+            reaction.users = reaction.users.filter(item => item == update.from);
+        }else{
+            rection.users.push(update.from);
+        }
+        return reaction;
+    }
+}
+
 class LichatUser{
     constructor(name, client){
         this._name = name;
