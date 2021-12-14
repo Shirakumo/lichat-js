@@ -5,155 +5,111 @@
     <title>Lichat</title>
     <link rel="stylesheet" href="stylesheet.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
     <script src="lichat.js"></script>
   </head>
-  <body class="client">
-    <nav>
-      <section class="server">
+  <body>
+    <div class="client">
+      <nav>
+        <section class="server" v-for="client in clients">
+          <header>
+            <img class="icon" v-bind:src="client.icon">
+            <span class="name">{{client.name || client.servername}}</span>
+            <nav>
+              <a class="settings">
+                <i class="fas fa-ellipsis-h"></i>
+              </a>
+            </nav>
+          </header>
+          <ul class="channels">
+            <li class="channel" v-for="channel in client.channels"
+                v-bind:class="{current: channel == currentChannel, update: 0 < channel.unread, alert: channel.alerted}">
+              <header>
+                <img class="icon" v-bind:src="channel.icon">
+                <span class="name">{{channel.name}}</span>
+              </header>
+              <div class="unread-count">{{channel.unread}}</div>
+            </li>
+          </ul>
+        </section>
+      </nav>
+      <div class="divider"></div>
+      <main v-if="currentChannel">
         <header>
-          <img class="icon">
-          <span class="name">TyNET</span>
+          <img class="icon" v-bind:src="currentChannel.icon">
+          <span class="name">{{currentChannel.name}}</span>
+          <span class="topic">{{currentChannel.topic}}</span>
+          <nav>
+            <a class="search">
+              <i class="fas fa-search"></i>
+            </a>
+            <a class="info">
+              <i class="fas fa-info-circle"></i>
+            </a>
+            <a class="settings">
+              <i class="fas fa-ellipsis-h"></i>
+            </a>
+          </nav>
         </header>
-        <ul class="channels">
-          <li class="channel current">
+        <section class="output">
+          <div class="message" v-for="message in currentChannel.messages"
+               v-bind:class="{alert: message.isAlert}">
             <header>
-              <img class="icon">
-              <span class="name">shirakumo</span>
+              <time>{{message.time}}</time>
+              <img class="icon" v-bind:src="message.author.icon">
+              <span class="name" v-bind:class="{me: message.author == currentChannel.client.user}">{{message.author.name}}</span>
             </header>
-          </li>
-          <li class="channel update">
-            <header>
-              <img class="icon">
-              <span class="name">stevenchan</span>
-            </header>
-            <div class="unread-count">5</div>
-          </li>
-        </ul>
-      </section>
-    </nav>
-    <div class="divider"></div>
-    <main>
-      <header>
-        <img class="icon">
-        <span class="name">shirakumo</span>
-        <span class="topic">Shirakumo dev hangout. Come chat with us about cool stuff!</span>
-        <nav>
-          <a class="search">
-            <i class="fas fa-search"></i>
-          </a>
-          <a class="info">
-            <i class="fas fa-info-circle"></i>
-          </a>
-          <a class="settings">
-            <i class="fas fa-ellipsis-h"></i>
-          </a>
-        </nav>
-      </header>
-      <section class="output">
-        <div class="message">
-          <header>
-            <time>22:30</time>
-            <img class="icon">
-            <span class="name">Shinmera</span>
-          </header>
-          <div class="content">
-            <p>
-              Helloooooo there my fellow lads, this is a lengthy message that I'm typing up right now in order to test out how messages respond to dynamic changes in width of the chat area and such.
-            </p>
-            <div class="reactions">
-              <a class="reaction">
-                <i>😱</i> 2
+            <div class="content">
+              <img v-if="message.type == 'image'" v-bind:src="message.text">
+              <video controls v-else-if="message.type == 'video'">
+                <source v-bind:src="message.text" v-bind:type="message['content-type']">
+              </video>
+              <audio controls v-else-if="message.type == 'audio'">
+                <source v-bind:src="message.text" v-bind:type="message['content-type']">
+              </audio>
+              <p v-else>
+                {{message.text}}
+              </p>
+              <div class="reactions">
+                <a class="reaction" v-for="reaction in message.reactions">
+                  <i v-if="reaction.text">{{reaction.text}}</i>
+                  <img v-else v-bind:src="reaction.image">
+                  <span>{{reaction.count}}</span>
+                </a>
+              </div>
+            </div>
+            <nav>
+              <a class="edit">
+                <i class="fas fa-edit"></i>
               </a>
-              <a class="reaction">
-                <img src="https://filebox.tymoon.eu//file/TWpRd053PT0="> 1
+              <a class="reply">
+                <i class="fas fa-reply"></i>
               </a>
-            </div>
+              <a class="react">
+                <i class="fas fa-surprise"></i>
+              </a>
+              <a class="settings">
+                <i class="fas fa-ellipsis-h"></i>
+              </a>
+            </nav>
           </div>
+        </section>
+        <footer>
+          <div class="user me">
+            <img class="icon" v-bind:src="currentChannel.client.user.icon">
+          </div>
+          <textarea placeholder="Write something..." autofocus></textarea>
           <nav>
-            <a class="edit">
-              <i class="fas fa-edit"></i>
+            <a class="emote">
+              <i class="fas fa-smile"></i>
             </a>
-            <a class="reply">
-              <i class="fas fa-reply"></i>
-            </a>
-            <a class="react">
-              <i class="fas fa-surprise"></i>
-            </a>
-            <a class="settings">
-              <i class="fas fa-ellipsis-h"></i>
+            <a class="upload">
+              <i class="fas fa-paperclip"></i>
             </a>
           </nav>
-        </div>
-        <div class="last-read"></div>
-        <div class="message">
-          <header>
-            <time>22:30</time>
-            <img class="icon">
-            <span class="name">Shinmera</span>
-          </header>
-          <div class="content">
-            <img src="https://i1.sndcdn.com/artworks-000122117485-pbverx-t500x500.jpg">
-            <div class="reactions">
-            </div>
-          </div>
-          <nav>
-            <a class="edit">
-              <i class="fas fa-edit"></i>
-            </a>
-            <a class="reply">
-              <i class="fas fa-reply"></i>
-            </a>
-            <a class="react">
-              <i class="fas fa-surprise"></i>
-            </a>
-            <a class="settings">
-              <i class="fas fa-ellipsis-h"></i>
-            </a>
-          </nav>
-        </div>
-        <div class="message alert">
-          <header>
-            <time>22:30</time>
-            <img class="icon">
-            <span class="name">Shinmera</span>
-          </header>
-          <div class="content">
-            <p>
-              shinmera: wtf.
-            </p>
-            <div class="reactions">
-            </div>
-          </div>
-          <nav>
-            <a class="edit">
-              <i class="fas fa-edit"></i>
-            </a>
-            <a class="reply">
-              <i class="fas fa-reply"></i>
-            </a>
-            <a class="react">
-              <i class="fas fa-surprise"></i>
-            </a>
-            <a class="settings">
-              <i class="fas fa-ellipsis-h"></i>
-            </a>
-          </nav>
-        </div>
-      </section>
-      <footer>
-        <div class="user me">
-          <img class="icon">
-        </div>
-        <textarea placeholder="Write something..." autofocus></textarea>
-        <nav>
-          <a class="emote">
-            <i class="fas fa-smile"></i>
-          </a>
-          <a class="upload">
-            <i class="fas fa-paperclip"></i>
-          </a>
-        </nav>
-      </footer>
-    </section>
+        </footer>
+        </section>
+    </div>
+    <script>var lichat = new LichatUI();</script>
   </body>
 </html>

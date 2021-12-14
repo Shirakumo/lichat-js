@@ -1,4 +1,5 @@
 var LichatDefaultPort = 1113;
+var EmptyIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=";
 
 class LichatUser{
     constructor(name, client){
@@ -9,6 +10,13 @@ class LichatUser{
 
     get name(){
         return this._name;
+    }
+
+    get icon(){
+        let icon = this.info[":ICON"];
+        if(!icon) return EmptyIcon;
+        let data = icon.split(" ");
+        return "data:"+data[0]+";base64,"+data[1];
     }
 
     get isPresent(){
@@ -29,6 +37,7 @@ class LichatChannel{
         this.users = {};
         this.emotes = {};
         this.info = {};
+        this.messages = [];
         this.info[":NEWS"] = "";
         this.info[":TOPIC"] = "";
         this.info[":RULES"] = "";
@@ -39,12 +48,27 @@ class LichatChannel{
         return this._name;
     }
 
+    get client(){
+        return this._client;
+    }
+
     get isPresent(){
         return this.users[this._client.username()] !== undefined;
     }
 
     get isPrimary(){
         return this._name == this._client.servername;
+    }
+
+    get icon(){
+        let icon = this.info[":ICON"];
+        if(!icon) return EmptyIcon;
+        let data = icon.split(" ");
+        return "data:"+data[0]+";base64,"+data[1];
+    }
+
+    get topic(){
+        return this.info["TOPIC"];
     }
 
     getEmote(name){
@@ -372,6 +396,18 @@ class LichatClient{
         return this;
     }
 
+    get icon(){
+        if(this.servername) return this.primaryChannel.icon;
+        else return EmptyIcon;
+    }
+
+    get primaryChannel(){
+        if(this.servername)
+            return this.getChannel(this.servername);
+        else
+            return null;
+    }
+
     getChannel(name){
         let channel = this.channels[name.toLowerCase()];
         if(channel === undefined){
@@ -379,6 +415,13 @@ class LichatClient{
             this.channels[name.toLowerCase()] = channel;
         }
         return channel;
+    }
+
+    get user(){
+        if(this.username)
+            return this.getUser(this.username);
+        else
+            return null;
     }
 
     getUser(name){
