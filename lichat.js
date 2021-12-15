@@ -1228,7 +1228,7 @@ class LichatClient{
                 if(this.isAvailable("shirakumo-channel-info"))
                     this.s("CHANNEL-INFO", {channel: ev.channel}, true);
                 if(this.isAvailable("shirakumo-emotes"))
-                    this.s("EMOTES", {channel: ev.channel, emotes: channel.getEmoteList()}, true);
+                    this.s("EMOTES", {channel: ev.channel, names: channel.getEmoteList()}, true);
             }
         });
 
@@ -1312,11 +1312,12 @@ class LichatClient{
     send(wireable){
         if(!this._socket || this._socket.readyState != 1)
             cl.error("NOT-CONNECTED",{text: "The client is not connected."});
-        if(!cl.typep(wireable, "PING") && !cl.typep(wireable, "PONG"))
-            cl.format("[Lichat] Send:~s", wireable);
         let stream = new LichatStream();
         this._printer.toWire(wireable, stream);
         this._socket.send(stream.string+'\u0000');
+
+        if(!cl.typep(wireable, "PING") && !cl.typep(wireable, "PONG"))
+            cl.format("[Lichat] Send:~s", stream.string);
         return wireable;
     }
 
@@ -1492,21 +1493,22 @@ class LichatClient{
         return user;
     }
 
-    addEmote(emote){
-        let name = emote["name"].toLowerCase().replace(/^:|:$/g,"");
-        let channel = emote["channel"];
+    addEmote(update){
+        let name = update["name"].toLowerCase().replace(/^:|:$/g,"");
+        let channel = update["channel"] || this.servername;
 
-        if(emote["payload"]){
+        if(update["payload"]){
             let emote = {
-                contentType: emote["content-type"],
-                payload: emote["payload"],
-                name: emote["name"]
+                contentType: update["content-type"],
+                payload: update["payload"],
+                name: update["name"]
             };
-            getChannel(channel).emotes[name] = emote;
+            this.getChannel(channel).emotes[name] = emote;
+            return emote;
         }else{
-            delete getChannel(channel).emotes[name];
+            delete this.getChannel(channel).emotes[name];
+            return null;
         }
-        return emote;
     }
 
     isAvailable(name){
