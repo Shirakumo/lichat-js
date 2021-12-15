@@ -10,14 +10,17 @@ class LichatUI{
                 submit: (ev)=>{
                     let message = this.currentChannel.currentMessage;
                     if(!ev.getModifierState("Control") && !ev.getModifierState("Shift")){
+                        let channel = this.currentChannel;
                         message.text = message.text.trimEnd();
                         if(message.text.startsWith("/")){
-                            this.processCommand(message.text, this.currentChannel);
+                            this.processCommand(message.text, channel);
                         }else{
-                            this.currentChannel.s("MESSAGE", {
+                            channel.s("MESSAGE", {
                                 "text": message.text,
                                 "reply-to": (message.replyTo)? [message.replyTo.author.name, message.replyTo.id]: null
-                            }, true);
+                            }).catch((e)=>{
+                                channel.showStatus("Error: "+e.text);
+                            });
                         }
                         message.clear();
                     }
@@ -54,7 +57,7 @@ class LichatUI{
                         +"</td></tr>";
                 }
                 text += "</tbody></table>";
-                channel.showStatus(text, true);
+                channel.showStatus(text, {html: true});
             }
         }, "Show help information on the available commands.");
 

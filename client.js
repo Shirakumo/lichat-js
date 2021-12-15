@@ -20,13 +20,15 @@ class LichatReaction{
 }
 
 class LichatMessage{
-    constructor(update, channel, textIsHTML){
+    constructor(update, channel, options){
+        options = options || {};
         this.id = update.id;
         this.author = channel.getUser(update.from);
         this.channel = channel;
         this.reactions = {};
         this.text = update.text || "";
-        this.html = (textIsHTML)? this.text: this.markupText(this.text);
+        this.html = (options.html)? this.text: this.markupText(this.text);
+        this.isSystem = options.system;
         this.gid = this.channel.name+"/"+update.id+"@"+this.author.name;
         this.url = document.location.href.match(/(^[^#]*)/)[0]+"#"+this.gid;
         this.clock = cl.universalToUnix(update.clock);
@@ -45,8 +47,11 @@ class LichatMessage{
     }
 
     get isImage(){ return this.contentType.includes("image"); }
+
     get isVideo(){ return this.contentType.includes("video"); }
+
     get isAudio(){ return this.contentType.includes("audio"); }
+
     get isAlert(){
         // FIXME: todo
         return false;
@@ -208,13 +213,15 @@ class LichatChannel{
         return null;
     }
 
-    showStatus(message, messageIsHTML){
+    showStatus(message, options){
+        options = options || {};
+        options.system = true;
         this.messages.push(new LichatMessage({
             id: 0,
             from: "System",
             clock: cl.getUniversalTime(),
             text: message,
-        }, this, true));
+        }, this, options));
     }
 };
 
