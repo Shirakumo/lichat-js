@@ -119,7 +119,10 @@ var LichatReader = function(){
                 return self.safeFindSymbol(self.readSexprToken(stream), token);
             }
         }else{
-            return self.safeFindSymbol(token, "LICHAT-PROTOCOL");
+            var symbol = self.safeFindSymbol(token, "LICHAT-PROTOCOL");
+            if(symbol == cl.NIL) return null;
+            if(symbol == cl.T) return true;
+            return symbol;
         }
     };
 

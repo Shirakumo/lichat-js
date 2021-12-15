@@ -23,12 +23,17 @@
           </header>
           <ul class="channels">
             <li class="channel" v-for="channel in client.channels"
-                v-bind:class="{current: channel == currentChannel, update: 0 < channel.unread, alert: channel.alerted}">
+                v-bind:class="{current: channel == currentChannel, update: 0 < channel.unread, alert: channel.alerted, primary: channel.isPrimary}"
+                v-on:click="currentChannel = channel">
               <header>
                 <img class="icon" v-bind:src="channel.icon">
                 <span class="name">{{channel.name}}</span>
               </header>
-              <div class="unread-count">{{channel.unread}}</div>
+              <div class="unread-count"
+                   v-if="0 < channel.unread"
+                   v-on:click="channel.unread = 0; channel.alerted = false">
+                {{channel.unread}}
+              </div>
             </li>
           </ul>
         </section>
@@ -40,7 +45,7 @@
           <span class="name">{{currentChannel.name}}</span>
           <span class="topic">{{currentChannel.topic}}</span>
           <nav>
-            <a class="search">
+            <a class="search" v-if="currentChannel.client.isAvailable('shirakumo-search')">
               <i class="fas fa-search"></i>
             </a>
             <a class="info">
@@ -60,11 +65,11 @@
               <span class="name" v-bind:class="{me: message.author == currentChannel.client.user}">{{message.author.name}}</span>
             </header>
             <div class="content">
-              <img v-if="message.contentType.includes('image')" v-bind:src="message.text">
-              <video controls v-else-if="message.contentType.includes('video')">
+              <img v-if="message.isImage" v-bind:src="message.text">
+              <video controls v-else-if="message.isVideo">
                 <source v-bind:src="message.text" v-bind:type="message.contentType">
               </video>
-              <audio controls v-else-if="message.contentType.includes('audio')">
+              <audio controls v-else-if="message.isAudio">
                 <source v-bind:src="message.text" v-bind:type="message.contentType">
               </audio>
               <p v-else>
@@ -79,13 +84,13 @@
               </div>
             </div>
             <nav>
-              <a class="edit">
+              <a class="edit" v-if="message.author.isSelf">
                 <i class="fas fa-edit"></i>
               </a>
-              <a class="reply">
+              <a class="reply" v-if="currentChannel.client.isAvailable('shirakumo-replies')">
                 <i class="fas fa-reply"></i>
               </a>
-              <a class="react">
+              <a class="react" v-if="currentChannel.client.isAvailable('shirakumo-reactions')">
                 <i class="fas fa-surprise"></i>
               </a>
               <a class="settings">

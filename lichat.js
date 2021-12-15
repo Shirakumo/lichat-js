@@ -951,7 +951,10 @@ var LichatReader = function(){
                 return self.safeFindSymbol(self.readSexprToken(stream), token);
             }
         }else{
-            return self.safeFindSymbol(token, "LICHAT-PROTOCOL");
+            var symbol = self.safeFindSymbol(token, "LICHAT-PROTOCOL");
+            if(symbol == cl.NIL) return null;
+            if(symbol == cl.T) return true;
+            return symbol;
         }
     };
 
@@ -1010,11 +1013,11 @@ var LichatDefaultSSLPort = 1114;
 var EmptyIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=";
 
 class LichatReaction{
-    constructor(update, client){
+    constructor(update, channel){
         if(allEmojis.contains(update.emote))
             this.text = update.emote;
         else{
-            let emote = client.getChannel(update.channel).getemote(update.emote);
+            let emote = channel.getemote(update.emote);
             if(!emote) throw "Invalid emote.";
             this.image = emote;
         }
@@ -1027,29 +1030,31 @@ class LichatReaction{
 }
 
 class LichatMessage{
-    constructor(update, client){
-        this._client = client;
+    constructor(update, channel){
         this.id = update.id;
-        this.author = client.getUser(update.from);
-        this.channel = (update.channel)? client.getChannel(update.channel) : client.primaryChannel;
+        this.author = channel.getUser(update.from);
+        this.channel = channel;
         this.reactions = {};
         this.text = update.text || "";
-        if(cl.typep(update, "MESSAGE"))
-            this.contentType = update.link;
-        else this.contentType = this._data["content-type"] || "text/plain";
+        this.clock = cl.universalToUnix(update.clock);
+        this.contentType = update.link || "text/plain";
     }
 
     get time(){
-        let local = cl.universalToUnix(this._data.clock);
+        let local = cl.universalToUnix(this.clock);
         let date = new Date(local*1000);
         let pad = (x)=>(x<10?"0":"")+x;
         return pad(date.getHours())+":"+pad(date.getMinutes());
     }
 
+    get isImage(){ console.log("AAA",this); return this.contentType.includes("image"); }
+    get isVideo(){ return this.contentType.includes("video"); }
+    get isAudio(){ return this.contentType.includes("audio"); }
+
     addReaction(update){
         let reaction = this.reactions[update.emote];
         if(!reaction){
-            reaction = new LichatReaction(update, this._client);
+            reaction = new LichatReaction(update, this.channel);
             this.reactions[update.emote] = reaction;
         }else if(reaction.users.contains(update.from)){
             reaction.users = reaction.users.filter(item => item == update.from);
@@ -1080,6 +1085,10 @@ class LichatUser{
 
     get isPresent(){
         return this.isInChannel(this._client.servername);
+    }
+
+    get isSelf(){
+        return this._client.username == this._name;
     }
 
     isInChannel(channel){
@@ -1117,6 +1126,11 @@ class LichatChannel{
 
     get isPrimary(){
         return this._name == this._client.servername;
+    }
+
+    get isAnonymous(){
+        // FIXME: this is broken
+        return false;
     }
 
     get icon(){
@@ -1157,6 +1171,10 @@ class LichatChannel{
         return this.users[user.toLowerCase()] !== undefined;
     }
 
+    getUser(name){
+        return this._client.getUser(name.toLowerCase());
+    }
+
     clearUsers(){
         this.users = {};
     }
@@ -1165,6 +1183,14 @@ class LichatChannel{
         args = args || {};
         args["channel"] = this.name;
         return this._client.s(type, args, noPromise);
+    }
+
+    record(ev){
+        this.messages.push(new LichatMessage(ev, this));
+    }
+
+    getMessage(ev){
+        return null;
     }
 };
 
@@ -1227,8 +1253,8 @@ class LichatClient{
                     this.s("BACKFILL", {channel: ev.channel}, true);
                 if(this.isAvailable("shirakumo-channel-info"))
                     this.s("CHANNEL-INFO", {channel: ev.channel}, true);
-                if(this.isAvailable("shirakumo-emotes"))
-                    this.s("EMOTES", {channel: ev.channel, names: channel.getEmoteList()}, true);
+                //if(this.isAvailable("shirakumo-emotes"))
+                //    this.s("EMOTES", {channel: ev.channel, names: channel.getEmoteList()}, true);
             }
         });
 
@@ -1242,7 +1268,19 @@ class LichatClient{
         });
 
         this.addInternalHandler("SET-CHANNEL-INFO", (ev)=>{
-            this.channels[ev.channel.toLowerCase()].info[LichatPrinter.toString(ev.key)] = ev.text;
+            this.getChannel(ev.channel).info[LichatPrinter.toString(ev.key)] = ev.text;
+        });
+
+        this.addHandler("MESSAGE", (ev)=>{
+            this.getChannel(ev.channel).record(ev);
+        });
+
+        this.addHandler("EDIT", (ev)=>{
+            this.getChannel(ev.channel).getMessage(ev).text = ev.text;
+        });
+
+        this.addHandler("REACT", (ev)=>{
+            this.getChannel(ev.channel).getMessage(ev).addReaction(ev);
         });
     }
 
