@@ -58,12 +58,17 @@
         </header>
         <section class="output">
           <div class="message" v-for="message in currentChannel.messages"
-               v-bind:class="{alert: message.isAlert}">
+               v-bind:class="{alert: message.isAlert}"
+               v-bind:id="message.gid">
             <header>
               <time>{{message.time}}</time>
               <img class="icon" v-bind:src="message.author.icon">
               <span class="name" v-bind:class="{me: message.author == currentChannel.client.user}">{{message.author.name}}</span>
             </header>
+            <a class="reply-to" v-if="message.replyTo" v-bind:href="message.replyTo.url">
+              <span class="name" v-bind:class="{me: message.replyTo.author == currentChannel.client.user}">{{message.replyTo.author.name}}</span>
+              <p>{{message.replyTo.shortText}}</p>
+            </a>
             <div class="content">
               <img v-if="message.isImage" v-bind:src="message.text">
               <video controls v-else-if="message.isVideo">
@@ -72,9 +77,7 @@
               <audio controls v-else-if="message.isAudio">
                 <source v-bind:src="message.text" v-bind:type="message.contentType">
               </audio>
-              <p v-else>
-                {{message.text}}
-              </p>
+              <p v-else v-html="message.text"></p>
               <div class="reactions">
                 <a class="reaction" v-for="reaction in message.reactions" v-bind:title="reaction.users.join(',')">
                   <i v-if="reaction.text">{{reaction.text}}</i>
@@ -84,13 +87,17 @@
               </div>
             </div>
             <nav>
-              <a class="edit" v-if="message.author.isSelf">
+              <a class="edit"
+                 v-if="currentChannel.client.isAvailable('shirakumo-edit') && message.author.isSelf">
                 <i class="fas fa-edit"></i>
               </a>
-              <a class="reply" v-if="currentChannel.client.isAvailable('shirakumo-replies')">
+              <a class="reply"
+                 v-if="currentChannel.client.isAvailable('shirakumo-replies')"
+                 v-on:click="currentChannel.currentMessage.replyTo = message">
                 <i class="fas fa-reply"></i>
               </a>
-              <a class="react" v-if="currentChannel.client.isAvailable('shirakumo-reactions')">
+              <a class="react"
+                 v-if="currentChannel.client.isAvailable('shirakumo-reactions')">
                 <i class="fas fa-surprise"></i>
               </a>
               <a class="settings">
@@ -103,7 +110,15 @@
           <div class="user me">
             <img class="icon" v-bind:src="currentChannel.client.user.icon">
           </div>
-          <textarea placeholder="Write something..." autofocus></textarea>
+          <div class="content">
+            <a class="reply-to" v-if="currentChannel.currentMessage.replyTo" v-on:click="currentChannel.currentMessage.replyTo = null">
+              <span class="name" v-bind:class="{me: currentChannel.currentMessage.replyTo.author == currentChannel.client.user}">{{currentChannel.currentMessage.replyTo.author.name}}</span>
+              <p>{{currentChannel.currentMessage.replyTo.shortText}}</p>
+            </a>
+            <textarea placeholder="Write something..." autofocus
+                      v-model="currentChannel.currentMessage.text"
+                      v-on:keyup.enter.prevent.stop="submit"></textarea>
+          </div>
           <nav>
             <a class="emote">
               <i class="fas fa-smile"></i>

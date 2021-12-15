@@ -620,7 +620,8 @@ cl.defclass("CAPABILITIES", ["CHANNEL-UPDATE"], {
 });
 cl.defclass("MESSAGE", ["CHANNEL-UPDATE", "TEXT-UPDATE"], {
     bridge: null,
-    link: null
+    link: null,
+    "reply-to": null
 });
 cl.defclass("EDIT", ["CHANNEL-UPDATE", "TEXT-UPDATE"]);
 cl.defclass("USERS", ["CHANNEL-UPDATE"], {
@@ -1030,14 +1031,21 @@ class LichatReaction{
 }
 
 class LichatMessage{
-    constructor(update, channel){
+    constructor(update, channel, textIsHTML){
         this.id = update.id;
         this.author = channel.getUser(update.from);
         this.channel = channel;
         this.reactions = {};
         this.text = update.text || "";
+        this.html = (textIsHTML)? this.text: this.markupText(this.text);
+        this.gid = this.channel.name+"/"+update.id+"@"+this.author.name;
+        this.url = document.location.href.match(/(^[^#]*)/)[0]+"#"+this.gid;
         this.clock = cl.universalToUnix(update.clock);
         this.contentType = update.link || "text/plain";
+        if(update["reply-to"])
+            this.replyTo = channel.getMessage(update["reply-to"][0], update["reply-to"][1]);
+        else
+            this.replyTo = null;
     }
 
     get time(){
@@ -1047,9 +1055,17 @@ class LichatMessage{
         return pad(date.getHours())+":"+pad(date.getMinutes());
     }
 
-    get isImage(){ console.log("AAA",this); return this.contentType.includes("image"); }
+    get isImage(){ return this.contentType.includes("image"); }
     get isVideo(){ return this.contentType.includes("video"); }
     get isAudio(){ return this.contentType.includes("audio"); }
+    get isAlert(){
+        // FIXME: todo
+        return false;
+    }
+
+    get shortText(){
+        return this.text.split("\n")[0];
+    }
 
     addReaction(update){
         let reaction = this.reactions[update.emote];
@@ -1062,6 +1078,11 @@ class LichatMessage{
             rection.users.push(update.from);
         }
         return reaction;
+    }
+
+    markupText(text){
+        // FIXME: todo
+        return text;
     }
 }
 
@@ -1106,6 +1127,11 @@ class LichatChannel{
         this.emotes = {};
         this.info = {};
         this.messages = [];
+        this.currentMessage = {text: "", replyTo: null};
+        this.currentMessage.clear = ()=>{
+            this.currentMessage.text = "";
+            this.currentMessage.replyTo = null;
+        };
         this.info[":NEWS"] = "";
         this.info[":TOPIC"] = "";
         this.info[":RULES"] = "";
@@ -1189,8 +1215,17 @@ class LichatChannel{
         this.messages.push(new LichatMessage(ev, this));
     }
 
-    getMessage(ev){
+    getMessage(from, id){
         return null;
+    }
+
+    showStatus(message, messageIsHTML){
+        this.messages.push(new LichatMessage({
+            id: 0,
+            from: "System",
+            clock: cl.getUniversalTime(),
+            text: message,
+        }, this, true));
     }
 };
 
@@ -1555,11 +1590,29 @@ class LichatClient{
 };
 class LichatUI{
     constructor(el){
+        this.commands = {};
         this.clients = {};
         this.currentChannel = null;
         this.app = new Vue({
             el: el || '.client',
-            data: this
+            data: this,
+            methods: {
+                submit: (ev)=>{
+                    let message = this.currentChannel.currentMessage;
+                    if(!ev.getModifierState("Control") && !ev.getModifierState("Shift")){
+                        message.text = message.text.trimEnd();
+                        if(message.text.startsWith("/")){
+                            this.processCommand(message.text, this.currentChannel);
+                        }else{
+                            this.currentChannel.s("MESSAGE", {
+                                "text": message.text,
+                                "reply-to": (message.replyTo)? [message.replyTo.author.name, message.replyTo.id]: null
+                            }, true);
+                        }
+                        message.clear();
+                    }
+                }
+            }
         });
 
         this.addClient(new LichatClient({
@@ -1567,11 +1620,58 @@ class LichatUI{
             hostname: "chat.tymoon.eu",
             ssl: true
         }));
+
+        this.addCommand("help", (channel, subcommand)=>{
+            if(subcommand){
+                let command = this.commands["/"+subcommand];
+                if(command){
+                    let arglist = (command.handler + '')
+                        .replace(/[/][/].*$/mg,'') // strip single-line comments
+                        .replace(/\s+/g, '') // strip white space
+                        .replace(/[/][*][^/*]*[*][/]/g, '') // strip multi-line comments  
+                        .split('){', 1)[0].replace(/^[^(]*[(]/, '') // extract the parameters  
+                        .replace(/=[^,]+/g, '').replace(')', '')
+                        .split(',').filter(Boolean).slice(1); // split & filter [""]
+                    channel.showStatus("/"+subcommand+" "+arglist.join(" ")+"\n\n"+command.help);
+                }else{
+                    channel.showStatus("No command named "+subcommand);
+                }
+            }else{
+                let text = "<table><thead><tr><th>Command</th><th>Help</th></tr></thead><tbody>";
+                for(let name in this.commands){
+                    text += "<tr><td>"+name
+                        +"</td><td>"+this.commands[name].help
+                        +"</td></tr>";
+                }
+                text += "</tbody></table>";
+                channel.showStatus(text, true);
+            }
+        }, "Show help information on the available commands.");
     }
 
     addClient(client){
         Vue.set(this.clients, client.name, client);
         client.openConnection();
         return client;
+    }
+
+    addCommand(command, fun, help){
+        this.commands["/"+command] = {
+            handler: fun,
+            help: help
+        };
+    }
+
+    processCommand(cmdname, channel){
+        try{
+            let args = cmdname.split(" ");
+            let command = this.commands[args[0]];
+            if(!command) throw "No command named "+args[0];
+            args[0] = channel;
+            command.handler.apply(this, args);
+        }catch(e){
+            console.log(e);
+            channel.showStatus("Error: "+e);
+        }
     }
 }

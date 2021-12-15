@@ -20,14 +20,21 @@ class LichatReaction{
 }
 
 class LichatMessage{
-    constructor(update, channel){
+    constructor(update, channel, textIsHTML){
         this.id = update.id;
         this.author = channel.getUser(update.from);
         this.channel = channel;
         this.reactions = {};
         this.text = update.text || "";
+        this.html = (textIsHTML)? this.text: this.markupText(this.text);
+        this.gid = this.channel.name+"/"+update.id+"@"+this.author.name;
+        this.url = document.location.href.match(/(^[^#]*)/)[0]+"#"+this.gid;
         this.clock = cl.universalToUnix(update.clock);
         this.contentType = update.link || "text/plain";
+        if(update["reply-to"])
+            this.replyTo = channel.getMessage(update["reply-to"][0], update["reply-to"][1]);
+        else
+            this.replyTo = null;
     }
 
     get time(){
@@ -37,9 +44,17 @@ class LichatMessage{
         return pad(date.getHours())+":"+pad(date.getMinutes());
     }
 
-    get isImage(){ console.log("AAA",this); return this.contentType.includes("image"); }
+    get isImage(){ return this.contentType.includes("image"); }
     get isVideo(){ return this.contentType.includes("video"); }
     get isAudio(){ return this.contentType.includes("audio"); }
+    get isAlert(){
+        // FIXME: todo
+        return false;
+    }
+
+    get shortText(){
+        return this.text.split("\n")[0];
+    }
 
     addReaction(update){
         let reaction = this.reactions[update.emote];
@@ -52,6 +67,11 @@ class LichatMessage{
             rection.users.push(update.from);
         }
         return reaction;
+    }
+
+    markupText(text){
+        // FIXME: todo
+        return text;
     }
 }
 
@@ -96,6 +116,11 @@ class LichatChannel{
         this.emotes = {};
         this.info = {};
         this.messages = [];
+        this.currentMessage = {text: "", replyTo: null};
+        this.currentMessage.clear = ()=>{
+            this.currentMessage.text = "";
+            this.currentMessage.replyTo = null;
+        };
         this.info[":NEWS"] = "";
         this.info[":TOPIC"] = "";
         this.info[":RULES"] = "";
@@ -179,8 +204,17 @@ class LichatChannel{
         this.messages.push(new LichatMessage(ev, this));
     }
 
-    getMessage(ev){
+    getMessage(from, id){
         return null;
+    }
+
+    showStatus(message, messageIsHTML){
+        this.messages.push(new LichatMessage({
+            id: 0,
+            from: "System",
+            clock: cl.getUniversalTime(),
+            text: message,
+        }, this, true));
     }
 };
 

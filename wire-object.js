@@ -54,7 +54,8 @@ cl.defclass("CAPABILITIES", ["CHANNEL-UPDATE"], {
 });
 cl.defclass("MESSAGE", ["CHANNEL-UPDATE", "TEXT-UPDATE"], {
     bridge: null,
-    link: null
+    link: null,
+    "reply-to": null
 });
 cl.defclass("EDIT", ["CHANNEL-UPDATE", "TEXT-UPDATE"]);
 cl.defclass("USERS", ["CHANNEL-UPDATE"], {
