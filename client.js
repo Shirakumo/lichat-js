@@ -431,7 +431,7 @@ class LichatClient{
     processCallbacks(id, update){
         let callbacks = this._idCallbacks[id];
         if(callbacks){
-            for(callback of callbacks){
+            for(let callback of callbacks){
                 try{
                     callback.call(this, update);
                 }catch(e){
@@ -536,6 +536,12 @@ class LichatClient{
             channel = new LichatChannel(name, this);
             this.channels[name.toLowerCase()] = channel;
         }
+        return channel;
+    }
+
+    deleteChannel(name){
+        let channel = this.channels[name.toLowerCase()];
+        delete this.channels[name.toLowerCase()];
         return channel;
     }
 

@@ -160,7 +160,8 @@
      ((:and p :last-of-type)
       :margin-bottom 0)
      (p
-      :white-space pre-wrap)
+      :white-space pre-wrap
+      :overflow-wrap anywhere)
      (img
       :max-width 100%
       :max-height 20em)

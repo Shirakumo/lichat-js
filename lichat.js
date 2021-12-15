@@ -1442,7 +1442,7 @@ class LichatClient{
     processCallbacks(id, update){
         let callbacks = this._idCallbacks[id];
         if(callbacks){
-            for(callback of callbacks){
+            for(let callback of callbacks){
                 try{
                     callback.call(this, update);
                 }catch(e){
@@ -1550,6 +1550,12 @@ class LichatClient{
         return channel;
     }
 
+    deleteChannel(name){
+        let channel = this.channels[name.toLowerCase()];
+        delete this.channels[name.toLowerCase()];
+        return channel;
+    }
+
     get user(){
         if(this.username)
             return this.getUser(this.username);
@@ -1647,6 +1653,23 @@ class LichatUI{
                 channel.showStatus(text, true);
             }
         }, "Show help information on the available commands.");
+
+        this.addCommand("join", (channel, ...name)=>{
+            name = name.join(" ");
+            channel.client.s("JOIN", {channel: name})
+                .then(()=>{this.currentChannel = channel.client.getChannel(name);});
+        }, "Join a new channel.");
+
+        this.addCommand("leave", (channel, ...name)=>{
+            name = (0 < name.length)? name.join(" ") : channel.name;
+            channel.client.s("LEAVE", {channel: name})
+                .then(()=>{
+                    let deleted = channel.client.deleteChannel(name);
+                    if(deleted == this.currentChannel){
+                        this.currentChannel = null;
+                    }
+                });
+        }, "Leave a channel. If no channel is specified, leaves the current channel");
     }
 
     addClient(client){

@@ -57,6 +57,23 @@ class LichatUI{
                 channel.showStatus(text, true);
             }
         }, "Show help information on the available commands.");
+
+        this.addCommand("join", (channel, ...name)=>{
+            name = name.join(" ");
+            channel.client.s("JOIN", {channel: name})
+                .then(()=>{this.currentChannel = channel.client.getChannel(name);});
+        }, "Join a new channel.");
+
+        this.addCommand("leave", (channel, ...name)=>{
+            name = (0 < name.length)? name.join(" ") : channel.name;
+            channel.client.s("LEAVE", {channel: name})
+                .then(()=>{
+                    let deleted = channel.client.deleteChannel(name);
+                    if(deleted == this.currentChannel){
+                        this.currentChannel = null;
+                    }
+                });
+        }, "Leave a channel. If no channel is specified, leaves the current channel");
     }
 
     addClient(client){
