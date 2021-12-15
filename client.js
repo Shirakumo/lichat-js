@@ -23,7 +23,8 @@ class LichatMessage{
     constructor(update, channel, options){
         options = options || {};
         this.id = update.id;
-        this.author = channel.getUser(update.from);
+        this.from = update.from;
+        this.author = channel.getUser(update.bridge || update.from);
         this.channel = channel;
         this.reactions = {};
         this.text = update.text || "";
@@ -31,7 +32,7 @@ class LichatMessage{
         this.isSystem = options.system;
         this.gid = this.channel.name+"/"+update.id+"@"+this.author.name;
         this.url = document.location.href.match(/(^[^#]*)/)[0]+"#"+this.gid;
-        this.clock = cl.universalToUnix(update.clock);
+        this.clock = new Date(cl.universalToUnix(update.clock)*1000);
         this.contentType = update.link || "text/plain";
         if(update["reply-to"])
             this.replyTo = channel.getMessage(update["reply-to"][0], update["reply-to"][1]);
@@ -40,10 +41,13 @@ class LichatMessage{
     }
 
     get time(){
-        let local = cl.universalToUnix(this.clock);
-        let date = new Date(local*1000);
         let pad = (x)=>(x<10?"0":"")+x;
-        return pad(date.getHours())+":"+pad(date.getMinutes());
+        return pad(this.clock.getHours())+":"+pad(this.clock.getMinutes());
+    }
+
+    get date(){
+        return this.clock.toLocaleDateString()
+            +", "+this.clock.toLocaleTimeString();
     }
 
     get isImage(){ return this.contentType.includes("image"); }
@@ -55,6 +59,10 @@ class LichatMessage{
     get isAlert(){
         // FIXME: todo
         return false;
+    }
+
+    get isBridged(){
+        return this.author.name == this.from;
     }
 
     get shortText(){
@@ -75,7 +83,6 @@ class LichatMessage{
     }
 
     markupText(text){
-        // FIXME: todo
         return text;
     }
 }
@@ -104,6 +111,18 @@ class LichatUser{
 
     get isSelf(){
         return this._client.username == this._name;
+    }
+
+    get color(){
+        var hash = cl.sxhash(this._name);
+        var encoded = hash % 0xFFF;
+        var r = 16*(1+(encoded&0xF00)>>8)-1;
+        var g = 16*(1+(encoded&0x0F0)>>4)-1;
+        var b = 16*(1+(encoded&0x00F)>>0)-1;
+        
+        return "rgb("+Math.min(200, Math.max(50, r))
+            +","+Math.min(180, Math.max(80, g))
+            +","+Math.min(180, Math.max(80, b))+")";
     }
 
     isInChannel(channel){
@@ -153,6 +172,11 @@ class LichatChannel{
         return false;
     }
 
+    get parentChannel(){
+        // FIXME: handle channel trees
+        return this._client.primaryChannel;
+    }
+
     get icon(){
         let icon = this.info[":ICON"];
         if(!icon) return EmptyIcon;
@@ -165,7 +189,10 @@ class LichatChannel{
     }
 
     getEmote(name){
-        return this.emotes[name.toLowerCase().replace(/^:|:$/g,"")];
+        let own = this.emotes[name.toLowerCase().replace(/^:|:$/g,"")];
+        if(own) return own;
+        if(!this.isPrimary) return this.parentChannel.getEmote(name);
+        return null;
     }
 
     getEmoteList(){

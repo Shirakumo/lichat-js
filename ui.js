@@ -3,6 +3,12 @@ class LichatUI{
         this.commands = {};
         this.clients = {};
         this.currentChannel = null;
+
+        // Patch the markup method here to include our specific changes.
+        LichatMessage.prototype.markupText = function(text){
+            return LichatUI.formatUserText(text, this.channel);
+        };
+
         this.app = new Vue({
             el: el || '.client',
             data: this,
@@ -103,5 +109,174 @@ class LichatUI{
             console.log(e);
             channel.showStatus("Error: "+e);
         }
+    }
+
+    // URL Regex by Diego Perini: https://gist.github.com/dperini/729294
+    static URLRegex = new RegExp(
+        "^" +
+            // protocol identifier (optional)
+        // short syntax // still required
+        "(?:(?:(?:https?|ftp):)?\\/\\/)" +
+            // user:pass BasicAuth (optional)
+        "(?:\\S+(?::\\S*)?@)?" +
+            "(?:" +
+            // IP address exclusion
+        // private & local networks
+        "(?!(?:10|127)(?:\\.\\d{1,3}){3})" +
+            "(?!(?:169\\.254|192\\.168)(?:\\.\\d{1,3}){2})" +
+            "(?!172\\.(?:1[6-9]|2\\d|3[0-1])(?:\\.\\d{1,3}){2})" +
+            // IP address dotted notation octets
+        // excludes loopback network 0.0.0.0
+        // excludes reserved space >= 224.0.0.0
+        // excludes network & broadcast addresses
+        // (first & last IP address of each class)
+        "(?:[1-9]\\d?|1\\d\\d|2[01]\\d|22[0-3])" +
+            "(?:\\.(?:1?\\d{1,2}|2[0-4]\\d|25[0-5])){2}" +
+            "(?:\\.(?:[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-4]))" +
+            "|" +
+            // host & domain names, may end with dot
+        // can be replaced by a shortest alternative
+        // (?![-_])(?:[-\\w\\u00a1-\\uffff]{0,63}[^-_]\\.)+
+        "(?:" +
+            "(?:" +
+            "[a-z0-9\\u00a1-\\uffff]" +
+            "[a-z0-9\\u00a1-\\uffff_-]{0,62}" +
+            ")?" +
+            "[a-z0-9\\u00a1-\\uffff]\\." +
+            ")+" +
+            // TLD identifier name, may end with dot
+        "(?:[a-z\\u00a1-\\uffff]{2,}\\.?)" +
+            ")" +
+            // port number (optional)
+        "(?::\\d{2,5})?" +
+            // resource path (optional)
+        "(?:[/?#]\\S*)?" +
+            "$", "i"
+    );
+
+    static linkifyURLs(text){
+        let out = [];
+        let word = [];
+        let start = 0, cur = 0;
+
+        let flushWord = ()=>{
+            if(0 < word.length){
+                let wordStr = word.join('');
+                let unescaped = LichatUI.unescapeHTML(wordStr);
+                word.length = 0;
+                if(unescaped.match(LichatUI.URLRegex)){
+                    out.push(`\u200B<a href="${unescaped}" class="userlink" target="_blank">${wordStr}</a>\u200B`);
+                }else{
+                    out.push(wordStr);
+                }
+            }
+        };
+
+        for(let char of text){
+            // Note: unlike with 'of', text[n] would get only half of a wide unicode character
+            if(char.match(/^\s$/)){
+                if(start < cur){
+                    flushWord();
+                }
+                start = cur + 1;
+                out.push(char);
+            }else{
+                word.push(char);
+            }
+            cur++;
+        }
+        flushWord();
+        return out.join('');
+    }
+
+    static unescapeHTML(text){
+        return text.replace(/&([\w]+);/g, (a,b)=>{
+            switch(b){
+            case "lt": return "<";
+            case "gt": return ">";
+            case "quot": return "\"";
+            case "amp": return "&";
+            default: return a;
+            }
+        });
+    }
+
+    static escapeHTML(text){
+        return text.replace(/([<>"&])/g, (a,b)=>{
+            switch(b){
+            case "<": return "&lt;";
+            case ">": return "&gt;";
+            case "\"": return "&quot;";
+            case "&": return "&amp;";
+            default: return a;
+            }
+        });
+    }
+
+    static markSelf(text, channel){
+        // FIXME: allow specifying own nicknames
+        let names = [channel.client.username];
+        let stream = new LichatStream();
+        let inLink = false;
+        for(let i=0; i<text.length; i++){
+            let match = null;
+            if(!inLink){
+                for(let name of names){
+                    if(text.substring(i, i+name.length) === name){
+                        match = name;
+                        break;
+                    }
+                }
+            }
+            if(match !== null){
+                stream.writeString("<mark>"+match+"</mark>");
+                i += match.length-1;
+            }else{
+                if(!inLink && text[i] === "<" && text[i+1] === "a"){
+                    inLink = true;
+                }else if(inLink && text[i] === ">"){
+                    inLink = false;
+                }
+                stream.writeChar(text[i]);
+            }
+        }
+        return stream.string;
+    }
+
+    static replaceEmotes(text, channel){
+        // Find starting point
+        let start = 0;        
+        while(text[start] != ':' && start<text.length) start++;
+        // If we do have colons in, scan for emotes.
+        if(start < text.length){
+            let out = text.slice(0, start);
+            let end = start+1;
+            // Scan for next colon
+            for(; end<text.length; end++){
+                if(text[end] == ':'){
+                    let emote = text.slice(start, end+1);
+                    // If we do have an emote of that name
+                    let content = channel.getEmote(emote);
+                    if(content){
+                        out = out+content;
+                        // Scan ahead for next possible end point after "skipping" the emote.
+                        end++;
+                        start = end;
+                        while(text[end+1] != ':' && end<text.length) end++;
+                    }else{
+                        out = out+emote.slice(0, -1);
+                        start = end;
+                    }
+                }
+            }
+            // Stitch on ending
+            return out+text.slice(start, end);
+        }else{
+            return text;
+        }
+    }
+
+    static formatUserText(text, channel){
+        return LichatUI.replaceEmotes(LichatUI.markSelf(LichatUI.linkifyURLs(LichatUI.escapeHTML(text)), channel), channel);
     }
 }

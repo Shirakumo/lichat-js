@@ -28,9 +28,10 @@
   :white-space nowrap
   :text-overflow ellipsis
   :border-bottom 1px solid (hex 0088EE)
-  :margin-bottom 0.1em
+  :margin-bottom 0.2em
+  :padding-left 0.5em
   ((:and >.name :after) :content ":")
-  (>p :display inline-block))
+  (>p :display inline))
  ((:and .reply-to :before)
   :content ""
   :font-family "FontAwesome")
@@ -161,7 +162,8 @@
       :margin-bottom 0)
      (p
       :white-space pre-wrap
-      :overflow-wrap anywhere)
+      :overflow-wrap anywhere
+      (a :color inherit))
      (img
       :max-width 100%
       :max-height 20em)

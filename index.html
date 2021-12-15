@@ -58,12 +58,15 @@
         </header>
         <section class="output">
           <div class="message" v-for="message in currentChannel.messages"
-               v-bind:class="{alert: message.isAlert, system: message.isSystem}"
+               v-bind:class="{alert: message.isAlert, system: message.isSystem, bridged: message.isBridged}"
                v-bind:id="message.gid">
             <header>
-              <time>{{message.time}}</time>
+              <time v-bind:title="message.date">{{message.time}}</time>
               <img class="icon" v-bind:src="message.author.icon">
-              <span class="name" v-bind:class="{me: message.author == currentChannel.client.user}">{{message.author.name}}</span>
+              <span class="name" 
+                    v-bind:style="{color: message.author.color}"
+                    v-bind:title="message.author.name"
+                    v-bind:class="{me: message.author == currentChannel.client.user}">{{message.from}}</span>
             </header>
             <a class="reply-to" v-if="message.replyTo" v-bind:href="message.replyTo.url">
               <span class="name" v-bind:class="{me: message.replyTo.author == currentChannel.client.user}">{{message.replyTo.author.name}}</span>
@@ -77,7 +80,7 @@
               <audio controls v-else-if="message.isAudio">
                 <source v-bind:src="message.text" v-bind:type="message.contentType">
               </audio>
-              <p v-else v-html="message.text"></p>
+              <p v-else v-html="message.html"></p>
               <div class="reactions">
                 <a class="reaction" v-for="reaction in message.reactions" v-bind:title="reaction.users.join(',')">
                   <i v-if="reaction.text">{{reaction.text}}</i>
