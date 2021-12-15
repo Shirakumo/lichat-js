@@ -1,4 +1,5 @@
 var LichatDefaultPort = 1113;
+var LichatDefaultSSLPort = 1114;
 var EmptyIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=";
 
 class LichatReaction{
@@ -127,7 +128,7 @@ class LichatChannel{
     }
 
     getEmoteList(){
-        return this.emotes.keys();
+        return Object.keys(this.emotes);
     }
 
     joinUser(user){
@@ -163,11 +164,11 @@ class LichatChannel{
 class LichatClient{
     constructor(options){
         options = options || {};
-        this.name = options.name;
-        this.username = options.username;
-        this.password = options.password;
+        this.name = options.name || "Lichat";
+        this.username = options.username || null;
+        this.password = options.password || null;
         this.hostname = options.hostname || "localhost";
-        this.port = options.port || LichatDefaultPort;
+        this.port = options.port || options.ssl? LichatDefaultSSLPort: LichatDefaultPort;
         this.ssl = options.ssl;
         this.disconnectHandler = ()=>{};
         this.servername = null;
@@ -208,8 +209,8 @@ class LichatClient{
             if(!this.servername){
                 this.servername = ev.channel;
 
-                for(let channel in this.channels){
-                    let channel = this.channels[channel];
+                for(let name in this.channels){
+                    let channel = this.channels[name];
                     if(channel.wasJoined && channel.name != this.servername)
                         channel.s("JOIN", {}, true);
                 }
@@ -276,11 +277,11 @@ class LichatClient{
                 }
                 if(!this.username)
                     this.username = update.from;
-                if(0 < reconnectAttempts)
-                    reconnectAttempts = 0;
+                if(0 < this._reconnectAttempts)
+                    this._reconnectAttempts = 0;
                 
-                this._socket.onmessage = this.handleMessage;
-                this._socket.onclose = this.handleClose;
+                this._socket.onmessage = ev => this.handleMessage(ev);
+                this._socket.onclose = ev => this.handleClose(ev);
                 this.process(update);
                 ok(this);
             };
@@ -358,7 +359,7 @@ class LichatClient{
     }
 
     processCallbacks(id, update){
-        let callbacks = idCallbacks[id];
+        let callbacks = this._idCallbacks[id];
         if(callbacks){
             for(callback of callbacks){
                 try{
@@ -431,19 +432,19 @@ class LichatClient{
 
     addCallback(id, handler){
         // FIXME: Add timeout mechanism
-        if(!idCallbacks[id]){
-            idCallbacks[id] = [handler];
+        if(!this._idCallbacks[id]){
+            this._idCallbacks[id] = [handler];
         }else{
-            idCallbacks[id].push(handler);
+            this._idCallbacks[id].push(handler);
         }
         return this;
     }
 
     removeCallback(id, handler){
-        if(handler && idCallbacks[id])
-            idCallbacks[id] = idCallbacks[id].filter(item => item !== handler);
+        if(handler && this._idCallbacks[id])
+            this._idCallbacks[id] = this._idCallbacks[id].filter(item => item !== handler);
         else
-            delete idCallbacks[id];
+            delete this._idCallbacks[id];
         return this;
     }
 

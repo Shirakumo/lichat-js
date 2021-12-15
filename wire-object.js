@@ -10,7 +10,7 @@ cl.defclass("WIRE-OBJECT", []);
 cl.defclass("UPDATE", ["WIRE-OBJECT"], {
     clock: cl.getUniversalTime,
     id: nextID,
-    from: cl.requiredArg("from")
+    from: null
 });
 cl.defclass("PING", ["UPDATE"]);
 cl.defclass("PONG", ["UPDATE"]);

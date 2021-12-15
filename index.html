@@ -71,7 +71,7 @@
                 {{message.text}}
               </p>
               <div class="reactions">
-                <a class="reaction" v-for="reaction in message.reactions" v-bind:title="{{reaction.users.join(',')}}">
+                <a class="reaction" v-for="reaction in message.reactions" v-bind:title="reaction.users.join(',')">
                   <i v-if="reaction.text">{{reaction.text}}</i>
                   <img v-else v-bind:src="reaction.image">
                   <span>{{reaction.count}}</span>
