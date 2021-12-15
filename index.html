@@ -58,7 +58,7 @@
         </header>
         <section class="output">
           <div class="message" v-for="message in currentChannel.messages"
-               v-bind:class="{alert: message.isAlert, system: message.isSystem, bridged: message.isBridged}"
+               v-bind:class="[{alert: message.isAlert, system: message.isSystem, bridged: message.isBridged}, message.type]"
                v-bind:id="message.gid">
             <header>
               <time v-bind:title="message.date">{{message.time}}</time>

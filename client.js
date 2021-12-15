@@ -33,6 +33,7 @@ class LichatMessage{
         this.gid = this.channel.name+"/"+update.id+"@"+this.author.name;
         this.url = document.location.href.match(/(^[^#]*)/)[0]+"#"+this.gid;
         this.clock = new Date(cl.universalToUnix(update.clock)*1000);
+        this.type = update.type.toLowerCase();
         this.contentType = update.link || "text/plain";
         if(update["reply-to"])
             this.replyTo = channel.getMessage(update["reply-to"][0], update["reply-to"][1]);

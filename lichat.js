@@ -1044,6 +1044,7 @@ class LichatMessage{
         this.gid = this.channel.name+"/"+update.id+"@"+this.author.name;
         this.url = document.location.href.match(/(^[^#]*)/)[0]+"#"+this.gid;
         this.clock = new Date(cl.universalToUnix(update.clock)*1000);
+        this.type = update.type.toLowerCase();
         this.contentType = update.link || "text/plain";
         if(update["reply-to"])
             this.replyTo = channel.getMessage(update["reply-to"][0], update["reply-to"][1]);
@@ -1654,9 +1655,7 @@ class LichatUI{
                             channel.s("MESSAGE", {
                                 "text": message.text,
                                 "reply-to": (message.replyTo)? [message.replyTo.author.name, message.replyTo.id]: null
-                            }).catch((e)=>{
-                                channel.showStatus("Error: "+e.text);
-                            });
+                            }).catch((e)=>channel.showStatus("Error: "+e.text));
                         }
                         message.clear();
                     }
@@ -1700,7 +1699,8 @@ class LichatUI{
         this.addCommand("join", (channel, ...name)=>{
             name = name.join(" ");
             channel.client.s("JOIN", {channel: name})
-                .then(()=>{this.currentChannel = channel.client.getChannel(name);});
+                .then(()=>{this.currentChannel = channel.client.getChannel(name);})
+                .catch((e)=>channel.showStatus("Error: "+e.text));
         }, "Join a new channel.");
 
         this.addCommand("leave", (channel, ...name)=>{
@@ -1711,12 +1711,59 @@ class LichatUI{
                     if(deleted == this.currentChannel){
                         this.currentChannel = null;
                     }
-                });
-        }, "Leave a channel. If no channel is specified, leaves the current channel");
+                }).catch((e)=>channel.showStatus("Error: "+e.text));
+        }, "Leave a channel. If no channel is specified, leaves the current channel.");
+
+        this.addCommand("create", (channel, ...name)=>{
+            name = (0 < name.length)? name.join(" ") : null;
+            channel.client.s("CREATE", {channel: name})
+                .then(()=>{this.currentChannel = channel.client.getChannel(name);})
+                .catch((e)=>channel.showStatus("Error: "+e.text));
+        }, "Creates a new channel. If no name is specified, creates an anonymous channel.");
+
+        this.addCommand("kick", (channel, ...name)=>{
+            channel.s("KICK", {target: name.join(" ")})
+                .catch((e)=>channel.showStatus("Error: "+e.text));
+        }, "Kick a user from the channel.");
+        
+        this.addCommand("pull", (channel, ...name)=>{
+            channel.s("PULL", {target: name.join(" ")})
+                .catch((e)=>channel.showStatus("Error: "+e.text));
+        }, "Pull a user into the channel.");
+
+        this.addCommand("register", (channel, ...password)=>{
+            channel.client.s("REGISTER", {password: password.join(" ")})
+                .then(()=>channel.showStatus("Registration complete."))
+                .catch((e)=>channel.showStatus("Error: "+e.text));
+        }, "Try to register your current username with a password.");
+
+        this.addCommand("grant", (channel, type, ...user)=>{
+            channel.s("GRANT", {update: LichatReader.fromString(type), target: user.join(" ")})
+                .then(()=>channel.showStatus("Permission granted."))
+                .catch((e)=>channel.showStatus("Error: "+e.text));
+        }, "Grant permission for an update type to another user in the channel.");
+
+        this.addCommand("deny", (channel, type, ...user)=>{
+            channel.s("DENY", {update: LichatReader.fromString(type), target: user.join(" ")})
+                .then(()=>channel.showStatus("Permission denied."))
+                .catch((e)=>channel.showStatus("Error: "+e.text));
+        }, "Deny permission for an update type to another user in the channel.");
+
+        // FIXME: missing commands from extensions, and also this is very repetitious...
     }
 
     addClient(client){
         Vue.set(this.clients, client.name, client);
+
+        client.addHandler("JOIN", (ev)=>{
+            ev.text = " ** Joined " + ev.channel;
+            client.getChannel(ev.channel).record(ev);
+        });
+        client.addHandler("LEAVE", (ev)=>{
+            ev.text = " ** Left " + ev.channel;
+            client.getChannel(ev.channel).record(ev);
+        });
+        
         client.openConnection();
         return client;
     }

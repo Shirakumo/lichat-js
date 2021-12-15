@@ -192,6 +192,8 @@
     :background "linear-gradient(90deg, rgba(255,0,0,1) 0%, rgba(255,0,0,0) 10em);")
    ((:and >.message .system)
     :background "linear-gradient(90deg, rgba(0,0,255,1) 0%, rgba(0,0,255,0) 10em);")
+   ((:and >.message (:or .join .leave))
+    (.content :color gray))
    ((:and >.message :hover)
     (>nav
      :color (rgba 255 255 255 1))))
