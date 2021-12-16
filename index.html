@@ -29,11 +29,12 @@
     <div class="client">
       <nav>
         <section class="server" v-for="client in clients">
+          <client-configure v-bind:client="client" v-if="client.showSettings" v-on:close="client.showSettings = false"></client-configure>
           <header>
             <img class="icon" v-bind:src="client.icon">
             <span class="name">{{client.name || client.servername}}</span>
             <nav>
-              <a class="settings">
+              <a class="settings" v-on:click="client.showSettings = true">
                 <i class="fas fa-ellipsis-h"></i>
               </a>
             </nav>

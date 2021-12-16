@@ -1676,6 +1676,11 @@ class LichatUI{
             return LichatUI.formatUserText(text, this.channel);
         };
 
+        Vue.component("client-configure", {
+            template: "#client-configure",
+            props: {client: LichatClient}
+        });
+
         this.app = new Vue({
             el: el || '.client',
             data: this,
