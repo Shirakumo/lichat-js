@@ -24,7 +24,7 @@
           <ul class="channels">
             <li class="channel" v-for="channel in client.channels"
                 v-bind:class="{current: channel == currentChannel, update: 0 < channel.unread, alert: channel.alerted, primary: channel.isPrimary}"
-                v-on:click="currentChannel = channel">
+                v-on:click="switchChannel(channel)">
               <header>
                 <img class="icon" v-bind:src="channel.icon">
                 <span class="name">{{channel.name}}</span>
@@ -45,7 +45,13 @@
           <span class="name">{{currentChannel.name}}</span>
           <span class="topic">{{currentChannel.topic}}</span>
           <nav>
-            <a class="search" v-if="currentChannel.client.isAvailable('shirakumo-search')">
+            <input type="text" placeholder="from:user something" ref="search"
+                   v-model="search"
+                   v-if="search !== null"
+                   v-on:keyup.enter.prevent.stop="performSearch">
+            <a class="search"
+               v-if="currentChannel.client.isAvailable('shirakumo-search')"
+               v-on:click="toggleSearch">
               <i class="fas fa-search"></i>
             </a>
             <a class="info">
@@ -109,7 +115,7 @@
             </nav>
           </div>
         </section>
-        <footer>
+        <footer v-if="currentChannel.isPresent">
           <div class="user me">
             <img class="icon" v-bind:src="currentChannel.client.user.icon">
           </div>
@@ -118,7 +124,7 @@
               <span class="name" v-bind:class="{me: currentChannel.currentMessage.replyTo.author == currentChannel.client.user}">{{currentChannel.currentMessage.replyTo.author.name}}</span>
               <p>{{currentChannel.currentMessage.replyTo.shortText}}</p>
             </a>
-            <textarea placeholder="Write something..." autofocus
+            <textarea placeholder="Write something..." autofocus ref="input"
                       v-model="currentChannel.currentMessage.text"
                       v-on:keyup.enter.prevent.stop="submit"></textarea>
           </div>

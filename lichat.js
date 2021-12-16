@@ -1172,7 +1172,7 @@ class LichatChannel{
     }
 
     get isPresent(){
-        return this.users[this._client.username()] !== undefined;
+        return this.users[this._client.username.toLowerCase()] !== undefined;
     }
 
     get isPrimary(){
@@ -1306,9 +1306,6 @@ class LichatClient{
         });
 
         this.addInternalHandler("JOIN", (ev)=>{
-            let channel = this.getChannel(ev.channel);
-            channel.joinUser(ev.from);
-
             if(!this.servername){
                 this.servername = ev.channel;
 
@@ -1318,6 +1315,8 @@ class LichatClient{
                         channel.s("JOIN", {}, true);
                 }
             }
+            let channel = this.getChannel(ev.channel);
+            channel.joinUser(ev.from);
             if(ev.from === this.username){
                 if(this.isAvailable("shirakumo-backfill") && !channel.isPrimary)
                     this.s("BACKFILL", {channel: ev.channel}, true);
@@ -1466,8 +1465,8 @@ class LichatClient{
     }
 
     handleClose(event){
-        if(e.code !== 1000){
-            this.disconnectHandler(e);
+        if(event.code !== 1000){
+            this.disconnectHandler(event);
             this.scheduleReconnect();
         }else{
             this.closeConnection();
@@ -1634,6 +1633,7 @@ class LichatUI{
         this.commands = {};
         this.clients = {};
         this.currentChannel = null;
+        this.search = null;
 
         // Patch the markup method here to include our specific changes.
         LichatMessage.prototype.markupText = function(text){
@@ -1644,10 +1644,29 @@ class LichatUI{
             el: el || '.client',
             data: this,
             methods: {
+                switchChannel: (channel)=>{
+                    this.currentChannel = channel;
+                    Vue.nextTick(() => {
+                        this.app.$refs.input.focus();
+                    });
+                },
+                toggleSearch: ()=>{
+                    if(this.search===null){
+                        this.search = "";
+                        Vue.nextTick(() => {
+                            this.app.$refs.search.focus();
+                        });
+                    }else{
+                        this.search = null;
+                        Vue.nextTick(() => {
+                            this.app.$refs.input.focus();
+                        });
+                    }
+                },
                 submit: (ev)=>{
-                    let message = this.currentChannel.currentMessage;
+                    let channel = this.currentChannel;
+                    let message = channel.currentMessage;
                     if(!ev.getModifierState("Control") && !ev.getModifierState("Shift")){
-                        let channel = this.currentChannel;
                         message.text = message.text.trimEnd();
                         if(message.text.startsWith("/")){
                             this.processCommand(message.text, channel);
@@ -1659,6 +1678,15 @@ class LichatUI{
                         }
                         message.clear();
                     }
+                },
+                performSearch: (ev)=>{
+                    let channel = this.currentChannel;
+                    let query = this.search;
+                    this.search = null;
+                    this.currentChannel.s("SEARCH", {query: query})
+                        .then((ev)=>this.showSearchResults(channel, ev.results, query))
+                        .catch((e)=>channel.showStatus("Error: "+e.text));
+                    ;
                 }
             }
         });
@@ -1755,10 +1783,15 @@ class LichatUI{
     addClient(client){
         Vue.set(this.clients, client.name, client);
 
+        client.disconnectHandler = (ev)=>{
+            this.currentChannel.showStatus("Disconnected: "+ev);
+        };
+
         client.addHandler("JOIN", (ev)=>{
             ev.text = " ** Joined " + ev.channel;
             client.getChannel(ev.channel).record(ev);
         });
+        
         client.addHandler("LEAVE", (ev)=>{
             ev.text = " ** Left " + ev.channel;
             client.getChannel(ev.channel).record(ev);
@@ -1786,6 +1819,10 @@ class LichatUI{
             console.log(e);
             channel.showStatus("Error: "+e);
         }
+    }
+
+    showSearchResults(channel, results, query){
+        
     }
 
     // URL Regex by Diego Perini: https://gist.github.com/dperini/729294

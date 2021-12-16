@@ -161,7 +161,7 @@ class LichatChannel{
     }
 
     get isPresent(){
-        return this.users[this._client.username()] !== undefined;
+        return this.users[this._client.username.toLowerCase()] !== undefined;
     }
 
     get isPrimary(){
@@ -295,9 +295,6 @@ class LichatClient{
         });
 
         this.addInternalHandler("JOIN", (ev)=>{
-            let channel = this.getChannel(ev.channel);
-            channel.joinUser(ev.from);
-
             if(!this.servername){
                 this.servername = ev.channel;
 
@@ -307,6 +304,8 @@ class LichatClient{
                         channel.s("JOIN", {}, true);
                 }
             }
+            let channel = this.getChannel(ev.channel);
+            channel.joinUser(ev.from);
             if(ev.from === this.username){
                 if(this.isAvailable("shirakumo-backfill") && !channel.isPrimary)
                     this.s("BACKFILL", {channel: ev.channel}, true);
@@ -455,8 +454,8 @@ class LichatClient{
     }
 
     handleClose(event){
-        if(e.code !== 1000){
-            this.disconnectHandler(e);
+        if(event.code !== 1000){
+            this.disconnectHandler(event);
             this.scheduleReconnect();
         }else{
             this.closeConnection();
