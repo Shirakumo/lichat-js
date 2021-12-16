@@ -71,13 +71,16 @@ class LichatUI{
             if(subcommand){
                 let command = this.commands["/"+subcommand];
                 if(command){
-                    let arglist = (command.handler + '')
-                        .replace(/[/][/].*$/mg,'') // strip single-line comments
-                        .replace(/\s+/g, '') // strip white space
-                        .replace(/[/][*][^/*]*[*][/]/g, '') // strip multi-line comments  
-                        .split('){', 1)[0].replace(/^[^(]*[(]/, '') // extract the parameters  
-                        .replace(/=[^,]+/g, '').replace(')', '')
-                        .split(',').filter(Boolean).slice(1); // split & filter [""]
+                    let STRIP_COMMENTS = /(\/\/.*$)|(\/\*[\s\S]*?\*\/)|(\s*=[^,\)]*(('(?:\\'|[^'\r\n])*')|("(?:\\"|[^"\r\n])*"))|(\s*=[^,\)]*))/mg;
+                    let ARGUMENT_NAMES = /([^\s,]+)/g;
+                    function getParamNames(func) {
+                        let fnStr = func.toString().replace(STRIP_COMMENTS, '');
+                        let result = fnStr.slice(fnStr.indexOf('(')+1, fnStr.indexOf(')')).match(ARGUMENT_NAMES);
+                        if(result === null)
+                            result = [];
+                        return result;
+                    }
+                    let arglist = getParamNames(command.handler);
                     channel.showStatus("/"+subcommand+" "+arglist.join(" ")+"\n\n"+command.help);
                 }else{
                     channel.showStatus("No command named "+subcommand);
@@ -105,8 +108,8 @@ class LichatUI{
             name = (0 < name.length)? name.join(" ") : channel.name;
             channel.client.s("LEAVE", {channel: name})
                 .then(()=>{
-                    let deleted = channel.client.deleteChannel(name);
-                    if(deleted == this.currentChannel){
+                    channel.client.channelList = channel.client.channelList.filter(c => c !== channel);
+                    if(channel == this.currentChannel){
                         this.currentChannel = null;
                     }
                 }).catch((e)=>channel.showStatus("Error: "+e.text));
@@ -153,13 +156,34 @@ class LichatUI{
     addClient(client){
         Vue.set(this.clients, client.name, client);
 
+        client.channelList = [];
+        client.addToChannelList = (channel)=>{
+            if(client.channelList.length == 0){
+                client.channelList.push(channel);
+            }else{
+                let i=1;
+                for(; i<client.channelList.length; ++i){
+                    if(0 < client.channelList[i].name.localeCompare(channel.name))
+                        break;
+                }
+                client.channelList.splice(i, 0, channel);
+            }
+        };
+
         client.disconnectHandler = (ev)=>{
             this.currentChannel.showStatus("Disconnected: "+ev);
         };
 
         client.addHandler("JOIN", (ev)=>{
             ev.text = " ** Joined " + ev.channel;
-            client.getChannel(ev.channel).record(ev);
+            let channel = client.getChannel(ev.channel);
+            channel.record(ev);
+            if(ev.from == client.username){
+                client.addToChannelList(channel);
+            }
+            if(!this.currentChannel){
+                this.app.switchChannel(channel);
+            }
         });
         
         client.addHandler("LEAVE", (ev)=>{
