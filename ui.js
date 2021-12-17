@@ -6,6 +6,16 @@ class LichatUI{
         this.search = null;
         this.showEmotePicker = false;
 
+        LichatChannel.prototype._record = LichatChannel.prototype.record;
+        LichatChannel.prototype.record = function(update){
+            let message = this._record(update);
+            let output = document.querySelector(".client .output");
+            if(output && output.scrollTop === (output.scrollHeight - output.offsetHeight))
+                Vue.nextTick(() => {
+                    document.getElementById(message.gid).scrollIntoView();
+                });
+        };
+
         // Patch the markup method here to include our specific changes.
         LichatMessage.prototype.markupText = function(text){
             return LichatUI.formatUserText(text, this.channel);
@@ -203,8 +213,18 @@ class LichatUI{
         client.channelList = [];
 
         client.disconnectHandler = (ev)=>{
-            this.currentChannel.showStatus("Disconnected: "+ev);
+            this.currentChannel.showStatus("Disconnected: "+(ev.reason || "connection lost"));
         };
+
+        client.addHandler("CONNECT", (ev)=>{
+            if(0 < client.channelList.length){
+                if(this.currentChannel.client == client){
+                    this.currentChannel.showStatus("Connected");
+                }else{
+                    client.channelList[0].showStatus("Connected");
+                }
+            }
+        });
 
         client.addHandler("JOIN", (ev)=>{
             ev.text = " ** Joined " + ev.channel;

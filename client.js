@@ -153,6 +153,8 @@ class LichatChannel{
         this.emotes = {};
         this.info = {};
         this.messages = {};
+        // KLUDGE: need this to stop Vue from being Weird As Fuck.
+        Object.defineProperty(this.messages, 'nested', { configurable: false });
         this.messageList = [];
         this.currentMessage = {text: "", replyTo: null};
         this.currentMessage.clear = ()=>{
@@ -254,11 +256,8 @@ class LichatChannel{
     record(ev){
         let message = new LichatMessage(ev, this);
         let existing = this.messages[message.gid];
-        // KLUDGE: Vue seems to fuck with this and remove things? very fucking annoying.
         this.messages[message.gid] = message;
-        if(this.messageList.length == 0){
-            this.messageList.push(message);
-        }else if(existing){
+        if(existing){
             // Update object in-place
             for(let i in this.messageList){
                 if(this.messageList[i].gid == message.gid){
@@ -267,6 +266,8 @@ class LichatChannel{
                     break;
                 }
             }
+        }else if(this.messageList.length == 0 || this.messageList[this.messageList.length-1].timestamp <= message.timestamp){
+            this.messageList.push(message);
         }else{
             // Perform binary search insert according to clock
             let start = 0;
@@ -284,6 +285,7 @@ class LichatChannel{
                 else            end = mid - 1;
             }
         }
+        return message;
     }
 
     getMessage(from, id){
