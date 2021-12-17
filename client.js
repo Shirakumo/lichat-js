@@ -4,10 +4,10 @@ var EmptyIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1H
 
 class LichatReaction{
     constructor(update, channel){
-        if(allEmojis.contains(update.emote))
+        if(allEmojiStrings.includes(update.emote))
             this.text = update.emote;
         else{
-            let emote = channel.getemote(update.emote);
+            let emote = channel.getEmote(update.emote);
             if(!emote) throw "Invalid emote.";
             this.image = emote;
         }
@@ -16,6 +16,10 @@ class LichatReaction{
 
     get count(){
         return this.users.length;
+    }
+
+    get description(){
+        return reaction.users.join(',')+" reacted with "+this.text;
     }
 }
 
@@ -40,6 +44,8 @@ class LichatMessage{
             this.replyTo = channel.getMessage(update["reply-to"][0], update["reply-to"][1]);
         else
             this.replyTo = null;
+        // Kludge: spillage from UI.
+        this.showEmotePicker = false;
     }
 
     get time(){
@@ -80,7 +86,7 @@ class LichatMessage{
         if(!reaction){
             reaction = new LichatReaction(update, this.channel);
             this.reactions[update.emote] = reaction;
-        }else if(reaction.users.contains(update.from)){
+        }else if(reaction.users.includes(update.from)){
             reaction.users = reaction.users.filter(item => item == update.from);
         }else{
             rection.users.push(update.from);
@@ -370,11 +376,13 @@ class LichatClient{
         });
 
         this.addHandler("EDIT", (ev)=>{
-            this.getChannel(ev.channel).getMessage(ev).text = ev.text;
+            let message = this.getChannel(ev.channel).getMessage(ev.from, ev.id);
+            if(message) message.text = ev.text;
         });
 
         this.addHandler("REACT", (ev)=>{
-            this.getChannel(ev.channel).getMessage(ev).addReaction(ev);
+            let message = this.getChannel(ev.channel).getMessage(ev.target, ev["update-id"]);
+            if(message) message.addReaction(ev);
         });
     }
 

@@ -4,15 +4,50 @@ class LichatUI{
         this.clients = {};
         this.currentChannel = null;
         this.search = null;
+        this.showEmotePicker = false;
 
         // Patch the markup method here to include our specific changes.
         LichatMessage.prototype.markupText = function(text){
             return LichatUI.formatUserText(text, this.channel);
         };
 
+        LichatMessage.prototype.sendReaction = function(emote){
+            this.showEmotePicker = false;
+            if(emote)
+                this.channel.s("REACT", {
+                    target: this.from,
+                    "update-id": this.id,
+                    emote: emote
+                });
+        };
+
+        LichatClient.prototype.addToChannelList = function(channel){
+            if(this.channelList.length == 0){
+                this.channelList.push(channel);
+            }else{
+                let i=1;
+                for(; i<this.channelList.length; ++i){
+                    if(0 < this.channelList[i].name.localeCompare(channel.name))
+                        break;
+                }
+                this.channelList.splice(i, 0, channel);
+            }
+        };
+
         Vue.component("client-configure", {
             template: "#client-configure",
             props: {client: LichatClient}
+        });
+
+        Vue.component("emote-picker", {
+            template: "#emote-picker",
+            props: {channel: LichatChannel, classes: Array},
+            data: ()=>{
+                return {
+                    tab: 'emotes', 
+                    allEmojis: allEmojiStrings
+                }; 
+            }
         });
 
         this.app = new Vue({
@@ -62,6 +97,10 @@ class LichatUI{
                         .then((ev)=>this.showSearchResults(channel, ev.results, query))
                         .catch((e)=>channel.showStatus("Error: "+e.text));
                     ;
+                },
+                addEmote: (ev)=>{
+                    this.showEmotePicker = false;
+                    if(ev) this.currentChannel.currentMessage.text += ev;
                 }
             }
         });
@@ -130,7 +169,7 @@ class LichatUI{
         this.addCommand("kick", (channel, ...name)=>{
             channel.s("KICK", {target: name.join(" ")})
                 .catch((e)=>channel.showStatus("Error: "+e.text));
-        }, "Kick a user from the channel.");
+        }, "Kick a user fromde the channel.");
         
         this.addCommand("pull", (channel, ...name)=>{
             channel.s("PULL", {target: name.join(" ")})
@@ -162,18 +201,6 @@ class LichatUI{
         Vue.set(this.clients, client.name, client);
 
         client.channelList = [];
-        client.addToChannelList = (channel)=>{
-            if(client.channelList.length == 0){
-                client.channelList.push(channel);
-            }else{
-                let i=1;
-                for(; i<client.channelList.length; ++i){
-                    if(0 < client.channelList[i].name.localeCompare(channel.name))
-                        break;
-                }
-                client.channelList.splice(i, 0, channel);
-            }
-        };
 
         client.disconnectHandler = (ev)=>{
             this.currentChannel.showStatus("Disconnected: "+ev);

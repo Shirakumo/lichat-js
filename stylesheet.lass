@@ -44,6 +44,43 @@
    :background white
    :border 0.15em solid (hex 303030)
    :margin 0 0.2em))
+ (.emote-picker
+  :font-size 15pt
+  :position absolute
+  :background (hex 202020)
+  :display flex
+  :flex-direction column
+  :overflow hidden
+  (>nav
+   :display flex
+   :background (hex 303030)
+   (>a :padding 0.2em)
+   ((:and >a :last-child)
+    :margin-left auto))
+  (>ul
+   :flex-grow 1
+   :list-style none
+   :margin 0
+   :padding 1em
+   :overflow-y scroll
+   :display flex
+   :flex-wrap wrap
+   (a :display block
+      :width 1em
+      :height 1em
+      :padding 0.2em)))
+ (.emote-picker.big
+  :width 20em
+  :height 15em
+  :top -15em
+  :right 0
+  :border-radius 0.5em 0 0 0)
+ (.emote-picker.small
+  :width 20em
+  :height 10em
+  :top 1em
+  :right 0
+  :border-radius 0.5em)
  (>nav
   :background (hex 101010)
   :color (hex F0F0F0)
@@ -196,6 +233,7 @@
       ((:and .reaction :hover)
        :background (hex 505050))))
     (>nav
+     :position relative
      :white-space nowrap
      :transition 0.5s color
      :color (rgba 255 255 255 0.1)))
@@ -220,6 +258,7 @@
    :background (hex 202020)
    :font-size 1.5em
    :padding 0.2em
+   :position relative
    (>.content
     :display flex
     :flex-direction column

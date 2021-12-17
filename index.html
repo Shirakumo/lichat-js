@@ -7,6 +7,33 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
     <script src="lichat.js"></script>
+    <script type="text/x-template" id="emote-picker">
+      <div class="emote-picker" v-bind:class="classes">
+        <nav>
+          <a class="emoji" v-on:click="tab = 'emoji'">
+            <i class="fas fa-grin"></i>
+          </a>
+          <a class="emotes" v-on:click="tab = 'emotes'">
+            <i class="fas fa-icons"></i>
+          </a>
+          <a class="back" v-on:click="$emit('close')">
+            <i class="fas fa-times-circle"></i>
+          </a>
+        </nav>
+        <ul class="emoji" v-show="tab == 'emoji'">
+          <li v-for="emoji in allEmojis">
+            <a class="emoji" v-on:click="$emit('close', emoji)">{{ emoji }}</a>
+          </li>
+        </ul>
+        <ul class="emotes" v-show="tab == 'emotes'">
+          <li v-for="emote in channel.getEmoteList">
+            <a class="emote" v-on:click="$emit('close', emote)">
+              <img v-bind:title="emote" src="channel.getEmote(emote)" />
+            </a>
+          </li>
+        </ul>
+      </div>
+    </script>
     <script type="text/x-template" id="client-configure">
       <transition name="modal">
         <div class="popup-container">
@@ -106,7 +133,10 @@
               </audio>
               <p v-else v-html="message.html"></p>
               <div class="reactions">
-                <a class="reaction" v-for="reaction in message.reactions" v-bind:title="reaction.users.join(',')">
+                <a class="reaction"
+                   v-for="reaction in message.reactions" 
+                   v-bind:title="reaction.description"
+                   v-on:click="message.sendReaction(reaction.text)">
                   <i v-if="reaction.text">{{reaction.text}}</i>
                   <img v-else v-bind:src="reaction.image">
                   <span>{{reaction.count}}</span>
@@ -123,8 +153,14 @@
                  v-on:click="currentChannel.currentMessage.replyTo = message">
                 <i class="fas fa-reply"></i>
               </a>
+              <emote-picker
+                  v-bind:channel="message.channel"
+                  v-bind:classes="['small']"
+                  v-if="message.showEmotePicker"
+                  v-on:close="(ev)=>message.sendReaction.call(message, ev)"></emote-picker>
               <a class="react"
-                 v-if="!message.isVirtual && currentChannel.client.isAvailable('shirakumo-reactions')">
+                 v-if="!message.isVirtual && message.type == 'message' && currentChannel.client.isAvailable('shirakumo-reactions')"
+                 v-on:click="message.showEmotePicker = !message.showEmotePicker">
                 <i class="fas fa-surprise"></i>
               </a>
               <a class="settings"
@@ -148,7 +184,12 @@
                       v-on:keyup.enter.prevent.stop="submit"></textarea>
           </div>
           <nav>
-            <a class="emote">
+            <emote-picker
+                v-bind:channel="currentChannel"
+                v-bind:classes="['big']"
+                v-show="showEmotePicker"
+                v-on:close="addEmote"></emote-picker>
+            <a class="emote" v-on:click="showEmotePicker = !showEmotePicker">
               <i class="fas fa-smile"></i>
             </a>
             <a class="upload">
