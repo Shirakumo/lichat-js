@@ -1058,6 +1058,7 @@ class LichatMessage{
             this.replyTo = null;
         // Kludge: spillage from UI.
         this.showEmotePicker = false;
+        this.showSettings = false;
     }
 
     get time(){
@@ -1266,6 +1267,7 @@ class LichatChannel{
     record(ev){
         let message = new LichatMessage(ev, this);
         let existing = this.messages[message.gid];
+        // KLUDGE: Vue seems to fuck with this and remove things? very fucking annoying.
         this.messages[message.gid] = message;
         if(this.messageList.length == 0){
             this.messageList.push(message);
@@ -1402,6 +1404,7 @@ class LichatClient{
         this.addHandler("REACT", (ev)=>{
             let message = this.getChannel(ev.channel).getMessage(ev.target, ev["update-id"]);
             if(message) message.addReaction(ev);
+            else cl.format("Received react with no message: ~a ~a", ev.target, ev["update-id"]);
         });
     }
 

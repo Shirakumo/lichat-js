@@ -145,7 +145,7 @@
             </div>
             <nav>
               <a class="edit"
-                 v-if="currentChannel.client.isAvailable('shirakumo-edit') && message.author.isSelf">
+                 v-if="message.author.isSelf && message.type == 'message' && currentChannel.client.isAvailable('shirakumo-edit')">
                 <i class="fas fa-edit"></i>
               </a>
               <a class="reply"
@@ -159,7 +159,7 @@
                   v-if="message.showEmotePicker"
                   v-on:close="(ev)=>message.sendReaction.call(message, ev)"></emote-picker>
               <a class="react"
-                 v-if="!message.isVirtual && message.type == 'message' && currentChannel.client.isAvailable('shirakumo-reactions')"
+                 v-if="!message.isVirtual && currentChannel.client.isAvailable('shirakumo-reactions')"
                  v-on:click="message.showEmotePicker = !message.showEmotePicker">
                 <i class="fas fa-surprise"></i>
               </a>
