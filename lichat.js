@@ -1017,9 +1017,8 @@ var EmptyIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1H
 
 class LichatReaction{
     constructor(update, channel){
-        if(allEmojiStrings.includes(update.emote))
-            this.text = update.emote;
-        else{
+        this.text = update.emote;
+        if(!allEmojiStrings.includes(update.emote)){
             let emote = channel.getEmote(update.emote);
             if(!emote) throw "Invalid emote.";
             this.image = emote;
@@ -1032,7 +1031,7 @@ class LichatReaction{
     }
 
     get description(){
-        return reaction.users.join(',')+" reacted with "+this.text;
+        return this.users.join(',')+" reacted with "+this.text;
     }
 }
 
@@ -1043,7 +1042,7 @@ class LichatMessage{
         this.from = update.from;
         this.author = channel.getUser(update.bridge || update.from);
         this.channel = channel;
-        this.reactions = {};
+        this.reactions = [];
         this.text = update.text || "";
         this.html = (options.html)? this.text: this.markupText(this.text);
         this.isSystem = options.system;
@@ -1095,14 +1094,15 @@ class LichatMessage{
     }
 
     addReaction(update){
-        let reaction = this.reactions[update.emote];
+        let reaction = this.reactions.find(e => e.text == update.emote);
         if(!reaction){
-            reaction = new LichatReaction(update, this.channel);
-            this.reactions[update.emote] = reaction;
+            this.reactions.push(new LichatReaction(update, this.channel));
         }else if(reaction.users.includes(update.from)){
-            reaction.users = reaction.users.filter(item => item == update.from);
+            reaction.users = reaction.users.filter(item => item !== update.from);
+            if(reaction.users.length == 0)
+                this.reactions = this.reactions.filter(item => item !== reaction);
         }else{
-            rection.users.push(update.from);
+            reaction.users.push(update.from);
         }
         return reaction;
     }
@@ -1221,8 +1221,13 @@ class LichatChannel{
         return null;
     }
 
-    getEmoteList(){
-        return Object.keys(this.emotes);
+    getEmoteList(list){
+        let emotes = list || [];
+        for(emote in this.emotes) emotes.push(emote);
+        if(!this.isPrimary){
+            this.parentChannel.getEmote(emotes);
+        }
+        return emotes;
     }
 
     joinUser(user){
@@ -1268,6 +1273,7 @@ class LichatChannel{
             // Update object in-place
             for(let i in this.messageList){
                 if(this.messageList[i].gid == message.gid){
+                    // FIXME: Vue cannot detect this change.
                     this.messageList[i] = message;
                     break;
                 }
@@ -1458,6 +1464,7 @@ class LichatClient{
             this._socket.onclose = ()=>{};
             this._socket.close();
         }
+        this._idCallbacks = {};
         this._socket = null;
         return this;
     }
@@ -1511,6 +1518,7 @@ class LichatClient{
     }
 
     handleClose(event){
+        this._idCallbacks = {};
         if(event.code !== 1000){
             this.disconnectHandler(event);
             this.scheduleReconnect();
