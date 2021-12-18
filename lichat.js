@@ -1359,7 +1359,7 @@ class LichatClient{
         this._pingTimer = null;
         this._reconnectAttempts = 0;
 
-        for(let channel in options.channels || []){
+        for(let channel of options.channels || []){
             this.getChannel(channel).wasJoined = true;
         }
 
