@@ -7,6 +7,28 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
     <script src="lichat.js"></script>
+    <script type="text/x-template" id="client-menu">
+      <nav class="submenu" v-on:click.stop="">
+        <client-configure
+            v-bind:client="client"
+            v-if="showConfigure"
+            v-on:close="saveClient"></client-configure>
+        <a class="disconnect"
+           v-on:click="client.closeConnection()"
+           v-if="client.isConnected">
+          <i class="fas fa-handshake-slash"></i> Disconnect
+        </a>
+        <a class="connect"
+           v-on:click="client.openConnection()"
+           v-else>
+          <i class="fas fa-handshake"></i> Connect
+        </a>
+        <a class="config"
+           v-on:click="showConfigure = !showConfigure">
+          <i class="fas fa-cogs"></i> Settings
+        </a>
+      </nav>
+    </script>
     <script type="text/x-template" id="emote-picker">
       <div class="emote-picker" v-bind:class="classes">
         <nav>
@@ -36,7 +58,7 @@
     </script>
     <script type="text/x-template" id="client-configure">
       <transition name="modal">
-        <div class="popup-container" v-on:click.self="$emit('close', client)">
+        <div class="popup-container" v-on:click.self.stop="$emit('close', client)">
           <div class="popup">
             <header>
               <h2>Configure Client</h2>
@@ -92,16 +114,15 @@
     <div class="client">
       <nav v-show="0 < clients.length">
         <section class="server" v-for="client in clients">
-          <client-configure
-              v-bind:client="client"
-              v-if="client.showSettings"
-              v-on:close="saveClient"></client-configure>
           <header>
             <img class="icon" v-bind:src="client.icon">
             <span class="name">{{client.name || client.servername}}</span>
             <nav>
-              <a class="settings" title="Configure this connection"
-                 v-on:click="client.showSettings = true">
+              <client-menu v-if="client.showMenu"
+                           v-on:close="client.showMenu = false"
+                           v-bind:client="client"></client-menu>
+              <a class="menu"
+                 v-on:click.stop="client.showMenu = true">
                 <i class="fas fa-ellipsis-h"></i>
               </a>
             </nav>

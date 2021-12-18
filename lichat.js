@@ -1708,6 +1708,7 @@ class LichatClient{
 };
 class LichatUI{
     constructor(el){
+        let lichat = this;
         this.commands = {};
         this.clients = [];
         this.currentChannel = null;
@@ -1796,6 +1797,29 @@ class LichatUI{
                 this.$el.addEventListener('mousedown', (ev)=>{
                     document.addEventListener('mousemove', this.drag);
                     document.addEventListener('mouseup', this.stopDragging);
+                });
+            }
+        });
+
+        Vue.component("client-menu", {
+            template: "#client-menu",
+            props: {client: LichatClient},
+            data: ()=>{
+                return {
+                    showConfigure: false
+                };
+            },
+            methods: {
+                saveClient: function(client, connect){
+                    this.showConfigure = false;
+                    this.$emit('close');
+                    lichat.saveSetup();
+                    if(connect) client.openConnection();
+                }
+            },
+            mounted: function(){
+                document.addEventListener('click', (ev)=>{
+                    this.$emit('close');
                 });
             }
         });
@@ -1907,13 +1931,13 @@ class LichatUI{
                     if(ev) this.currentChannel.currentMessage.text += ev;
                 },
                 addClient: (ev)=>{
-                    this.addClient(new LichatClient(ev));
-                    this.saveSetup();
-                },
-                saveClient: (client, connect)=>{
-                    client.showSettings = false;
-                    this.saveSetup();
-                    if(connect) client.openConnection();
+                    let client = new LichatClient(ev);
+                    this.addClient(client)
+                        .then(this.saveSetup())
+                        .catch((e)=>{
+                            this.clients.slice(this.clients.indexOf(client), 1);
+                            this.errorMessage = e.reason || e.text || "Failed to connect";
+                        });
                 }
             }
         });
@@ -2012,9 +2036,9 @@ class LichatUI{
     addClient(client){
         if(this.clients.find(el => el.name == client)) 
             return false;
-        
+
+        client.showMenu = false;
         client.channelList = [];
-        client.showSettings = false;
         client.aliases = [];
 
         client.getEmergencyChannel = ()=>{
@@ -2059,9 +2083,7 @@ class LichatUI{
 
         this.clients.push(client);
         
-        client.openConnection()
-            .catch((ev)=>client.getEmergencyChannel().showStatus("Connection failed "+(ev.reason || "")));
-        return client;
+        return client.openConnection();
     }
 
     addCommand(command, fun, help){
@@ -2089,7 +2111,8 @@ class LichatUI{
     }
 
     initialSetup(){
-        this.addClient(new LichatClient(this.defaultClient));
+        this.addClient(new LichatClient(this.defaultClient))
+            .catch((ev)=>client.getEmergencyChannel().showStatus("Connection failed "+(ev.reason || "")));
     }
 
     setupDatabase(){
