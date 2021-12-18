@@ -148,7 +148,7 @@
             </a>
           </nav>
         </header>
-        <section class="output">
+        <section class="output" v-on:drop="uploadFile">
           <div class="message" v-for="message in currentChannel.messageList"
                v-bind:class="[{alert: message.isAlert, system: message.isSystem, bridged: message.isBridged}, message.type]"
                v-bind:id="message.gid">
@@ -233,7 +233,8 @@
             <a class="emote" v-on:click="showEmotePicker = !showEmotePicker">
               <i class="fas fa-smile"></i>
             </a>
-            <a class="upload">
+            <input type="file" accept=".png,.jpg,.jpeg,.gif,.mp4,.webm,.mp3,.ogg" id="fileChooser" style="display:none" v-on:change="uploadFile">
+            <a class="upload" v-on:click="uploadFile">
               <i class="fas fa-paperclip"></i>
             </a>
           </nav>

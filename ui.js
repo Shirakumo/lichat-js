@@ -147,6 +147,44 @@ class LichatUI{
                         message.clear();
                     }
                 },
+                uploadFile: (ev)=>{
+                    if(ev.type == 'click'){
+                        document.getElementById("fileChooser").click();
+                    }else if(ev.type == 'change'){
+                        if(ev.target.files)
+                            this.app.uploadFile(ev.target.files);
+                    }else if(ev.type == 'drop'){
+                        if(ev.dataTransfer.files)
+                            this.app.uploadFile(ev.dataTransfer.files);
+                    }else if(ev instanceof FileList){
+                        let chain = Promise.resolve(null);
+                        for(let i=0; i<ev.length; ++i){
+                            chain = chain.then(this.app.uploadFile(ev[i]));
+                        }
+                        return chain;
+                    }else if(ev instanceof File){
+                        let channel = this.currentChannel;
+                        let message = channel.showStatus("Uploading "+ev.name);
+                        var reader = new FileReader();
+                        return new Promise((ok, fail)=>{
+                            reader.onload = ()=>{
+                                let parts = reader.result.match(/data:(.*?)(;base64)?,(.*)/);
+                                this.currentChannel.s("DATA", {
+                                    filename: ev.name,
+                                    "content-type": parts[1],
+                                    payload: parts[3]
+                                }).then(()=>ok())
+                                    .catch((ev)=>{
+                                        channel.showStatus("Upload failed: "+ev.text);
+                                        fail(ev);
+                                    })
+                                    .finally(()=>channel.deleteMessage(message));
+                            };
+                            reader.readAsDataURL(ev);
+                        });
+                    }
+                    return null;
+                },
                 performSearch: (ev)=>{
                     let channel = this.currentChannel;
                     let query = this.search;

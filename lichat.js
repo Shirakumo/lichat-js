@@ -1046,7 +1046,7 @@ class LichatMessage{
         this.text = update.text || "";
         this.html = (options.html)? this.text: this.markupText(this.text);
         this.isSystem = options.system;
-        this.gid = this.channel.name+"/"+update.id+"@"+this.author.name;
+        this.gid = this.channel.name+"/"+update.id+"@"+this.author.name.toLowerCase();
         this.url = document.location.href.match(/(^[^#]*)/)[0]+"#"+this.gid;
         this.timestamp = cl.universalToUnix(update.clock);
         this.clock = new Date(this.timestamp*1000);
@@ -1309,15 +1309,23 @@ class LichatChannel{
         return this.messages[gid];
     }
 
-    showStatus(message, options){
+    deleteMessage(message){
+        delete this.messages[message.gid];
+        let index = this.messageList.indexOf(message);
+        if(index !== -1) this.messageList.splice(index, 1);
+    }
+
+    showStatus(text, options){
         options = options || {};
         options.system = true;
-        this.messageList.push(new LichatMessage({
+        let message = new LichatMessage({
             from: "System",
             clock: cl.getUniversalTime(),
-            text: message,
+            text: text,
             type: "MESSAGE"
-        }, this, options));
+        }, this, options);
+        this.messageList.push(message);
+        return message;
     }
 };
 
@@ -1493,7 +1501,7 @@ class LichatClient{
         this._socket.send(stream.string+'\u0000');
 
         if(!cl.typep(wireable, "PING") && !cl.typep(wireable, "PONG"))
-            cl.format("[Lichat] Send:~s", stream.string);
+            cl.format("[Lichat] Send:~s", wireable);
         return wireable;
     }
 
@@ -1846,6 +1854,44 @@ class LichatUI{
                         }
                         message.clear();
                     }
+                },
+                uploadFile: (ev)=>{
+                    if(ev.type == 'click'){
+                        document.getElementById("fileChooser").click();
+                    }else if(ev.type == 'change'){
+                        if(ev.target.files)
+                            this.app.uploadFile(ev.target.files);
+                    }else if(ev.type == 'drop'){
+                        if(ev.dataTransfer.files)
+                            this.app.uploadFile(ev.dataTransfer.files);
+                    }else if(ev instanceof FileList){
+                        let chain = Promise.resolve(null);
+                        for(let i=0; i<ev.length; ++i){
+                            chain = chain.then(this.app.uploadFile(ev[i]));
+                        }
+                        return chain;
+                    }else if(ev instanceof File){
+                        let channel = this.currentChannel;
+                        let message = channel.showStatus("Uploading "+ev.name);
+                        var reader = new FileReader();
+                        return new Promise((ok, fail)=>{
+                            reader.onload = ()=>{
+                                let parts = reader.result.match(/data:(.*?)(;base64)?,(.*)/);
+                                this.currentChannel.s("DATA", {
+                                    filename: ev.name,
+                                    "content-type": parts[1],
+                                    payload: parts[3]
+                                }).then(()=>ok())
+                                    .catch((ev)=>{
+                                        channel.showStatus("Upload failed: "+ev.text);
+                                        fail(ev);
+                                    })
+                                    .finally(()=>channel.deleteMessage(message));
+                            };
+                            reader.readAsDataURL(ev);
+                        });
+                    }
+                    return null;
                 },
                 performSearch: (ev)=>{
                     let channel = this.currentChannel;
