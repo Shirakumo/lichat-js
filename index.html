@@ -90,7 +90,7 @@
   </head>
   <body>
     <div class="client">
-      <nav v-if="0 < clients.length">
+      <nav v-show="0 < clients.length">
         <section class="server" v-for="client in clients">
           <client-configure
               v-bind:client="client"
@@ -124,7 +124,7 @@
           </ul>
         </section>
       </nav>
-      <div class="divider"></div>
+      <divider></divider>
       <main v-if="currentChannel">
         <header>
           <img class="icon" v-bind:src="currentChannel.icon">

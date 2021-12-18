@@ -121,6 +121,8 @@
   :color (hex F0F0F0)
   :width 15em
   :padding 0.5em 0 0.5em 0.5em
+  :overflow-x hidden
+  :overflow-y auto
   (.server
    (>header
     :font-size 1.5em

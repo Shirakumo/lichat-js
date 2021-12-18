@@ -1766,6 +1766,32 @@ class LichatUI{
             }
         };
 
+        Vue.component("divider", {
+            template: "<div class='divider'></div>",
+            data: ()=>{return {
+                target: null
+            };},
+            methods: {
+                drag: function(ev){
+                    ev.preventDefault();
+                    let x = ev.clientX - this.$el.getBoundingClientRect().width;
+                    this.target.style.width = x+"px";
+                },
+                stopDragging: function(ev){
+                    ev.preventDefault();
+                    document.removeEventListener('mousemove', this.drag);
+                    document.removeEventListener('mouseup', this.stopDragging);
+                }
+            },
+            mounted: function(){
+                this.target = this.$el.previousElementSibling;
+                this.$el.addEventListener('mousedown', (ev)=>{
+                    document.addEventListener('mousemove', this.drag);
+                    document.addEventListener('mouseup', this.stopDragging);
+                });
+            }
+        });
+
         Vue.component("client-configure", {
             template: "#client-configure",
             props: {client: LichatClient}
