@@ -165,6 +165,9 @@ class LichatChannel{
         this.info[":TOPIC"] = "";
         this.info[":RULES"] = "";
         this.info[":CONTACT"] = "";
+        // KLUDGE: spillage from ui
+        this.unread = 0;
+        this.alerted = false;
     }
 
     get name(){
@@ -309,7 +312,7 @@ class LichatClient{
     constructor(options){
         options = options || {};
         this.name = options.name || "Lichat";
-        this.username = options.username || null;
+        this.username = options.username || "";
         this.password = options.password || null;
         this.hostname = options.hostname || "localhost";
         this.port = options.port || options.ssl? LichatDefaultSSLPort: LichatDefaultPort;
@@ -334,6 +337,10 @@ class LichatClient{
         this._printer = new LichatPrinter();
         this._pingTimer = null;
         this._reconnectAttempts = 0;
+
+        for(let channel in options.channels || []){
+            this.getChannel(channel).wasJoined = true;
+        }
 
         this.addInternalHandler("CONNECT", (ev)=>{
             this.availableExtensions = ev.extensions;
@@ -452,13 +459,17 @@ class LichatClient{
     closeConnection(){
         for(let channel in this.channels)
             this.channels[channel].clearUsers();
-        if(this._socket && socket.readyState < 2){
+        if(this._socket && this._socket.readyState < 2){
             this._socket.onclose = ()=>{};
             this._socket.close();
         }
         this._idCallbacks = {};
         this._socket = null;
         return this;
+    }
+
+    get isConnected(){
+        return this._socket && this._reconnectAttempts == 0;
     }
 
     send(wireable){

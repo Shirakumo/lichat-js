@@ -44,6 +44,40 @@
    :background white
    :border 0.15em solid (hex 303030)
    :margin 0 0.2em))
+ (input
+  :font-size inherit
+  :background (hex 202020)
+  :color (hex FFFFFF)
+  :padding 0.1em 0.2em
+  :margin 0.2em 0
+  :border none)
+ (input[readonly]
+  :color (hex 808080))
+ ((:or input[type=submit] input[type=button])
+  :cursor pointer)
+ ((:and input :hover)
+  :background (hex 505050))
+ (.popup-container
+  :position fixed
+  :top 0 :left 0 :right 0 :bottom 0
+  :background (rgba 50 50 50 0.5)
+  :z-index 100
+  (>.popup
+   :width 30em
+   :margin 10em auto
+   :background (hex 151515)
+   :color (hex FFFFFF)
+   :border 1px solid (hex 000000)
+   (>header
+    :background (hex 303030)
+    (h2
+     :margin 0 :padding 0.2em 0.5em))
+   (>section
+    :margin 1em
+    (label
+     :display inline-block
+     :box-sizing border-box
+     :min-width 10em))))
  (.emote-picker
   :font-size 15pt
   :position absolute

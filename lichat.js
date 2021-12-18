@@ -1178,6 +1178,9 @@ class LichatChannel{
         this.info[":TOPIC"] = "";
         this.info[":RULES"] = "";
         this.info[":CONTACT"] = "";
+        // KLUDGE: spillage from ui
+        this.unread = 0;
+        this.alerted = false;
     }
 
     get name(){
@@ -1322,7 +1325,7 @@ class LichatClient{
     constructor(options){
         options = options || {};
         this.name = options.name || "Lichat";
-        this.username = options.username || null;
+        this.username = options.username || "";
         this.password = options.password || null;
         this.hostname = options.hostname || "localhost";
         this.port = options.port || options.ssl? LichatDefaultSSLPort: LichatDefaultPort;
@@ -1347,6 +1350,10 @@ class LichatClient{
         this._printer = new LichatPrinter();
         this._pingTimer = null;
         this._reconnectAttempts = 0;
+
+        for(let channel in options.channels || []){
+            this.getChannel(channel).wasJoined = true;
+        }
 
         this.addInternalHandler("CONNECT", (ev)=>{
             this.availableExtensions = ev.extensions;
@@ -1465,13 +1472,17 @@ class LichatClient{
     closeConnection(){
         for(let channel in this.channels)
             this.channels[channel].clearUsers();
-        if(this._socket && socket.readyState < 2){
+        if(this._socket && this._socket.readyState < 2){
             this._socket.onclose = ()=>{};
             this._socket.close();
         }
         this._idCallbacks = {};
         this._socket = null;
         return this;
+    }
+
+    get isConnected(){
+        return this._socket && this._reconnectAttempts == 0;
     }
 
     send(wireable){
@@ -1690,10 +1701,31 @@ class LichatClient{
 class LichatUI{
     constructor(el){
         this.commands = {};
-        this.clients = {};
+        this.clients = [];
         this.currentChannel = null;
         this.search = null;
         this.showEmotePicker = false;
+        this.db = null;
+        this.defaultClient = {
+            name: "TyNET",
+            hostname: "chat.tymoon.eu",
+            ssl: true,
+            port: LichatDefaultSSLPort
+        };
+
+        let DBOpenRequest = window.indexedDB.open("lichatjs", 2);
+        DBOpenRequest.onerror = e=>{
+            console.log(e);
+            this.initialSetup();
+        };
+        DBOpenRequest.onsuccess = e=>{
+            this.db = e.target.result;
+            this.loadSetup();
+        };
+        DBOpenRequest.onupgradeneeded = e=>{
+            this.db = e.target.result;
+            this.setupDatabase();
+        };
 
         LichatChannel.prototype._record = LichatChannel.prototype.record;
         LichatChannel.prototype.record = function(update){
@@ -1703,6 +1735,7 @@ class LichatUI{
                 Vue.nextTick(() => {
                     document.getElementById(message.gid).scrollIntoView();
                 });
+            
         };
 
         // Patch the markup method here to include our specific changes.
@@ -1723,7 +1756,7 @@ class LichatUI{
         LichatClient.prototype.addToChannelList = function(channel){
             if(this.channelList.length == 0){
                 this.channelList.push(channel);
-            }else{
+            }else if(!this.channelList.find(element => element === channel)){
                 let i=1;
                 for(; i<this.channelList.length; ++i){
                     if(0 < this.channelList[i].name.localeCompare(channel.name))
@@ -1800,15 +1833,18 @@ class LichatUI{
                 addEmote: (ev)=>{
                     this.showEmotePicker = false;
                     if(ev) this.currentChannel.currentMessage.text += ev;
+                },
+                addClient: (ev)=>{
+                    this.addClient(new LichatClient(ev));
+                    this.saveSetup();
+                },
+                saveClient: (client, connect)=>{
+                    client.showSettings = false;
+                    this.saveSetup();
+                    if(connect) client.openConnection();
                 }
             }
         });
-
-        this.addClient(new LichatClient({
-            name: "TyNET",
-            hostname: "chat.tymoon.eu",
-            ssl: true
-        }));
 
         this.addCommand("help", (channel, subcommand)=>{
             if(subcommand){
@@ -1839,6 +1875,11 @@ class LichatUI{
                 channel.showStatus(text, {html: true});
             }
         }, "Show help information on the available commands.");
+
+        this.addCommand("disconnect", (channel)=>{
+            channel.client.closeConnection();
+            channel.showStatus("Disconnected.");
+        }, "Disconnect the current client.");
 
         this.addCommand("join", (channel, ...name)=>{
             name = name.join(" ");
@@ -1897,9 +1938,25 @@ class LichatUI{
     }
 
     addClient(client){
-        Vue.set(this.clients, client.name, client);
-
+        if(this.clients.find(el => el.name == client)) 
+            return false;
+        
         client.channelList = [];
+        client.showSettings = false;
+        client.aliases = [];
+
+        client.getEmergencyChannel = ()=>{
+            if(this.currentChannel && this.currentChannel.client == client){
+                return this.currentChannel;
+            }else if(0 < client.channelList.length){
+                return client.channelList[0];
+            }else{
+                let channel = client.getChannel(client.servername || client.name);
+                client.addToChannelList(channel);
+                this.app.switchChannel(channel);
+                return channel;
+            }
+        };
 
         client.disconnectHandler = (ev)=>{
             this.currentChannel.showStatus("Disconnected: "+(ev.reason || "connection lost"));
@@ -1907,11 +1964,7 @@ class LichatUI{
 
         client.addHandler("CONNECT", (ev)=>{
             if(0 < client.channelList.length){
-                if(this.currentChannel.client == client){
-                    this.currentChannel.showStatus("Connected");
-                }else{
-                    client.channelList[0].showStatus("Connected");
-                }
+                client.getEmergencyChannel().showStatus("Connected");
             }
         });
 
@@ -1931,8 +1984,11 @@ class LichatUI{
             ev.text = " ** Left " + ev.channel;
             client.getChannel(ev.channel).record(ev);
         });
+
+        this.clients.push(client);
         
-        client.openConnection();
+        client.openConnection()
+            .catch((ev)=>client.getEmergencyChannel().showStatus("Connection failed "+(ev.reason || "")));
         return client;
     }
 
@@ -1958,6 +2014,43 @@ class LichatUI{
 
     showSearchResults(channel, results, query){
         
+    }
+
+    initialSetup(){
+        this.addClient(new LichatClient(this.defaultClient));
+    }
+
+    setupDatabase(){
+        let store = this.db.createObjectStore("clients", {keyPath: "name"});
+    }
+
+    loadSetup(){
+        let tx = this.db.transaction("clients");
+        tx.objectStore("clients").getAll().onsuccess = (ev)=>{
+            for(let options of ev.target.result){
+                this.addClient(new LichatClient(options));
+            }
+        };
+        tx.onerror = (ev)=>console.log(ev);
+    }
+
+    saveSetup(){
+        if(!this.db) return;
+        let tx = this.db.transaction("clients", "readwrite");
+        let store = tx.objectStore("clients");
+        for(let client of this.clients){
+            store.put({
+                name: client.name,
+                username: client.username,
+                password: client.password,
+                hostname: client.hostname,
+                port: client.port,
+                ssl: client.ssl,
+                aliases: client.aliases,
+                channels: client.channelList.map(c => c.name)
+            });
+        }
+        tx.onerror = (ev)=>console.log(ev);
     }
 
     // URL Regex by Diego Perini: https://gist.github.com/dperini/729294
@@ -2064,7 +2157,7 @@ class LichatUI{
 
     static markSelf(text, channel){
         // FIXME: allow specifying own nicknames
-        let names = [channel.client.username];
+        let names = channel.client.username? [channel.client.username] : [];
         let stream = new LichatStream();
         let inLink = false;
         for(let i=0; i<text.length; i++){

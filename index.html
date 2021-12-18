@@ -36,17 +36,53 @@
     </script>
     <script type="text/x-template" id="client-configure">
       <transition name="modal">
-        <div class="popup-container">
+        <div class="popup-container" v-on:click.self="$emit('close', client)">
           <div class="popup">
-            <h2>Configure Client</h2>
-            <label>Name</label><input type="text" name="name" required v-model="name">
-            <label>Username</label><input type="text" name="username" maxlength="32" required v-model="username">
-            <label>Password</label><input type="password" name="password" required v-model="password">
-            <label>Aliases</label><input type="text" name="aliases" required v-model="aliases">
-            <label>Hostname</label><input type="text" name="hostname" required v-model="hostname">
-            <label>Port</label><input type="number" name="port" required v-model="port">
-            <label>SSL</label><input type="checkbox" name="ssl" v-model="ssl">
-            <input type="button" value="Save" v-on:click="$emit('close')">
+            <header>
+              <h2>Configure Client</h2>
+            </header>
+            <section>
+              <div class="row">
+                <label>Name</label>
+                <input type="text" name="name" required v-model="client.name">
+              </div>
+              <div class="row">
+                <label>Username</label>
+                <input type="text" name="username" maxlength="32" required 
+                       v-model="client.username"
+                       v-bind:readonly="client.isConnected">
+              </div>
+              <div class="row">
+                <label>Password</label>
+                <input type="password" name="password" required
+                       v-model="client.password"
+                       v-bind:readonly="client.isConnected">
+              </div>
+              <div class="row">
+                <label>Aliases</label>
+                <input type="text" name="aliases" required v-model="client.aliases">
+              </div>
+              <div class="row">
+                <label>Hostname</label>
+                <input type="text" name="hostname" required
+                       v-model="client.hostname"
+                       v-bind:readonly="client.isConnected">
+              </div>
+              <div class="row">
+                <label>Port</label>
+                <input type="number" name="port" required
+                       v-model="client.port"
+                       v-bind:readonly="client.isConnected">
+              </div>
+              <div class="row">
+                <label>SSL</label>
+                <input type="checkbox" name="ssl"
+                       v-model="client.ssl"
+                       v-bind:readonly="client.isConnected">
+              </div>
+              <input type="button" value="Close" v-on:click="$emit('close', client)">
+              <input type="button" value="Connect" v-if="!client.isConnected" v-on:click="$emit('close', client, true)">
+            </section>
           </div>
         </div>
       </transition>
@@ -54,20 +90,25 @@
   </head>
   <body>
     <div class="client">
-      <nav>
+      <nav v-if="0 < clients.length">
         <section class="server" v-for="client in clients">
-          <client-configure v-bind:client="client" v-if="client.showSettings" v-on:close="client.showSettings = false"></client-configure>
+          <client-configure
+              v-bind:client="client"
+              v-if="client.showSettings"
+              v-on:close="saveClient"></client-configure>
           <header>
             <img class="icon" v-bind:src="client.icon">
             <span class="name">{{client.name || client.servername}}</span>
             <nav>
-              <a class="settings" v-on:click="client.showSettings = true">
+              <a class="settings" title="Configure this connection"
+                 v-on:click="client.showSettings = true">
                 <i class="fas fa-ellipsis-h"></i>
               </a>
             </nav>
           </header>
           <ul class="channels">
-            <li class="channel" v-for="channel in client.channelList"
+            <li class="channel"
+                v-for="channel in client.channelList"
                 v-bind:class="{current: channel == currentChannel, update: 0 < channel.unread, alert: channel.alerted, primary: channel.isPrimary}"
                 v-on:click="switchChannel(channel)">
               <header>
@@ -199,7 +240,9 @@
         </footer>
       </main>
       <main v-else>
-        
+        <client-configure
+            v-bind:client="{...defaultClient}"
+            v-on:close="addClient"></client-configure>
       </main>
     </div>
     <script>var lichat = new LichatUI();</script>
