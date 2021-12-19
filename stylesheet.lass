@@ -70,6 +70,10 @@
    :border 1px solid (hex 000000)
    (>header
     :background (hex 303030)
+    (.error-message
+     :background (hex FF3030)
+     :color (hex FFFFFF)
+     :padding 0.5em 1em)
     (h2
      :margin 0 :padding 0.2em 0.5em))
    (>section
@@ -261,6 +265,17 @@
       :white-space pre-wrap
       :overflow-wrap anywhere
       (a :color inherit))
+     (textarea
+      :width 100%
+      :box-sizing border-box
+      :background (hex 303030)
+      :color (hex FFFFFF)
+      :border none
+      :font-size inherit
+      :font-family inherit
+      :margin -0.2em -0.5em
+      :padding 0.2em 0.5em
+      :border-radius 0.5em)
      (img
       :max-width 100%
       :max-height 20em)

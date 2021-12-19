@@ -1056,9 +1056,6 @@ class LichatMessage{
             this.replyTo = channel.getMessage(update["reply-to"][0], update["reply-to"][1]);
         else
             this.replyTo = null;
-        // Kludge: spillage from UI.
-        this.showEmotePicker = false;
-        this.showSettings = false;
     }
 
     get time(){
@@ -1092,6 +1089,15 @@ class LichatMessage{
 
     get shortText(){
         return this.text.split("\n")[0];
+    }
+
+    get text(){
+        return this._text;
+    }
+
+    set text(text){
+        this._text = text;
+        this.html = this.markupText(text);
     }
 
     addReaction(update){
@@ -1319,6 +1325,7 @@ class LichatChannel{
         options = options || {};
         options.system = true;
         let message = new LichatMessage({
+            id: nextID(),
             from: "System",
             clock: cl.getUniversalTime(),
             text: text,
@@ -1416,6 +1423,7 @@ class LichatClient{
         this.addHandler("EDIT", (ev)=>{
             let message = this.getChannel(ev.channel).getMessage(ev.from, ev.id);
             if(message) message.text = ev.text;
+            else cl.format("Received react with no message: ~a ~a", ev.target, ev["update-id"]);
         });
 
         this.addHandler("REACT", (ev)=>{
@@ -1714,6 +1722,7 @@ class LichatUI{
         this.currentChannel = null;
         this.search = null;
         this.showEmotePicker = false;
+        this.errorMessage = null;
         this.db = null;
         this.defaultClient = {
             name: "TyNET",
@@ -1750,16 +1759,6 @@ class LichatUI{
         // Patch the markup method here to include our specific changes.
         LichatMessage.prototype.markupText = function(text){
             return LichatUI.formatUserText(text, this.channel);
-        };
-
-        LichatMessage.prototype.sendReaction = function(emote){
-            this.showEmotePicker = false;
-            if(emote)
-                this.channel.s("REACT", {
-                    target: this.from,
-                    "update-id": this.id,
-                    emote: emote
-                });
         };
 
         LichatClient.prototype.addToChannelList = function(channel){
@@ -1801,21 +1800,48 @@ class LichatUI{
             }
         });
 
+        Vue.component("message-menu", {
+            template: "#message-menu",
+            props: {message: LichatMessage},
+            data: ()=>{
+                return {
+                    showInfo: false
+                };
+            },
+            methods: {
+                copy: function(){
+                    navigator.clipboard.writeText(this.message.text)
+                        .then(()=>console.log('Copied message to clipboard'))
+                        .catch((e)=>lichat.errorMessage = ""+e);
+                    this.$emit('close');
+                },
+                kick: function(){
+                    this.message.channel.s("KICK", {target: this.message.from})
+                        .catch((e)=>this.message.channel.showStatus("Error: "+e.text));
+                    this.$emit('close');
+                },
+                ban: function(){
+                    this.message.channel.client.s("BAN", {target: this.message.from})
+                        .then((e)=>this.messag.channel.showStatus(this.message.from+" has been banned."))
+                        .catch((e)=>this.message.channel.showStatus("Error: "+e.text));
+                    this.$emit('close');
+                }
+            },
+            mounted: function(){
+                document.addEventListener('click', (ev)=>{
+                    this.$emit('close');
+                });
+            }
+        });
+
         Vue.component("client-menu", {
             template: "#client-menu",
             props: {client: LichatClient},
             data: ()=>{
                 return {
-                    showConfigure: false
+                    showConfigure: false,
+                    showChannelCreate: false
                 };
-            },
-            methods: {
-                saveClient: function(client, connect){
-                    this.showConfigure = false;
-                    this.$emit('close');
-                    lichat.saveSetup();
-                    if(connect) client.openConnection();
-                }
             },
             mounted: function(){
                 document.addEventListener('click', (ev)=>{
@@ -1826,7 +1852,37 @@ class LichatUI{
 
         Vue.component("client-configure", {
             template: "#client-configure",
-            props: {client: LichatClient}
+            props: {client: LichatClient},
+            methods: {
+                remove: function(){
+                    lichat.clients.slice(lichat.clients.indexOf(this.client), 1);
+                    lichat.saveSetup();
+                    this.$emit('close');
+                },
+                close: function(){
+                    lichat.saveSetup();
+                    this.$emit('close');
+                }
+            }
+        });
+
+        Vue.component("create-channel", {
+            template: "#create-channel",
+            props: {client: LichatClient},
+            data: function(){
+                return {
+                    name: "",
+                    anonymous: false,
+                    errorMessage: null
+                };
+            },
+            methods: {
+                create: function(){
+                    this.client.s("CREATE", {channel: (this.anonymous)?null:this.name})
+                        .then(()=>this.$emit('close'))
+                        .catch((e)=>this.errorMessage = e.text);
+                }
+            }
         });
 
         Vue.component("emote-picker", {
@@ -1837,6 +1893,47 @@ class LichatUI{
                     tab: 'emotes', 
                     allEmojis: allEmojiStrings
                 }; 
+            }
+        });
+
+        Vue.component("message", {
+            template: "#message",
+            props: {message: LichatMessage},
+            data: ()=>{
+                return {
+                    editText: null,
+                    emotePicker: false,
+                    settings: false
+                };
+            },
+            methods: {
+                react: function(emote){
+                    this.emotePicker = false;
+                    if(emote)
+                        this.message.channel.s("REACT", {
+                            target: this.message.from,
+                            "update-id": this.message.id,
+                            emote: emote
+                        });
+                },
+                edit: function(){
+                    this.editText = this.editText.trimEnd();
+                    this.message.channel.s("EDIT", {
+                        from: this.message.from,
+                        id: this.message.id,
+                        text: this.editText
+                    }).then(()=>this.editText = null)
+                        .catch((e)=>lichat.errorMessage = e.text);
+                },
+                replyTo: function(){
+                    lichat.currentChannel.currentMessage.replyTo = this.message;
+                },
+                startEditing: function(){
+                    this.editText = this.message.text;
+                    Vue.nextTick(() => {
+                        this.$refs.input.focus();
+                    });
+                }
             }
         });
 

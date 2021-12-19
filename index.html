@@ -12,20 +12,48 @@
         <client-configure
             v-bind:client="client"
             v-if="showConfigure"
-            v-on:close="saveClient"></client-configure>
+            v-on:close="showConfigure = false;$emit('close')"></client-configure>
+        <a class="config"
+           v-on:click="showConfigure = true">
+          <i class="fas fa-fw fa-cogs"></i> Settings
+        </a>
         <a class="disconnect"
            v-on:click="client.closeConnection()"
            v-if="client.isConnected">
-          <i class="fas fa-handshake-slash"></i> Disconnect
+          <i class="fas fa-fw fa-handshake-slash"></i> Disconnect
         </a>
         <a class="connect"
            v-on:click="client.openConnection()"
            v-else>
-          <i class="fas fa-handshake"></i> Connect
+          <i class="fas fa-fw fa-handshake"></i> Connect
         </a>
-        <a class="config"
-           v-on:click="showConfigure = !showConfigure">
-          <i class="fas fa-cogs"></i> Settings
+        <create-channel
+            v-bind:client="client"
+            v-if="showChannelCreate"
+            v-on:close="showChannelCreate = false;$emit('close')"></create-channel>
+        <a class="create"
+           v-on:click="showChannelCreate = true">
+          <i class="fas fa-fw fa-plus-circle"></i> New Channel
+        </a>
+      </nav>
+    </script>
+    <script type="text/x-template" id="message-menu">
+      <nav class="submenu" v-on:click.stop="">
+        <a class="copy"
+           v-on:click="copy">
+          <i class="fas fa-fw fa-clipboard"></i> Copy
+        </a>
+        <a class="kick"
+           v-on:click="kick">
+          <i class="fas fa-fw fa-sign-out-alt"></i> Kick
+        </a>
+        <a class="ban"
+           v-on:click="ban">
+          <i class="fas fa-fw fa-user-slash"></i> Ban
+        </a>
+        <a class="info"
+           v-on:click="showInfo = true">
+          <i class="fas fa-fw fa-info-circle"></i> Info
         </a>
       </nav>
     </script>
@@ -58,7 +86,7 @@
     </script>
     <script type="text/x-template" id="client-configure">
       <transition name="modal">
-        <div class="popup-container" v-on:click.self.stop="$emit('close', client)">
+        <div class="popup-container" v-on:click.self.stop="close">
           <div class="popup">
             <header>
               <h2>Configure Client</h2>
@@ -102,12 +130,112 @@
                        v-model="client.ssl"
                        v-bind:readonly="client.isConnected">
               </div>
-              <input type="button" value="Close" v-on:click="$emit('close', client)">
-              <input type="button" value="Connect" v-if="!client.isConnected" v-on:click="$emit('close', client, true)">
+              <input type="button" value="Close" v-on:click="close">
+              <input type="button" value="Delete" v-if="client._reader" v-on:click="remove">
             </section>
           </div>
         </div>
       </transition>
+    </script>
+    <script type="text/x-template" id="create-channel">
+      <transition name="modal">
+        <div class="popup-container" v-on:click.self.stop="$emit('close')">
+          <div class="popup">
+            <header>
+              <h2>Create Channel</h2>
+              <div class="error-message" v-if="errorMessage">{{errorMessage}}</div>
+            </header>
+            <section>
+              <div class="row">
+                <label>Channel name</label>
+                <input type="text" name="channelname" maxlength="32" required 
+                       v-model="name"
+                       v-bind:readonly="anonymous">
+              </div>
+              <div class="row">
+                <label>Anonymous</label>
+                <input type="checkbox" name="ssl"
+                       v-model="anonymous">
+              </div>
+              <input type="button" value="Create" v-on:click="create">
+              <input type="button" value="Cancel" v-on:click="$emit('close')">
+            </section>
+          </div>
+        </div>
+      </transition>  
+    </script>
+    <script type="text/x-template" id="message">
+      <div class="message"
+           v-bind:class="[{alert: message.isAlert, system: message.isSystem, bridged: message.isBridged}, message.type]"
+           v-bind:id="message.gid">
+        <header>
+          <time v-bind:title="message.date">{{message.time}}</time>
+          <img class="icon" v-bind:src="message.author.icon">
+          <span class="name" 
+                v-bind:style="{color: message.author.color}"
+                v-bind:title="message.author.name"
+                v-bind:class="{me: message.author == message.channel.client.user}">{{message.from}}</span>
+        </header>
+        <a class="reply-to" v-if="message.replyTo" v-bind:href="message.replyTo.url">
+          <span class="name" v-bind:class="{me: message.replyTo.author == message.channel.client.user}">{{message.replyTo.author.name}}</span>
+          <p>{{message.replyTo.shortText}}</p>
+        </a>
+        <div class="content">
+          <img v-if="message.isImage" v-bind:src="message.text">
+          <video controls v-else-if="message.isVideo">
+            <source v-bind:src="message.text" v-bind:type="message.contentType">
+          </video>
+          <audio controls v-else-if="message.isAudio">
+            <source v-bind:src="message.text" v-bind:type="message.contentType">
+          </audio>
+          <textarea v-else-if="editText !== null"
+                    v-model="editText" ref="input"
+                    v-on:input="$event.target.style.minHeight = $event.target.scrollHeight+'px';"
+                    v-on:keydown.enter.prevent.stop="edit"
+                    v-on:keydown.esc.prevent.stop="editText = null"></textarea>
+          <p v-else v-html="message.html"></p>
+          <div class="reactions">
+            <a class="reaction"
+               v-for="reaction in message.reactions" 
+               v-bind:title="reaction.description"
+               v-on:click="react(reaction.text)">
+              <img v-if="reaction.image" v-bind:src="reaction.image">
+              <i v-else>{{reaction.text}}</i>
+              <span>{{reaction.count}}</span>
+            </a>
+          </div>
+        </div>
+        <nav>
+          <a class="edit"
+             v-if="message.author.isSelf && message.type == 'message' && message.channel.client.isAvailable('shirakumo-edit')"
+             v-on:click="startEditing">
+            <i class="fas fa-edit"></i>
+          </a>
+          <a class="reply"
+             v-if="!message.isVirtual && message.channel.client.isAvailable('shirakumo-replies')"
+             v-on:click="replyTo">
+            <i class="fas fa-reply"></i>
+          </a>
+          <emote-picker
+              v-bind:channel="message.channel"
+              v-bind:classes="['small']"
+              v-if="emotePicker"
+              v-on:close="react"></emote-picker>
+          <a class="react"
+             v-if="!message.isVirtual && message.channel.client.isAvailable('shirakumo-reactions')"
+             v-on:click="emotePicker = !emotePicker">
+            <i class="fas fa-surprise"></i>
+          </a>
+          <message-menu v-if="settings"
+                        v-on:close="settings = false"
+                        v-bind:message="message"></message-menu>
+          <a class="settings"
+             v-if="!message.isVirtual"
+             v-on:click.stop="settings = true">
+            <i class="fas fa-ellipsis-h"></i>
+          </a>
+        </nav>
+      </div>
     </script>
   </head>
   <body>
@@ -155,7 +283,7 @@
             <input type="text" placeholder="from:user something" ref="search"
                    v-model="search"
                    v-if="search !== null"
-                   v-on:keyup.enter.prevent.stop="performSearch">
+                   v-on:keydown.enter.prevent.stop="performSearch">
             <a class="search"
                v-if="currentChannel.client.isAvailable('shirakumo-search')"
                v-on:click="toggleSearch">
@@ -170,67 +298,9 @@
           </nav>
         </header>
         <section class="output">
-          <div class="message" v-for="message in currentChannel.messageList"
-               v-bind:class="[{alert: message.isAlert, system: message.isSystem, bridged: message.isBridged}, message.type]"
-               v-bind:id="message.gid">
-            <header>
-              <time v-bind:title="message.date">{{message.time}}</time>
-              <img class="icon" v-bind:src="message.author.icon">
-              <span class="name" 
-                    v-bind:style="{color: message.author.color}"
-                    v-bind:title="message.author.name"
-                    v-bind:class="{me: message.author == currentChannel.client.user}">{{message.from}}</span>
-            </header>
-            <a class="reply-to" v-if="message.replyTo" v-bind:href="message.replyTo.url">
-              <span class="name" v-bind:class="{me: message.replyTo.author == currentChannel.client.user}">{{message.replyTo.author.name}}</span>
-              <p>{{message.replyTo.shortText}}</p>
-            </a>
-            <div class="content">
-              <img v-if="message.isImage" v-bind:src="message.text">
-              <video controls v-else-if="message.isVideo">
-                <source v-bind:src="message.text" v-bind:type="message.contentType">
-              </video>
-              <audio controls v-else-if="message.isAudio">
-                <source v-bind:src="message.text" v-bind:type="message.contentType">
-              </audio>
-              <p v-else v-html="message.html"></p>
-              <div class="reactions">
-                <a class="reaction"
-                   v-for="reaction in message.reactions" 
-                   v-bind:title="reaction.description"
-                   v-on:click="message.sendReaction(reaction.text)">
-                  <img v-if="reaction.image" v-bind:src="reaction.image">
-                  <i v-else>{{reaction.text}}</i>
-                  <span>{{reaction.count}}</span>
-                </a>
-              </div>
-            </div>
-            <nav>
-              <a class="edit"
-                 v-if="message.author.isSelf && message.type == 'message' && currentChannel.client.isAvailable('shirakumo-edit')">
-                <i class="fas fa-edit"></i>
-              </a>
-              <a class="reply"
-                 v-if="!message.isVirtual && currentChannel.client.isAvailable('shirakumo-replies')"
-                 v-on:click="currentChannel.currentMessage.replyTo = message">
-                <i class="fas fa-reply"></i>
-              </a>
-              <emote-picker
-                  v-bind:channel="message.channel"
-                  v-bind:classes="['small']"
-                  v-if="message.showEmotePicker"
-                  v-on:close="(ev)=>message.sendReaction.call(message, ev)"></emote-picker>
-              <a class="react"
-                 v-if="!message.isVirtual && currentChannel.client.isAvailable('shirakumo-reactions')"
-                 v-on:click="message.showEmotePicker = !message.showEmotePicker">
-                <i class="fas fa-surprise"></i>
-              </a>
-              <a class="settings"
-                 v-if="!message.isVirtual">
-                <i class="fas fa-ellipsis-h"></i>
-              </a>
-            </nav>
-          </div>
+          <message v-for="message in currentChannel.messageList"
+                   v-bind:message="message"
+                   v-bind:key="message.gid"></message>
         </section>
         <footer v-if="currentChannel.isPresent">
           <div class="user me">
@@ -243,7 +313,8 @@
             </a>
             <textarea placeholder="Write something..." autofocus ref="input"
                       v-model="currentChannel.currentMessage.text"
-                      v-on:keyup.enter.prevent.stop="submit"></textarea>
+                      v-on:input="$event.target.style.minHeight = $event.target.scrollHeight+'px';"
+                      v-on:keydown.enter.prevent.stop="submit"></textarea>
           </div>
           <nav>
             <emote-picker

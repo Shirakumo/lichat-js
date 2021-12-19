@@ -43,9 +43,6 @@ class LichatMessage{
             this.replyTo = channel.getMessage(update["reply-to"][0], update["reply-to"][1]);
         else
             this.replyTo = null;
-        // Kludge: spillage from UI.
-        this.showEmotePicker = false;
-        this.showSettings = false;
     }
 
     get time(){
@@ -79,6 +76,15 @@ class LichatMessage{
 
     get shortText(){
         return this.text.split("\n")[0];
+    }
+
+    get text(){
+        return this._text;
+    }
+
+    set text(text){
+        this._text = text;
+        this.html = this.markupText(text);
     }
 
     addReaction(update){
@@ -306,6 +312,7 @@ class LichatChannel{
         options = options || {};
         options.system = true;
         let message = new LichatMessage({
+            id: nextID(),
             from: "System",
             clock: cl.getUniversalTime(),
             text: text,
@@ -403,6 +410,7 @@ class LichatClient{
         this.addHandler("EDIT", (ev)=>{
             let message = this.getChannel(ev.channel).getMessage(ev.from, ev.id);
             if(message) message.text = ev.text;
+            else cl.format("Received react with no message: ~a ~a", ev.target, ev["update-id"]);
         });
 
         this.addHandler("REACT", (ev)=>{
