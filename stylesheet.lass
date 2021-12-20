@@ -346,6 +346,8 @@
    :font-size 1.5em
    :padding 0.2em
    :position relative
+   (>.user.me
+    :position relative)
    (>.content
     :display flex
     :flex-direction column

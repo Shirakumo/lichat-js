@@ -146,6 +146,11 @@ class LichatUser{
         return false;
     }
 
+    get isAway(){
+        // FIXME: implement
+        return false;
+    }
+
     get color(){
         var hash = cl.sxhash(this._name);
         var encoded = hash % 0xFFF;

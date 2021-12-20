@@ -1159,6 +1159,11 @@ class LichatUser{
         return false;
     }
 
+    get isAway(){
+        // FIXME: implement
+        return false;
+    }
+
     get color(){
         var hash = cl.sxhash(this._name);
         var encoded = hash % 0xFFF;
@@ -1743,6 +1748,7 @@ class LichatUI{
         this.showEmotePicker = false;
         this.showChannelMenu = false;
         this.showClientMenu = false;
+        this.showSelfMenu = false;
         this.showSettings = false;
         this.errorMessage = null;
         this.db = null;
@@ -1819,6 +1825,30 @@ class LichatUI{
                     document.addEventListener('mousemove', this.drag);
                     document.addEventListener('mouseup', this.stopDragging);
                 });
+            }
+        });
+
+        Vue.component("self-menu", {
+            template: "#self-menu",
+            props: {client: LichatClient},
+            data: ()=>{
+                return {
+                    showInfo: false,
+                    showIdentitySwitcher: false
+                };
+            },
+            mounted: function(){
+                document.addEventListener('click', (ev)=>{
+                    this.$emit('close');
+                });
+            },
+            methods: {
+                away: function(){
+                    //FIXME: todo
+                },
+                unaway: function(){
+                    //FIXME: todo
+                }
             }
         });
 
