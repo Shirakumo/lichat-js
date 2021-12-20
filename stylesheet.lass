@@ -145,13 +145,13 @@
  (>.side
   :display flex
   :flex-direction column
+  :width 15em
+  :background (hex 101010)
+  :color (hex F0F0F0)
+  :overflow-x hidden
   (>nav
    :flex-grow 1
-   :background (hex 101010)
-   :color (hex F0F0F0)
-   :width 15em
    :padding 0.5em 0 0.5em 0.5em
-   :overflow-x hidden
    :overflow-y auto
    (.server
     (>header
@@ -207,7 +207,6 @@
   (>footer
    :font-size 1.5em
    :background (hex 202020)
-   :color (hex FFFFFF)
    (>nav
     (>a
      :padding 0.2em
