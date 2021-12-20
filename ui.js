@@ -26,6 +26,7 @@ class LichatUI{
         };
         DBOpenRequest.onsuccess = e=>{
             this.db = e.target.result;
+            document.addEventListener('beforeunload', this.saveSetup());
             this.loadSetup();
         };
         DBOpenRequest.onupgradeneeded = e=>{
@@ -638,9 +639,12 @@ class LichatUI{
 
     saveSetup(){
         if(!this.db) return;
+        console.log("Saving...");
         let tx = this.db.transaction("clients", "readwrite");
+        tx.onerror = (ev)=>console.log(ev);
         let store = tx.objectStore("clients");
-        store.clear();
+        // FXME: this is weird when the store is saved on page unload. It just saves the cleared store.
+        //store.clear();
         for(let client of this.clients){
             store.put({
                 name: client.name,
@@ -653,7 +657,7 @@ class LichatUI{
                 channels: client.channelList.map(c => c.encode())
             });
         }
-        tx.onerror = (ev)=>console.log(ev);
+        tx.commit();
     }
 
     clearSetup(){
