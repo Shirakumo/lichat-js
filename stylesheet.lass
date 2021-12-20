@@ -129,7 +129,9 @@
    (a :display block
       :width 1em
       :height 1em
-      :padding 0.2em)))
+      :padding 0.2em
+      (img :max-height 100%
+           :max-width 100%))))
  (.emote-picker.big
   :width 20em
   :height 15em
@@ -286,7 +288,10 @@
      (p
       :white-space pre-wrap
       :overflow-wrap anywhere
-      (a :color inherit))
+      (a :color inherit)
+      (img.emoji
+       :max-height 1em
+       :margin 0 0.1em))
      (textarea
       :width 100%
       :box-sizing border-box

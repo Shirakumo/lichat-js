@@ -282,6 +282,9 @@ class LichatUI{
                     tab: 'emotes', 
                     allEmojis: allEmojiStrings
                 }; 
+            },
+            mounted: function(){
+                twemoji.parse(this.$el);
             }
         });
 
@@ -324,6 +327,9 @@ class LichatUI{
                         this.$refs.input.focus();
                     });
                 }
+            },
+            mounted: function(){
+                twemoji.parse(this.$el);
             }
         });
 
