@@ -10,6 +10,11 @@
  :height 100vh
  :width 100%
  :overflow hidden
+ ((:or .roll-enter-active .roll-leave-active)
+  :transition all 0.5s ease)
+ ((:or .roll-enter .roll-leave-to)
+  :transform "translateX(10px)"
+  :opacity 0)
  (img.icon
   :width 1em
   :height 1em
@@ -85,9 +90,10 @@
  (nav :position relative)
  (.submenu
   :border-radius 0.2em
+  :box-shadow 0 0 0.5em (hex 000000)
   :overflow hidden
   :position absolute
-  :top 0 :right 0
+  :top 1em :right 0
   :background (hex 202020)
   :display flex
   :flex-direction column
@@ -132,64 +138,76 @@
   :top 1em
   :right 0
   :border-radius 0.5em)
- (>nav
-  :background (hex 101010)
-  :color (hex F0F0F0)
-  :width 15em
-  :padding 0.5em 0 0.5em 0.5em
-  :overflow-x hidden
-  :overflow-y auto
-  (.server
-   (>header
-    :font-size 1.5em
-    :display flex
-    (>.name :flex-grow 1))
-   (>ul
-    :list-style none
-    :padding 0 0 0 1em)
-   (.channel
-    :display flex
-    :position relative
-    :height 1.5em
-    :transition 0.2s background
+ (>.side
+  :display flex
+  :flex-direction column
+  (>nav
+   :flex-grow 1
+   :background (hex 101010)
+   :color (hex F0F0F0)
+   :width 15em
+   :padding 0.5em 0 0.5em 0.5em
+   :overflow-x hidden
+   :overflow-y auto
+   (.server
     (>header
-     :padding 0.1em 0.2em
-     :flex-grow 1
-     :display flex)
-    (>.unread-count
-     :background (hex 505050)
-     :width 1.5em
-     :text-align center))
-   ((:and .channel :after)
-    :content ""
-    :position absolute
-    :left -0.99em
-    :top 0
-    :bottom 0
-    :width 1em
-    :height 100%
-    :clip-path "polygon(100% 0, 100% 100%, 0 50%)"
-    :transition 0.2s background
-    :background transparent)
-   (.channel.current
-    :color black
-    :background white)
-   ((:and .channel.current :after)
-    :background white)
-   (.channel.update
-    :background (hex 202020))
-   ((:and .channel.update :after)
-    :background (hex 202020))
-   (.channel.alert
-    :background (hex C00000)
-    (.unread-count
-     :background (hex FF0000)))
-   ((:and .channel.alert :after)
-    :background (hex C00000))
-   ((:and .channel :hover)
-    :background (hex 0088EE))
-   ((:and .channel :hover :after)
-    :background (hex 0088EE))))
+     :font-size 1.5em
+     :display flex
+     (>.name :flex-grow 1))
+    (>ul
+     :list-style none
+     :padding 0 0 0 1em)
+    (.channel
+     :display flex
+     :position relative
+     :height 1.5em
+     :transition 0.2s background
+     (>header
+      :padding 0.1em 0.2em
+      :flex-grow 1
+      :display flex)
+     (>.unread-count
+      :background (hex 505050)
+      :width 1.5em
+      :text-align center))
+    ((:and .channel :after)
+     :content ""
+     :position absolute
+     :left -0.99em
+     :top 0
+     :bottom 0
+     :width 1em
+     :height 100%
+     :clip-path "polygon(100% 0, 100% 100%, 0 50%)"
+     :transition 0.2s background
+     :background transparent)
+    (.channel.current
+     :color black
+     :background white)
+    ((:and .channel.current :after)
+     :background white)
+    (.channel.update
+     :background (hex 202020))
+    ((:and .channel.update :after)
+     :background (hex 202020))
+    (.channel.alert
+     :background (hex C00000)
+     (.unread-count
+      :background (hex FF0000)))
+    ((:and .channel.alert :after)
+     :background (hex C00000))
+    ((:and .channel :hover)
+     :background (hex 0088EE))
+    ((:and .channel :hover :after)
+     :background (hex 0088EE))))
+  (>footer
+   :font-size 1.5em
+   :background (hex 202020)
+   :color (hex FFFFFF)
+   (>nav
+    (>a
+     :padding 0.2em
+     :display inline-block))))
  (.divider
   :min-width 0.3em
   :background (hex 303030)
@@ -252,6 +270,7 @@
      :min-width 10em
      :overflow hidden
      :text-overflow ellipsis
+     :position relative
      (>time
       :font-variant-numeric tabular-nums))
     (>.content

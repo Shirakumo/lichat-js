@@ -1137,12 +1137,26 @@ class LichatUser{
         return "data:"+data[0]+";base64,"+data[1];
     }
 
+    get client(){
+        return this._client;
+    }
+
     get isPresent(){
         return this.isInChannel(this._client.servername);
     }
 
     get isSelf(){
         return this._client.username == this._name;
+    }
+
+    get isBlocked(){
+        // FIXME: implement
+        return false;
+    }
+
+    get isBanned(){
+        // FIXME: implement
+        return false;
     }
 
     get color(){
@@ -1155,6 +1169,11 @@ class LichatUser{
         return "rgb("+Math.min(200, Math.max(50, r))
             +","+Math.min(180, Math.max(80, g))
             +","+Math.min(180, Math.max(80, b))+")";
+    }
+
+    isQuieted(channel){
+        // FIXME: implement
+        return false;
     }
 
     isInChannel(channel){
@@ -1722,6 +1741,9 @@ class LichatUI{
         this.currentChannel = null;
         this.search = null;
         this.showEmotePicker = false;
+        this.showChannelMenu = false;
+        this.showClientMenu = false;
+        this.showSettings = false;
         this.errorMessage = null;
         this.db = null;
         this.defaultClient = {
@@ -1800,6 +1822,77 @@ class LichatUI{
             }
         });
 
+        Vue.component("user-menu", {
+            template: "#user-menu",
+            props: {user: LichatUser},
+            data: ()=>{
+                return {
+                    showInvite: false,
+                    showInfo: false
+                };
+            },
+            mounted: function(){
+                document.addEventListener('click', (ev)=>{
+                    this.$emit('close');
+                });
+            },
+            methods: {
+                whisper: function(){
+                    this.user.client.s("CREATE", {})
+                        .then((e)=>this.user.client.s("PULL", {
+                            target: this.user.name,
+                            channel: e.channel
+                        })).catch((e)=>this.user.client.showStatus("Error: "+e.text));
+                    this.$emit('close');
+                },
+                block: function(){
+                    this.user.client.s("BLOCK", {target: this.message.from})
+                        .then((e)=>this.user.client.showStatus(this.user.name+" has been blocked."))
+                        .catch((e)=>this.user.client.showStatus("Error: "+e.text));
+                    this.$emit('close');
+                },
+                unblock: function(){
+                    this.user.client.s("UNBLOCK", {target: this.user.name})
+                        .then((e)=>this.user.client.showStatus(this.user.name+" has been unblocked."))
+                        .catch((e)=>this.user.client.showStatus("Error: "+e.text));
+                    this.$emit('close');
+                },
+                ban: function(){
+                    this.user.client.s("BAN", {target: this.user.name})
+                        .then((e)=>this.user.client.showStatus(this.user.name+" has been banned."))
+                        .catch((e)=>this.user.client.showStatus("Error: "+e.text));
+                    this.$emit('close');
+                },
+                unban: function(){
+                    this.user.client.s("UNBAN", {target: this.user.name})
+                        .then((e)=>this.user.client.showStatus(this.user.name+" has been unbanned."))
+                        .catch((e)=>this.user.client.showStatus("Error: "+e.text));
+                    this.$emit('close');
+                }
+            }
+        });
+
+        Vue.component("channel-menu", {
+            template: "#channel-menu",
+            props: {channel: LichatChannel},
+            data: ()=>{
+                return {
+                    showInvite: false,
+                    showInfo: false,
+                    showPause: false,
+                    showChannelCreate: false,
+                    showChannelList: false,
+                    showUserList: false,
+                    showPermissions: false
+                };
+            },
+            mounted: function(){
+                document.addEventListener('click', (ev)=>{
+                    this.$emit('close');
+                });
+            }
+        });
+
         Vue.component("message-menu", {
             template: "#message-menu",
             props: {message: LichatMessage},
@@ -1820,10 +1913,16 @@ class LichatUI{
                         .catch((e)=>this.message.channel.showStatus("Error: "+e.text));
                     this.$emit('close');
                 },
-                ban: function(){
-                    this.message.channel.client.s("BAN", {target: this.message.from})
-                        .then((e)=>this.messag.channel.showStatus(this.message.from+" has been banned."))
-                        .catch((e)=>this.message.channel.showStatus("Error: "+e.text));
+                quiet: function(){
+                    this.message.channel.s("QUIET", {target: this.message.from})
+                        .catch((e)=>this.message.channel.showStatus("Error: "+e.text))
+                        .then((e)=>this.message.channel.showStatus(this.message.from+" has been quieted."));
+                    this.$emit('close');
+                },
+                unquiet: function(){
+                    this.message.channel.s("UNQUIET", {target: this.message.from})
+                        .catch((e)=>this.message.channel.showStatus("Error: "+e.text))
+                        .then((e)=>this.message.channel.showStatus(this.message.from+" has been quieted."));
                     this.$emit('close');
                 }
             },
@@ -1903,7 +2002,8 @@ class LichatUI{
                 return {
                     editText: null,
                     emotePicker: false,
-                    settings: false
+                    showSettings: false,
+                    showUserMenu: false
                 };
             },
             methods: {

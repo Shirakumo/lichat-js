@@ -124,12 +124,26 @@ class LichatUser{
         return "data:"+data[0]+";base64,"+data[1];
     }
 
+    get client(){
+        return this._client;
+    }
+
     get isPresent(){
         return this.isInChannel(this._client.servername);
     }
 
     get isSelf(){
         return this._client.username == this._name;
+    }
+
+    get isBlocked(){
+        // FIXME: implement
+        return false;
+    }
+
+    get isBanned(){
+        // FIXME: implement
+        return false;
     }
 
     get color(){
@@ -142,6 +156,11 @@ class LichatUser{
         return "rgb("+Math.min(200, Math.max(50, r))
             +","+Math.min(180, Math.max(80, g))
             +","+Math.min(180, Math.max(80, b))+")";
+    }
+
+    isQuieted(channel){
+        // FIXME: implement
+        return false;
     }
 
     isInChannel(channel){

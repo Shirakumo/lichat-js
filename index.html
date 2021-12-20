@@ -47,15 +47,91 @@
            v-on:click="kick">
           <i class="fas fa-fw fa-sign-out-alt"></i> Kick
         </a>
-        <a class="ban"
-           v-on:click="ban">
-          <i class="fas fa-fw fa-user-slash"></i> Ban
+        <a class="unquiet"
+           v-if="message.author.isQuieted(message.channel)"
+           v-on:click="unquiet">
+          <i class="fas fa-fw fa-user"></i> Unquiet
+        </a>
+        <a class="quiet"
+           v-else
+           v-on:click="quiet">
+          <i class="fas fa-fw fa-user-slash"></i> Quiet
         </a>
         <a class="info"
            v-on:click="showInfo = true">
-          <i class="fas fa-fw fa-info-circle"></i> Info
+          <i class="fas fa-fw fa-info-circle"></i> View Info
         </a>
       </nav>
+    </script>
+    <script type="text/x-template" id="channel-menu">
+      <nav class="submenu" v-on:click.stop="">
+        <a class="invite"
+           v-on:click.stop="showInvite = true">
+          <i class="fas fa-fw fa-user-plus"></i> Invite
+        </a>
+        <a class="create"
+           v-on:click.stop="showChannelCreate = true">
+          <i class="fas fa-fw fa-plus-circle"></i> Create Subchannel
+        </a>
+        <a class="channels"
+           v-on:click.stop="showChannelList = true">
+          <i class="fas fa-fw fa-list"></i> List Subchannels
+        </a>
+        <a class="users"
+           v-on:click.stop="showUserList = true">
+          <i class="fas fa-fw fa-users"></i> List Users
+        </a>
+        <a class="pause"
+           v-on:click.stop="showPause = true">
+          <i class="fas fa-fw fa-stopwatch"></i> Slow Mode
+        </a>
+        <a class="permissions"
+           v-on:click.stop="showPermissions = true">
+          <i class="fas fa-fw fa-gavel"></i> Permissions
+        </a>
+        <a class="info"
+           v-on:click.stop="showInfo = true">
+          <i class="fas fa-fw fa-info-circle"></i> View Info
+        </a>
+      </nav>
+    </script>
+    <script type="text/x-template" id="user-menu">
+      <transition name="roll">
+        <nav class="submenu" v-on:click.stop="">
+          <a class="whisper"
+             v-on:click="whisper">
+            <i class="fas fa-fw fa-people-arrows"></i> Whisper
+          </a>
+          <a class="invite"
+             v-on:click.stop="showInvite = true">
+            <i class="fas fa-fw fa-user-plus"></i> Invite
+          </a>
+          <a class="unblock"
+             v-if="user.isBlocked"
+             v-on:click="unblock">
+            <i class="fas fa-fw fa-user-check"></i> Unblock
+          </a>
+          <a class="block"
+             v-else
+             v-on:click="block">
+            <i class="fas fa-fw fa-user-times"></i> Block
+          </a>
+          <a class="unban"
+             v-if="user.isBanned"
+             v-on:click="unban">
+            <i class="fas fa-fw fa-user-alt"></i> Unban
+          </a>
+          <a class="ban"
+             v-else
+             v-on:click="ban">
+            <i class="fas fa-fw fa-user-alt-slash"></i> Ban
+          </a>
+          <a class="info"
+             v-on:click="showInfo = true">
+            <i class="fas fa-fw fa-info-circle"></i> View Info
+          </a>
+        </nav>
+      </transition>
     </script>
     <script type="text/x-template" id="emote-picker">
       <div class="emote-picker" v-bind:class="classes">
@@ -171,7 +247,11 @@
         <header>
           <time v-bind:title="message.date">{{message.time}}</time>
           <img class="icon" v-bind:src="message.author.icon">
-          <span class="name" 
+          <user-menu v-if="showUserMenu"
+                     v-on:close="showUserMenu = false"
+                     v-bind:user="message.author"></user-menu>
+          <span class="name"
+                v-on:click.stop="showUserMenu = true"
                 v-bind:style="{color: message.author.color}"
                 v-bind:title="message.author.name"
                 v-bind:class="{me: message.author == message.channel.client.user}">{{message.from}}</span>
@@ -208,7 +288,7 @@
         <nav>
           <a class="edit"
              v-if="message.author.isSelf && message.type == 'message' && message.channel.client.isAvailable('shirakumo-edit')"
-             v-on:click="startEditing">
+
             <i class="fas fa-edit"></i>
           </a>
           <a class="reply"
@@ -226,12 +306,12 @@
              v-on:click="emotePicker = !emotePicker">
             <i class="fas fa-surprise"></i>
           </a>
-          <message-menu v-if="settings"
-                        v-on:close="settings = false"
+          <message-menu v-if="showSettings"
+                        v-on:close="showSettings = false"
                         v-bind:message="message"></message-menu>
           <a class="settings"
              v-if="!message.isVirtual"
-             v-on:click.stop="settings = true">
+             v-on:click.stop="showSettings = true">
             <i class="fas fa-ellipsis-h"></i>
           </a>
         </nav>
@@ -240,39 +320,53 @@
   </head>
   <body>
     <div class="client">
-      <nav v-show="0 < clients.length">
-        <section class="server" v-for="client in clients">
-          <header>
-            <img class="icon" v-bind:src="client.icon">
-            <span class="name">{{client.name || client.servername}}</span>
-            <nav>
-              <client-menu v-if="client.showMenu"
-                           v-on:close="client.showMenu = false"
-                           v-bind:client="client"></client-menu>
-              <a class="menu"
-                 v-on:click.stop="client.showMenu = true">
-                <i class="fas fa-ellipsis-h"></i>
-              </a>
-            </nav>
-          </header>
-          <ul class="channels">
-            <li class="channel"
-                v-for="channel in client.channelList"
-                v-bind:class="{current: channel == currentChannel, update: 0 < channel.unread, alert: channel.alerted, primary: channel.isPrimary}"
-                v-on:click="switchChannel(channel)">
-              <header>
-                <img class="icon" v-bind:src="channel.icon">
-                <span class="name">{{channel.name}}</span>
-              </header>
-              <div class="unread-count"
-                   v-if="0 < channel.unread"
-                   v-on:click="channel.unread = 0; channel.alerted = false">
-                {{channel.unread}}
-              </div>
-            </li>
-          </ul>
-        </section>
-      </nav>
+      <div class="side">
+        <nav v-show="0 < clients.length">
+          <section class="server" v-for="client in clients">
+            <header>
+              <img class="icon" v-bind:src="client.icon">
+              <span class="name">{{client.name || client.servername}}</span>
+              <nav>
+                <client-menu v-if="client.showMenu"
+                             v-on:close="client.showMenu = false"
+                             v-bind:client="client"></client-menu>
+                <a class="menu"
+                   v-on:click.stop="client.showMenu = true">
+                  <i class="fas fa-ellipsis-h"></i>
+                </a>
+              </nav>
+            </header>
+            <ul class="channels">
+              <li class="channel"
+                  v-for="channel in client.channelList"
+                  v-bind:class="{current: channel == currentChannel, update: 0 < channel.unread, alert: channel.alerted, primary: channel.isPrimary}"
+                  v-on:click="switchChannel(channel)">
+                <header>
+                  <img class="icon" v-bind:src="channel.icon">
+                  <span class="name">{{channel.name}}</span>
+                </header>
+                <div class="unread-count"
+                     v-if="0 < channel.unread"
+                     v-on:click="channel.unread = 0; channel.alerted = false">
+                  {{channel.unread}}
+                </div>
+              </li>
+            </ul>
+          </section>
+        </nav>
+        <footer>
+          <nav>
+            <a class="create" title="Add client"
+               v-on:click.stop="showClientMenu = true">
+              <i class="fas fa-plus-circle"></i>
+            </a>
+            <a title="Settings"
+               v-on:click.stop="showSettings = true">
+              <i class="fas fa-cogs"></i>
+            </a>
+          </nav>
+        </footer>
+      </div>
       <divider></divider>
       <main v-if="currentChannel" v-on:drop.capture="uploadFile">
         <header>
@@ -289,10 +383,10 @@
                v-on:click="toggleSearch">
               <i class="fas fa-search"></i>
             </a>
-            <a class="info">
-              <i class="fas fa-info-circle"></i>
-            </a>
-            <a class="settings">
+            <channel-menu v-if="showChannelMenu"
+                          v-on:close="showChannelMenu = false"
+                          v-bind:channel="currentChannel"></channel-menu>
+            <a class="settings" v-on:click.stop="showChannelMenu = true">
               <i class="fas fa-ellipsis-h"></i>
             </a>
           </nav>
