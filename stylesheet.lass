@@ -15,6 +15,10 @@
  ((:or .roll-enter .roll-leave-to)
   :transform "translateX(10px)"
   :opacity 0)
+ ((:or .roll-enter-active .roll-leave-active)
+  :transition all 0.5s ease)
+ ((:or .roll-enter .roll-leave-to)
+  :opacity 0)
  (img.icon
   :width 1em
   :height 1em
