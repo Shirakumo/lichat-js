@@ -184,6 +184,7 @@ class LichatChannel{
         this.info = {};
         this.messages = {};
         // KLUDGE: need this to stop Vue from being Weird As Fuck.
+        Object.defineProperty(this.emotes, 'nested', { configurable: false });
         Object.defineProperty(this.messages, 'nested', { configurable: false });
         this.messageList = [];
         this.currentMessage = {text: "", replyTo: null};
@@ -246,11 +247,11 @@ class LichatChannel{
 
     getEmoteList(list){
         let emotes = list || [];
-        for(emote in this.emotes) emotes.push(emote);
+        for(let emote in this.emotes) emotes.push(emote);
         if(!this.isPrimary){
             this.parentChannel.getEmote(emotes);
         }
-        return emotes;
+        return emotes.sort();
     }
 
     joinUser(user){
@@ -345,6 +346,19 @@ class LichatChannel{
         this.messageList.push(message);
         return message;
     }
+
+    encode(){
+        return {
+            name: this.name,
+            emotes: {...this.emotes},
+            joined: this.wasJoined
+        };
+    }
+
+    decode(data){
+        this.emotes = data.emotes;
+        this.wasJoined = data.joined;
+    }
 };
 
 class LichatClient{
@@ -377,8 +391,8 @@ class LichatClient{
         this._pingTimer = null;
         this._reconnectAttempts = 0;
 
-        for(let channel of options.channels || []){
-            this.getChannel(channel).wasJoined = true;
+        for(let data of options.channels || []){
+            this.getChannel(data.name).decode(data);
         }
 
         this.addInternalHandler("CONNECT", (ev)=>{
@@ -409,8 +423,8 @@ class LichatClient{
                     this.s("BACKFILL", {channel: ev.channel}, true);
                 if(this.isAvailable("shirakumo-channel-info"))
                     this.s("CHANNEL-INFO", {channel: ev.channel}, true);
-                //if(this.isAvailable("shirakumo-emotes"))
-                //    this.s("EMOTES", {channel: ev.channel, names: channel.getEmoteList()}, true);
+                if(this.isAvailable("shirakumo-emotes"))
+                    this.s("EMOTES", {channel: ev.channel, names: channel.getEmoteList()}, true);
             }
         });
 
@@ -708,11 +722,7 @@ class LichatClient{
         let channel = update["channel"] || this.servername;
 
         if(update["payload"]){
-            let emote = {
-                contentType: update["content-type"],
-                payload: update["payload"],
-                name: update["name"]
-            };
+            let emote = "data:"+update["content-type"]+";base64,"+update["payload"];
             this.getChannel(channel).emotes[name] = emote;
             return emote;
         }else{

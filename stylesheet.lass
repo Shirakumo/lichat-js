@@ -130,8 +130,14 @@
       :width 1em
       :height 1em
       :padding 0.2em
-      (img :max-height 100%
-           :max-width 100%))))
+      (img
+       :object-fit scale-down
+       :object-position center center
+       :height 100%
+       :width 100%))
+   (a.emote
+    :width 2em
+    :height 2em)))
  (.emote-picker.big
   :width 20em
   :height 15em
@@ -155,6 +161,7 @@
    :flex-grow 1
    :padding 0.5em 0 0.5em 0.5em
    :overflow-y auto
+   :display block !important
    (.server
     (>header
      :font-size 1.5em
@@ -221,6 +228,8 @@
   :flex-grow 1
   :display flex
   :flex-direction column
+  :background (hex 151515)
+  :color white
   (>header
    :display flex
    :background (hex 202020)
@@ -250,8 +259,6 @@
   (>.output
    :flex-grow 1
    :overflow-y scroll
-   :background (hex 151515)
-   :color white
    :scrollbar-color white transparent
    :scrollbar-width thin
    (>.last-read

@@ -175,9 +175,9 @@
           </li>
         </ul>
         <ul class="emotes" v-show="tab == 'emotes'">
-          <li v-for="emote in channel.getEmoteList">
+          <li v-for="emote in channel.getEmoteList()">
             <a class="emote" v-on:click="$emit('close', emote)">
-              <img v-bind:title="emote" src="channel.getEmote(emote)" />
+              <img v-bind:title="emote" v-bind:src="channel.getEmote(emote)" />
             </a>
           </li>
         </ul>
@@ -189,6 +189,7 @@
           <div class="popup">
             <header>
               <h2>Configure Client</h2>
+              <div class="error-message" v-if="errorMessage">{{errorMessage}}</div>
             </header>
             <section>
               <div class="row">
@@ -229,8 +230,9 @@
                        v-model="client.ssl"
                        v-bind:readonly="client.isConnected">
               </div>
-              <input type="button" value="Close" v-on:click="close">
+              <input type="button" value="Save" v-if="client._reader" v-on:click="close">
               <input type="button" value="Delete" v-if="client._reader" v-on:click="remove">
+              <input type="button" value="Create" v-else v-on:click.stop="create">
             </section>
           </div>
         </div>
@@ -378,6 +380,10 @@
           </section>
         </nav>
         <footer>
+          <client-configure
+              v-bind:client="{...defaultClient}"
+              v-if="showClientMenu"
+              v-on:close="showClientMenu = false"></client-configure>
           <nav>
             <a class="create" title="Add client"
                v-on:click.stop="showClientMenu = true">
@@ -455,9 +461,6 @@
         </footer>
       </main>
       <main v-else>
-        <client-configure
-            v-bind:client="{...defaultClient}"
-            v-on:close="addClient"></client-configure>
       </main>
     </div>
     <script>var lichat = new LichatUI();</script>

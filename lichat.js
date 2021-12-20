@@ -1197,6 +1197,7 @@ class LichatChannel{
         this.info = {};
         this.messages = {};
         // KLUDGE: need this to stop Vue from being Weird As Fuck.
+        Object.defineProperty(this.emotes, 'nested', { configurable: false });
         Object.defineProperty(this.messages, 'nested', { configurable: false });
         this.messageList = [];
         this.currentMessage = {text: "", replyTo: null};
@@ -1259,11 +1260,11 @@ class LichatChannel{
 
     getEmoteList(list){
         let emotes = list || [];
-        for(emote in this.emotes) emotes.push(emote);
+        for(let emote in this.emotes) emotes.push(emote);
         if(!this.isPrimary){
             this.parentChannel.getEmote(emotes);
         }
-        return emotes;
+        return emotes.sort();
     }
 
     joinUser(user){
@@ -1358,6 +1359,19 @@ class LichatChannel{
         this.messageList.push(message);
         return message;
     }
+
+    encode(){
+        return {
+            name: this.name,
+            emotes: {...this.emotes},
+            joined: this.wasJoined
+        };
+    }
+
+    decode(data){
+        this.emotes = data.emotes;
+        this.wasJoined = data.joined;
+    }
 };
 
 class LichatClient{
@@ -1390,8 +1404,8 @@ class LichatClient{
         this._pingTimer = null;
         this._reconnectAttempts = 0;
 
-        for(let channel of options.channels || []){
-            this.getChannel(channel).wasJoined = true;
+        for(let data of options.channels || []){
+            this.getChannel(data.name).decode(data);
         }
 
         this.addInternalHandler("CONNECT", (ev)=>{
@@ -1422,8 +1436,8 @@ class LichatClient{
                     this.s("BACKFILL", {channel: ev.channel}, true);
                 if(this.isAvailable("shirakumo-channel-info"))
                     this.s("CHANNEL-INFO", {channel: ev.channel}, true);
-                //if(this.isAvailable("shirakumo-emotes"))
-                //    this.s("EMOTES", {channel: ev.channel, names: channel.getEmoteList()}, true);
+                if(this.isAvailable("shirakumo-emotes"))
+                    this.s("EMOTES", {channel: ev.channel, names: channel.getEmoteList()}, true);
             }
         });
 
@@ -1721,11 +1735,7 @@ class LichatClient{
         let channel = update["channel"] || this.servername;
 
         if(update["payload"]){
-            let emote = {
-                contentType: update["content-type"],
-                payload: update["payload"],
-                name: update["name"]
-            };
+            let emote = "data:"+update["content-type"]+";base64,"+update["payload"];
             this.getChannel(channel).emotes[name] = emote;
             return emote;
         }else{
@@ -1981,12 +1991,25 @@ class LichatUI{
 
         Vue.component("client-configure", {
             template: "#client-configure",
-            props: {client: LichatClient},
+            props: {client: Object},
+            data: ()=>{
+                return {
+                    errorMessage: null
+                };
+            },
             methods: {
                 remove: function(){
-                    lichat.clients.slice(lichat.clients.indexOf(this.client), 1);
-                    lichat.saveSetup();
-                    this.$emit('close');
+                    lichat.removeClient(this.client);
+                    this.close();
+                },
+                create: function(){
+                    let client = new LichatClient(this.client);
+                    lichat.addClient(client)
+                        .then(()=>this.close())
+                        .catch((e)=>{
+                            lichat.removeClient(client);
+                            this.errorMessage = e.reason || e.text || "Failed to connect";
+                        });
                 },
                 close: function(){
                     lichat.saveSetup();
@@ -2161,16 +2184,8 @@ class LichatUI{
                 },
                 addEmote: (ev)=>{
                     this.showEmotePicker = false;
+                    if(!allEmojiStrings.includes(ev)) ev = ":"+ev+":";
                     if(ev) this.currentChannel.currentMessage.text += ev;
-                },
-                addClient: (ev)=>{
-                    let client = new LichatClient(ev);
-                    this.addClient(client)
-                        .then(this.saveSetup())
-                        .catch((e)=>{
-                            this.clients.slice(this.clients.indexOf(client), 1);
-                            this.errorMessage = e.reason || e.text || "Failed to connect";
-                        });
                 }
             }
         });
@@ -2319,6 +2334,15 @@ class LichatUI{
         return client.openConnection();
     }
 
+    removeClient(client){
+        if(client.isConnected) client.closeConnection();
+        let index = this.clients.indexOf(client);
+        if(0 <= index){
+            this.clients.splice(index, 1);
+            this.saveSetup();
+        }
+    }
+
     addCommand(command, fun, help){
         this.commands["/"+command] = {
             handler: fun,
@@ -2366,6 +2390,7 @@ class LichatUI{
         if(!this.db) return;
         let tx = this.db.transaction("clients", "readwrite");
         let store = tx.objectStore("clients");
+        store.clear();
         for(let client of this.clients){
             store.put({
                 name: client.name,
@@ -2375,12 +2400,20 @@ class LichatUI{
                 port: client.port,
                 ssl: client.ssl,
                 aliases: client.aliases,
-                channels: client.channelList.map(c => c.name)
+                channels: client.channelList.map(c => c.encode())
             });
         }
         tx.onerror = (ev)=>console.log(ev);
     }
 
+    clearSetup(){
+        if(!this.db) return;
+        let tx = this.db.transaction("clients", "readwrite");
+        let store = tx.objectStore("clients");
+        store.clear();
+        tx.onerror = (ev)=>console.log(ev);
+    }
+    
     // URL Regex by Diego Perini: https://gist.github.com/dperini/729294
     static URLRegex = new RegExp(
         "^" +
