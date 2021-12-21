@@ -1772,19 +1772,24 @@ class LichatUI{
         };
 
         this.options = {
+            transmitTyping: true,
             showNotifications: true,
             playSound: false,
             notificationLevel: 'mention',
+            font: 'sans-serif',
+            fontSize: '14pt',
+            sidebarWidth: '15em',
         };
 
-        let DBOpenRequest = window.indexedDB.open("lichatjs", 2);
+        let DBOpenRequest = window.indexedDB.open("lichatjs", 4);
         DBOpenRequest.onerror = e=>{
             console.log(e);
             this.initialSetup();
         };
         DBOpenRequest.onsuccess = e=>{
             this.db = e.target.result;
-            document.addEventListener('beforeunload', this.saveSetup());
+            // FIXME: this does not work as expected.
+            //document.addEventListener('beforeunload', this.saveSetup());
             this.loadSetup();
         };
         DBOpenRequest.onupgradeneeded = e=>{
@@ -1897,10 +1902,7 @@ class LichatUI{
                 drag: function(ev){
                     ev.preventDefault();
                     let x = ev.clientX - this.$el.getBoundingClientRect().width;
-                    this.target.style.width = x+"px";
-                    this.target.style.minWidth = x+"px";
-                    this.target.style.maxWidth = x+"px";
-                    this.target.style.flexBasis = x+"px";
+                    lichat.options.sidebarWidth = x+"px";
                 },
                 stopDragging: function(ev){
                     ev.preventDefault();
@@ -2484,27 +2486,35 @@ class LichatUI{
     }
 
     setupDatabase(){
-        let store = this.db.createObjectStore("clients", {keyPath: "name"});
+        let ensureStore = (name, options)=>{
+            if(!this.db.objectStoreNames.contains(name))
+                this.db.createObjectStore(name, options);
+        };
+        ensureStore("clients", {keyPath: "name"});
+        ensureStore("options", {keyPath: "name"});
     }
 
     loadSetup(){
-        let tx = this.db.transaction("clients");
+        let tx = this.db.transaction(["clients","options"]);
+        tx.onerror = (ev)=>console.log(ev);
         tx.objectStore("clients").getAll().onsuccess = (ev)=>{
             for(let options of ev.target.result){
                 this.addClient(new LichatClient(options));
             }
         };
-        tx.onerror = (ev)=>console.log(ev);
+        tx.objectStore("options").get("general").onsuccess = (ev)=>{
+            if(ev.target.result)
+                this.options = ev.target.result;
+        };
     }
 
     saveSetup(){
         if(!this.db) return;
         console.log("Saving...");
-        let tx = this.db.transaction("clients", "readwrite");
+        let tx = this.db.transaction(["clients","options"], "readwrite");
         tx.onerror = (ev)=>console.log(ev);
         let store = tx.objectStore("clients");
-        // FXME: this is weird when the store is saved on page unload. It just saves the cleared store.
-        //store.clear();
+        store.clear();
         for(let client of this.clients){
             store.put({
                 name: client.name,
@@ -2517,6 +2527,10 @@ class LichatUI{
                 channels: client.channelList.map(c => c.encode())
             });
         }
+        tx.objectStore("options").put({
+            name: "general",
+            ...this.options
+        });
         tx.commit();
     }
 

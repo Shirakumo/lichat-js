@@ -340,7 +340,7 @@
   </head>
   <body>
     <div class="client">
-      <div class="side">
+      <div class="side" v-bind:style="{width: options.sidebarWidth, minWidth: options.sidebarWidth, maxWidth: options.sidebarWidth}">
         <nav v-show="0 < clients.length">
           <section class="server" v-for="client in clients">
             <header>
@@ -415,7 +415,8 @@
             </a>
           </nav>
         </header>
-        <section class="output" ref="output">
+        <section class="output" ref="output"
+                 v-bind:style="{fontFamily: options.font, fontSize: options.fontSize}">
           <message v-for="message in currentChannel.messageList"
                    v-bind:message="message"
                    v-bind:key="message.gid"></message>
