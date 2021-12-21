@@ -452,13 +452,13 @@ class LichatClient{
         this.addHandler("EDIT", (ev)=>{
             let message = this.getChannel(ev.channel).getMessage(ev.from, ev.id);
             if(message) message.text = ev.text;
-            else cl.format("Received react with no message: ~a ~a", ev.target, ev["update-id"]);
+            else console.warn("Received react with no message", ev.target, ev["update-id"]);
         });
 
         this.addHandler("REACT", (ev)=>{
             let message = this.getChannel(ev.channel).getMessage(ev.target, ev["update-id"]);
             if(message) message.addReaction(ev);
-            else cl.format("Received react with no message: ~a ~a", ev.target, ev["update-id"]);
+            else console.warn("Received react with no message", ev.target, ev["update-id"]);
         });
     }
 
@@ -538,7 +538,7 @@ class LichatClient{
         this._socket.send(stream.string+'\u0000');
 
         if(!cl.typep(wireable, "PING") && !cl.typep(wireable, "PONG"))
-            cl.format("[Lichat] Send:~s", wireable);
+            console.debug("Send", wireable);
         return wireable;
     }
 
@@ -573,7 +573,7 @@ class LichatClient{
             this.startDelayPing();
             this.process(update);
         }catch(e){
-            cl.format("Error during message handling: ~s", e);
+            console.error("Error during message handling", e);
         }
         return this;
     }
@@ -595,7 +595,7 @@ class LichatClient{
                 try{
                     callback.call(this, update);
                 }catch(e){
-                    cl.format("Callback error: ~s", e);
+                    console.error("Callback error", e);
                 }
             }
             this.removeCallback(id);
@@ -604,7 +604,7 @@ class LichatClient{
 
     process(update){
         if(!cl.typep(update, "PING") && !cl.typep(update, "PONG"))
-            cl.format("[Lichat] Update:~s",update);
+            console.debug("Update",update);
         if(cl.typep(update, "UPDATE-FAILURE"))
             this.processCallbacks(update["update-id"], update);
         else
