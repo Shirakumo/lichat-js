@@ -308,8 +308,7 @@
         </div>
         <nav>
           <a class="edit"
-             v-if="message.author.isSelf && message.type == 'message' && message.channel.client.isAvailable('shirakumo-edit')"
-
+             v-if="message.author.isSelf && message.type == 'message' && message.channel.client.isAvailable('shirakumo-edit')">
             <i class="fas fa-edit"></i>
           </a>
           <a class="reply"
