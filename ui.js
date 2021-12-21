@@ -76,7 +76,7 @@ class LichatUI{
             let notify = false;
             let level = this.notificationLevel;
             if(level == 'inherit')
-                level = this.client.options.notificationLevel;
+                level = lichat.options.notificationLevel;
             if(level == 'all')
                 notify = true;
             if(message.html.includes("<mark>")){
@@ -572,9 +572,13 @@ class LichatUI{
 
         this.addCommand("join", (channel, ...name)=>{
             name = name.join(" ");
-            channel.client.s("JOIN", {channel: name})
-                .then(()=>{this.currentChannel = channel.client.getChannel(name);})
-                .catch((e)=>channel.showStatus("Error: "+e.text));
+            if(channel.client.hasChannel(name) && channel.client.getChannel(name).isPresent){
+                this.app.switchChannel(channel.client.getChannel(name));
+            }else{
+                channel.client.s("JOIN", {channel: name})
+                    .then(()=>{this.currentChannel = channel.client.getChannel(name);})
+                    .catch((e)=>channel.showStatus("Error: "+e.text));
+            }
         }, "Join a new channel.");
 
         this.addCommand("leave", (channel, ...name)=>{

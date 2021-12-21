@@ -133,7 +133,7 @@ class LichatUser{
     }
 
     get isSelf(){
-        return this._client.username == this._name;
+        return this._client.username.localeCompare(this._name, undefined, { sensitivity: 'accent' }) === 0;
     }
 
     get isBlocked(){
@@ -703,6 +703,10 @@ class LichatClient{
         let channel = this.channels[name.toLowerCase()];
         delete this.channels[name.toLowerCase()];
         return channel;
+    }
+
+    hasChannel(name){
+        return name.toLowerCase() in this.channels;
     }
 
     get user(){
