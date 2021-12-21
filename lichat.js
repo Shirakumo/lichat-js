@@ -1498,7 +1498,7 @@ class LichatClient{
                 }, true);
             };
             this._socket.onmessage = (e)=>{
-                let update = this._reader.fromWire(new LichatStream(event.data));
+                let update = this._reader.fromWire(new LichatStream(e.data));
                 try{
                     if(!(cl.typep(update, "WIRE-OBJECT")))
                         fail({text: "non-Update message", update: update});
