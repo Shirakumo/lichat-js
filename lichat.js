@@ -1787,7 +1787,7 @@ class LichatUI{
 
         let DBOpenRequest = window.indexedDB.open("lichatjs", 4);
         DBOpenRequest.onerror = e=>{
-            console.log(e);
+            console.error(e);
             this.initialSetup();
         };
         DBOpenRequest.onsuccess = e=>{
@@ -2464,7 +2464,7 @@ class LichatUI{
             args[0] = channel;
             command.handler.apply(this, args);
         }catch(e){
-            console.log(e);
+            console.error(e);
             channel.showStatus("Error: "+e);
         }
     }
@@ -2504,7 +2504,7 @@ class LichatUI{
 
     loadSetup(){
         let tx = this.db.transaction(["clients","options"]);
-        tx.onerror = (ev)=>console.log(ev);
+        tx.onerror = (ev)=>console.error(ev);
         tx.objectStore("clients").getAll().onsuccess = (ev)=>{
             for(let options of ev.target.result){
                 this.addClient(new LichatClient(options));
@@ -2520,7 +2520,7 @@ class LichatUI{
         if(!this.db) return;
         console.log("Saving...");
         let tx = this.db.transaction(["clients","options"], "readwrite");
-        tx.onerror = (ev)=>console.log(ev);
+        tx.onerror = (ev)=>console.error(ev);
         let store = tx.objectStore("clients");
         store.clear();
         for(let client of this.clients){
@@ -2547,7 +2547,7 @@ class LichatUI{
         let tx = this.db.transaction("clients", "readwrite");
         let store = tx.objectStore("clients");
         store.clear();
-        tx.onerror = (ev)=>console.log(ev);
+        tx.onerror = (ev)=>console.error(ev);
     }
 
     static allEmoji = {};
