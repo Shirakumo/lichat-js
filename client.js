@@ -199,6 +199,7 @@ class LichatChannel{
         // KLUDGE: spillage from ui
         this.unread = 0;
         this.alerted = false;
+        this.lastRead = null;
     }
 
     get name(){
@@ -249,7 +250,7 @@ class LichatChannel{
         let emotes = list || [];
         for(let emote in this.emotes) emotes.push(emote);
         if(!this.isPrimary){
-            this.parentChannel.getEmote(emotes);
+            this.parentChannel.getEmoteList(emotes);
         }
         return emotes.sort();
     }

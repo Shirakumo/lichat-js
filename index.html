@@ -10,15 +10,9 @@
     <script src="lichat.js"></script>
     <script type="text/x-template" id="self-menu">
       <nav class="submenu" v-on:click.stop="">
-        <a class="unaway"
-           v-if="client.user.isAway"
-           v-on:click.stop="unaway">
-          <i class="fas fa-fw fa-sign-in-alt"></i> Unaway
-        </a>
-        <a class="away"
-           v-else
-           v-on:click.stop="away">
-          <i class="fas fa-fw fa-sign-out-alt"></i> Away
+        <a class="status"
+           v-on:click.stop="showStatus = true">
+          <i class="fas fa-fw fa-comment-dots"></i> Set Status
         </a>
         <a class="identity"
            v-on:click.stop="showIdentitySwitcher = true">
@@ -420,7 +414,7 @@
             </a>
           </nav>
         </header>
-        <section class="output">
+        <section class="output" ref="output">
           <message v-for="message in currentChannel.messageList"
                    v-bind:message="message"
                    v-bind:key="message.gid"></message>

@@ -1212,6 +1212,7 @@ class LichatChannel{
         // KLUDGE: spillage from ui
         this.unread = 0;
         this.alerted = false;
+        this.lastRead = null;
     }
 
     get name(){
@@ -1262,7 +1263,7 @@ class LichatChannel{
         let emotes = list || [];
         for(let emote in this.emotes) emotes.push(emote);
         if(!this.isPrimary){
-            this.parentChannel.getEmote(emotes);
+            this.parentChannel.getEmoteList(emotes);
         }
         return emotes.sort();
     }
@@ -1784,16 +1785,46 @@ class LichatUI{
             this.setupDatabase();
         };
 
-        LichatChannel.prototype._record = LichatChannel.prototype.record;
-        LichatChannel.prototype.record = function(update){
-            let message = this._record(update);
-            let output = document.querySelector(".client .output");
-            if(output && output.scrollTop === (output.scrollHeight - output.offsetHeight))
-                Vue.nextTick(() => {
-                    document.getElementById(message.gid).scrollIntoView();
-                });
-            
+        let supersede = (object, field, newfun)=>{
+            let original = object.prototype[field];
+            object.prototype[field] = function(...args){
+                let self = this;
+                args.unshift((...args)=>original.apply(self, args));
+                newfun.apply(this, args);
+            };
         };
+
+        supersede(LichatChannel, 'record', function(nextMethod, update){
+            let message = nextMethod(update);
+            let notify = true;
+            if(lichat.currentChannel == message.channel){
+                let output = lichat.app.$refs.output;
+                if(!output)
+                    notify = false;
+                else if(output.scrollTop === (output.scrollHeight - output.offsetHeight)){
+                    if(!document.hidden) notify = false;
+                    Vue.nextTick(() => {
+                        document.getElementById(message.gid).scrollIntoView();
+                    });
+                }
+            }
+            if(notify) this.notify(message);
+        });
+
+        LichatChannel.prototype.notify = function(message){
+            this.unread++;
+            if(!this.alerted && message.html.includes("<mark>"))
+                this.alerted = true;
+            lichat.updateTitle();
+        };
+
+        document.addEventListener("visibilitychange", ()=>{
+            if(!document.hidden){
+                this.currentChannel.unread = 0;
+                this.currentChannel.alerted = false;
+                this.updateTitle();
+            }
+        });
 
         // Patch the markup method here to include our specific changes.
         LichatMessage.prototype.markupText = function(text){
@@ -1823,6 +1854,9 @@ class LichatUI{
                     ev.preventDefault();
                     let x = ev.clientX - this.$el.getBoundingClientRect().width;
                     this.target.style.width = x+"px";
+                    this.target.style.minWidth = x+"px";
+                    this.target.style.maxWidth = x+"px";
+                    this.target.style.flexBasis = x+"px";
                 },
                 stopDragging: function(ev){
                     ev.preventDefault();
@@ -1845,21 +1879,14 @@ class LichatUI{
             data: ()=>{
                 return {
                     showInfo: false,
-                    showIdentitySwitcher: false
+                    showIdentitySwitcher: false,
+                    showStatus: false
                 };
             },
             mounted: function(){
                 document.addEventListener('click', (ev)=>{
                     this.$emit('close');
                 });
-            },
-            methods: {
-                away: function(){
-                    //FIXME: todo
-                },
-                unaway: function(){
-                    //FIXME: todo
-                }
             }
         });
 
@@ -2102,9 +2129,14 @@ class LichatUI{
             data: this,
             methods: {
                 switchChannel: (channel)=>{
+                    channel.unread = 0;
+                    channel.alerted = false;
                     this.currentChannel = channel;
+                    this.updateTitle();
                     Vue.nextTick(() => {
+                        this.app.$refs.output.scrollTop = this.app.$refs.output.scrollHeight;
                         this.app.$refs.input.focus();
+                        
                     });
                 },
                 toggleSearch: ()=>{
@@ -2317,7 +2349,7 @@ class LichatUI{
             ev.text = " ** Joined " + ev.channel;
             let channel = client.getChannel(ev.channel);
             channel.record(ev);
-            if(ev.from == client.username){
+            if(client.getUser(ev.from.toLowerCase()).isSelf){
                 client.addToChannelList(channel);
             }
             if(!this.currentChannel){
@@ -2366,6 +2398,21 @@ class LichatUI{
 
     showSearchResults(channel, results, query){
         
+    }
+
+    updateTitle(){
+        let title = "Lichat";
+        let count = 0;
+        for(let client of this.clients){
+            for(let channel of client.channelList){
+                count += channel.unread;
+            }
+        }
+        if(this.currentChannel)
+            title = this.currentChannel.name+" | "+title;
+        if(0 < count)
+            title = "("+count+") "+title;
+        document.title = title;
     }
 
     initialSetup(){
@@ -2521,8 +2568,9 @@ class LichatUI{
     }
 
     static markSelf(text, channel){
-        // FIXME: allow specifying own nicknames
-        let names = channel.client.username? [channel.client.username] : [];
+        let names = [...channel.client.aliases];
+        if(channel.client.username)
+            names.push(channel.client.username);
         let stream = new LichatStream();
         let inLink = false;
         for(let i=0; i<text.length; i++){
@@ -2565,7 +2613,7 @@ class LichatUI{
                     // If we do have an emote of that name
                     let content = channel.getEmote(emote);
                     if(content){
-                        out = out+content;
+                        out = out+"<img alt='"+emote+"' title='"+emote+"' src='"+content+"'>";
                         // Scan ahead for next possible end point after "skipping" the emote.
                         end++;
                         start = end;
