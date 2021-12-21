@@ -200,6 +200,7 @@ class LichatChannel{
         this.unread = 0;
         this.alerted = false;
         this.lastRead = null;
+        this.notificationLevel = 'inherit';
     }
 
     get name(){
@@ -352,13 +353,15 @@ class LichatChannel{
         return {
             name: this.name,
             emotes: {...this.emotes},
-            joined: this.wasJoined
+            joined: this.wasJoined,
+            notificationLevel: this.notificationLevel,
         };
     }
 
     decode(data){
         this.emotes = data.emotes;
         this.wasJoined = data.joined;
+        this.notificationLevel = data.notificationLevel;
     }
 };
 

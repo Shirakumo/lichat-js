@@ -1211,6 +1211,7 @@ class LichatChannel{
         this.unread = 0;
         this.alerted = false;
         this.lastRead = null;
+        this.notificationLevel = 'inherit';
     }
 
     get name(){
@@ -1363,13 +1364,15 @@ class LichatChannel{
         return {
             name: this.name,
             emotes: {...this.emotes},
-            joined: this.wasJoined
+            joined: this.wasJoined,
+            notificationLevel: this.notificationLevel,
         };
     }
 
     decode(data){
         this.emotes = data.emotes;
         this.wasJoined = data.joined;
+        this.notificationLevel = data.notificationLevel;
     }
 };
 
@@ -1768,6 +1771,12 @@ class LichatUI{
             port: LichatDefaultSSLPort
         };
 
+        this.options = {
+            showNotifications: true,
+            playSound: false,
+            notificationLevel: 'mention',
+        };
+
         let DBOpenRequest = window.indexedDB.open("lichatjs", 2);
         DBOpenRequest.onerror = e=>{
             console.log(e);
@@ -1811,8 +1820,37 @@ class LichatUI{
 
         LichatChannel.prototype.notify = function(message){
             this.unread++;
-            if(!this.alerted && message.html.includes("<mark>"))
-                this.alerted = true;
+            let notify = false;
+            let level = this.notificationLevel;
+            if(level == 'inherit')
+                level = this.client.options.notificationLevel;
+            if(level == 'all')
+                notify = true;
+            if(message.html.includes("<mark>")){
+                if(!this.alerted) this.alerted = true;
+                if(level == 'mentions')
+                    notify = true;
+            }
+            if(notify && lichat.options.showNotifications && Notification.permission === "granted"){
+                let notification = new Notification(message.from+" in "+this.name, {
+                    body: (message.isImage)? undefined: message.text,
+                    image: (message.isImage)? message.text: undefined,
+                    tag: this.name,
+                    actions: [{
+                        action: "close",
+                        title: "Dismiss"
+                    }]
+                });
+                notification.addEventListener('notificationclick', (ev)=>{
+                    event.notification.close();
+                    if(event.action != 'close'){
+                        message.highlight();
+                    }
+                });
+            }
+            if(notify && lichat.options.playSound){
+                LichatUI.sound.play();
+            }
             lichat.updateTitle();
         };
 
@@ -1824,9 +1862,17 @@ class LichatUI{
             }
         });
 
-        // Patch the markup method here to include our specific changes.
         LichatMessage.prototype.markupText = function(text){
             return LichatUI.formatUserText(text, this.channel);
+        };
+
+        LichatMessage.prototype.highlight = function(){
+            lichat.currentChannel = this.channel;
+            Vue.nextTick(() => {
+                let element = document.getElementById(this.gid);
+                element.classList.add('highlight');
+                element.scrollIntoView();
+            });
         };
 
         LichatClient.prototype.addToChannelList = function(channel){
@@ -2337,6 +2383,7 @@ class LichatUI{
         client.showMenu = false;
         client.channelList = [];
         client.aliases = [];
+        client.notificationLevel = 'all';
 
         client.getEmergencyChannel = ()=>{
             if(this.currentChannel && this.currentChannel.client == client){
@@ -2482,6 +2529,8 @@ class LichatUI{
     }
 
     static allEmoji = {};
+
+    static sound = new Audio('notify.mp3');
     
     // URL Regex by Diego Perini: https://gist.github.com/dperini/729294
     static URLRegex = new RegExp(
