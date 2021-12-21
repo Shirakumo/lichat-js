@@ -320,11 +320,26 @@ class LichatUI{
             data: ()=>{
                 return {
                     tab: 'emotes', 
-                    allEmojis: allEmojiStrings
+                    allEmoji: LichatUI.allEmoji
                 }; 
             },
             mounted: function(){
-                twemoji.parse(this.$el);
+                twemoji.parse(this.$refs.emoji);
+                this.$refs.input.focus();
+            },
+            methods: {
+                filter: function(ev){
+                    let text = ev.target.value;
+                    let group = (this.tab == 'emotes')? this.$refs.emotes :
+                        (this.tab == 'emoji') ? this.$refs.emoji :
+                        null;
+                    if(group){
+                        for(let i=0; i<group.children.length; i++){
+                            let child = group.children[i];
+                            child.style.display = child.getAttribute("title").includes(text)? "block" : "none";
+                        }
+                    }
+                }
             }
         });
 
@@ -466,7 +481,7 @@ class LichatUI{
                 },
                 addEmote: (ev)=>{
                     this.showEmotePicker = false;
-                    if(!allEmojiStrings.includes(ev)) ev = ":"+ev+":";
+                    if(!ev in LichatUI.allEmoji) ev = ":"+ev+":";
                     if(ev) this.currentChannel.currentMessage.text += ev;
                 }
             }
@@ -713,6 +728,8 @@ class LichatUI{
         store.clear();
         tx.onerror = (ev)=>console.log(ev);
     }
+
+    static allEmoji = {};
     
     // URL Regex by Diego Perini: https://gist.github.com/dperini/729294
     static URLRegex = new RegExp(
@@ -884,3 +901,15 @@ class LichatUI{
         return LichatUI.replaceEmotes(LichatUI.markSelf(LichatUI.linkifyURLs(LichatUI.escapeHTML(text)), channel), channel);
     }
 }
+
+
+(()=>{
+    let request = new XMLHttpRequest();
+    request.onreadystatechange = ()=>{
+        if(request.readyState === XMLHttpRequest.DONE && request.status == 200){
+            LichatUI.allEmoji = JSON.parse(request.responseText);
+        }
+    };
+    request.open('GET', 'https://cdn.jsdelivr.net/npm/emojilib@3.0.4/dist/emoji-en-US.json');
+    request.send();
+})();

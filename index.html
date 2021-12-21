@@ -163,18 +163,20 @@
             <i class="fas fa-times-circle"></i>
           </a>
         </nav>
-        <ul class="emoji" v-show="tab == 'emoji'">
-          <li v-for="emoji in allEmojis">
+        <ul class="emoji" v-show="tab == 'emoji'" ref="emoji">
+          <li v-for="(names, emoji) in allEmoji" v-bind:title="names.join(', ')">
             <a class="emoji" v-on:click="$emit('close', emoji)">{{ emoji }}</a>
           </li>
         </ul>
-        <ul class="emotes" v-show="tab == 'emotes'">
-          <li v-for="emote in channel.getEmoteList()">
+        <ul class="emotes" v-show="tab == 'emotes'" ref="emotes">
+          <li v-for="emote in channel.getEmoteList()" v-bind:title="emote">
             <a class="emote" v-on:click="$emit('close', emote)">
-              <img v-bind:title="emote" v-bind:src="channel.getEmote(emote)" />
+              <img v-bind:src="channel.getEmote(emote)" />
             </a>
           </li>
         </ul>
+        <input type="text" placeholder="Filter..." ref="input"
+               v-on:input="filter">
       </div>
     </script>
     <script type="text/x-template" id="client-configure">
