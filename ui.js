@@ -525,11 +525,10 @@ class LichatUI{
                     this.currentChannel.s("SEARCH", {query: query})
                         .then((ev)=>this.showSearchResults(channel, ev.results, query))
                         .catch((e)=>channel.showStatus("Error: "+e.text));
-                    ;
                 },
                 addEmote: (ev)=>{
                     this.showEmotePicker = false;
-                    if(!ev in LichatUI.allEmoji) ev = ":"+ev+":";
+                    if(!(ev in LichatUI.allEmoji)) ev = ":"+ev+":";
                     if(ev) this.currentChannel.currentMessage.text += ev;
                 }
             }
@@ -539,15 +538,6 @@ class LichatUI{
             if(subcommand){
                 let command = this.commands["/"+subcommand];
                 if(command){
-                    let STRIP_COMMENTS = /(\/\/.*$)|(\/\*[\s\S]*?\*\/)|(\s*=[^,\)]*(('(?:\\'|[^'\r\n])*')|("(?:\\"|[^"\r\n])*"))|(\s*=[^,\)]*))/mg;
-                    let ARGUMENT_NAMES = /([^\s,]+)/g;
-                    function getParamNames(func) {
-                        let fnStr = func.toString().replace(STRIP_COMMENTS, '');
-                        let result = fnStr.slice(fnStr.indexOf('(')+1, fnStr.indexOf(')')).match(ARGUMENT_NAMES);
-                        if(result === null)
-                            result = [];
-                        return result;
-                    }
                     let arglist = getParamNames(command.handler);
                     channel.showStatus("/"+subcommand+" "+arglist.join(" ")+"\n\n"+command.help);
                 }else{
@@ -556,12 +546,22 @@ class LichatUI{
             }else{
                 let text = "<table><thead><tr><th>Command</th><th>Help</th></tr></thead><tbody>";
                 for(let name in this.commands){
-                    text += "<tr><td>"+name
-                        +"</td><td>"+this.commands[name].help
-                        +"</td></tr>";
+                    text += "<tr><td>"+name+
+                        "</td><td>"+this.commands[name].help+
+                        "</td></tr>";
                 }
                 text += "</tbody></table>";
                 channel.showStatus(text, {html: true});
+            }
+
+            let STRIP_COMMENTS = /(\/\/.*$)|(\/\*[\s\S]*?\*\/)|(\s*=[^,\)]*(('(?:\\'|[^'\r\n])*')|("(?:\\"|[^"\r\n])*"))|(\s*=[^,\)]*))/mg;
+            let ARGUMENT_NAMES = /([^\s,]+)/g;
+            function getParamNames(func) {
+                let fnStr = func.toString().replace(STRIP_COMMENTS, '');
+                let result = fnStr.slice(fnStr.indexOf('(')+1, fnStr.indexOf(')')).match(ARGUMENT_NAMES);
+                if(result === null)
+                    result = [];
+                return result;
             }
         }, "Show help information on the available commands.");
 

@@ -31,13 +31,13 @@ var LichatPrinter = function(){
 
     self.printSexprNumber = (number, stream)=>{
         if(Math.abs(number) < 1.0){
-            var e = parseInt(number.toString().split('e-')[1]);
+            let e = parseInt(number.toString().split('e-')[1]);
             if(e){
                 number *= Math.pow(10,e-1);
                 number = '0.' + (new Array(e)).join('0') + number.toString().substring(2);
             }
         }else{
-            var e = parseInt(number.toString().split('+')[1]);
+            let e = parseInt(number.toString().split('+')[1]);
             if(e > 20){
                 e -= 20;
                 number /= Math.pow(10,e);
@@ -48,7 +48,7 @@ var LichatPrinter = function(){
     };
     
     self.printSexprToken = (token, stream)=>{
-        for(var character of token){
+        for(let character of token){
             if("\\\"():0123456789. #".indexOf(character) >= 0){
                 stream.writeChar("\\");
             }

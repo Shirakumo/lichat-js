@@ -51,8 +51,8 @@ class LichatMessage{
     }
 
     get date(){
-        return this.clock.toLocaleDateString()
-            +", "+this.clock.toLocaleTimeString();
+        return this.clock.toLocaleDateString()+
+            ", "+this.clock.toLocaleTimeString();
     }
 
     get isImage(){ return this.contentType.includes("image"); }
@@ -158,9 +158,9 @@ class LichatUser{
         var g = 16*(1+(encoded&0x0F0)>>4)-1;
         var b = 16*(1+(encoded&0x00F)>>0)-1;
         
-        return "rgb("+Math.min(200, Math.max(50, r))
-            +","+Math.min(180, Math.max(80, g))
-            +","+Math.min(180, Math.max(80, b))+")";
+        return "rgb("+Math.min(200, Math.max(50, r))+
+            ","+Math.min(180, Math.max(80, g))+
+            ","+Math.min(180, Math.max(80, b))+")";
     }
 
     isQuieted(channel){
@@ -237,7 +237,7 @@ class LichatChannel{
     }
 
     get topic(){
-        return this.info["TOPIC"];
+        return this.info[":TOPIC"];
     }
 
     getEmote(name){
@@ -285,7 +285,7 @@ class LichatChannel{
 
     s(type, args, noPromise){
         args = args || {};
-        args["channel"] = this.name;
+        args.channel = this.name;
         return this._client.s(type, args, noPromise);
     }
 
@@ -312,8 +312,8 @@ class LichatChannel{
             while(start<=end){
                 let mid = Math.floor((start + end)/2);
                 let cmp = this.messageList[mid].timestamp;
-                if(stamp <= cmp
-                   && (mid == 0 || this.messageList[mid-1].timestamp <= stamp)){
+                if(stamp <= cmp &&
+                   (mid == 0 || this.messageList[mid-1].timestamp <= stamp)){
                     this.messageList.splice(start, 0, message);
                     break;
                 }
@@ -363,7 +363,7 @@ class LichatChannel{
         this.wasJoined = data.joined;
         this.notificationLevel = data.notificationLevel;
     }
-};
+}
 
 class LichatClient{
     constructor(options){
@@ -495,7 +495,7 @@ class LichatClient{
                         fail({text: update.text, update: update});
                     else{
                     }
-                }catch(e){
+                }catch(err){
                     this.closeConnection();
                 }
                 if(!this.username)
@@ -726,11 +726,11 @@ class LichatClient{
     }
 
     addEmote(update){
-        let name = update["name"].toLowerCase().replace(/^:|:$/g,"");
-        let channel = update["channel"] || this.servername;
+        let name = update.name.toLowerCase().replace(/^:|:$/g,"");
+        let channel = update.channel || this.servername;
 
-        if(update["payload"]){
-            let emote = "data:"+update["content-type"]+";base64,"+update["payload"];
+        if(update.payload){
+            let emote = "data:"+update["content-type"]+";base64,"+update.payload;
             this.getChannel(channel).emotes[name] = emote;
             return emote;
         }else{
@@ -742,4 +742,4 @@ class LichatClient{
     isAvailable(name){
         return cl.find(name, this.availableExtensions);
     }
-};
+}

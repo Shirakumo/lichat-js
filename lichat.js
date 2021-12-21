@@ -756,13 +756,13 @@ var LichatPrinter = function(){
 
     self.printSexprNumber = (number, stream)=>{
         if(Math.abs(number) < 1.0){
-            var e = parseInt(number.toString().split('e-')[1]);
+            let e = parseInt(number.toString().split('e-')[1]);
             if(e){
                 number *= Math.pow(10,e-1);
                 number = '0.' + (new Array(e)).join('0') + number.toString().substring(2);
             }
         }else{
-            var e = parseInt(number.toString().split('+')[1]);
+            let e = parseInt(number.toString().split('+')[1]);
             if(e > 20){
                 e -= 20;
                 number /= Math.pow(10,e);
@@ -773,7 +773,7 @@ var LichatPrinter = function(){
     };
     
     self.printSexprToken = (token, stream)=>{
-        for(var character of token){
+        for(let character of token){
             if("\\\"():0123456789. #".indexOf(character) >= 0){
                 stream.writeChar("\\");
             }
@@ -1062,8 +1062,8 @@ class LichatMessage{
     }
 
     get date(){
-        return this.clock.toLocaleDateString()
-            +", "+this.clock.toLocaleTimeString();
+        return this.clock.toLocaleDateString()+
+            ", "+this.clock.toLocaleTimeString();
     }
 
     get isImage(){ return this.contentType.includes("image"); }
@@ -1169,9 +1169,9 @@ class LichatUser{
         var g = 16*(1+(encoded&0x0F0)>>4)-1;
         var b = 16*(1+(encoded&0x00F)>>0)-1;
         
-        return "rgb("+Math.min(200, Math.max(50, r))
-            +","+Math.min(180, Math.max(80, g))
-            +","+Math.min(180, Math.max(80, b))+")";
+        return "rgb("+Math.min(200, Math.max(50, r))+
+            ","+Math.min(180, Math.max(80, g))+
+            ","+Math.min(180, Math.max(80, b))+")";
     }
 
     isQuieted(channel){
@@ -1248,7 +1248,7 @@ class LichatChannel{
     }
 
     get topic(){
-        return this.info["TOPIC"];
+        return this.info[":TOPIC"];
     }
 
     getEmote(name){
@@ -1296,7 +1296,7 @@ class LichatChannel{
 
     s(type, args, noPromise){
         args = args || {};
-        args["channel"] = this.name;
+        args.channel = this.name;
         return this._client.s(type, args, noPromise);
     }
 
@@ -1323,8 +1323,8 @@ class LichatChannel{
             while(start<=end){
                 let mid = Math.floor((start + end)/2);
                 let cmp = this.messageList[mid].timestamp;
-                if(stamp <= cmp
-                   && (mid == 0 || this.messageList[mid-1].timestamp <= stamp)){
+                if(stamp <= cmp &&
+                   (mid == 0 || this.messageList[mid-1].timestamp <= stamp)){
                     this.messageList.splice(start, 0, message);
                     break;
                 }
@@ -1374,7 +1374,7 @@ class LichatChannel{
         this.wasJoined = data.joined;
         this.notificationLevel = data.notificationLevel;
     }
-};
+}
 
 class LichatClient{
     constructor(options){
@@ -1506,7 +1506,7 @@ class LichatClient{
                         fail({text: update.text, update: update});
                     else{
                     }
-                }catch(e){
+                }catch(err){
                     this.closeConnection();
                 }
                 if(!this.username)
@@ -1737,11 +1737,11 @@ class LichatClient{
     }
 
     addEmote(update){
-        let name = update["name"].toLowerCase().replace(/^:|:$/g,"");
-        let channel = update["channel"] || this.servername;
+        let name = update.name.toLowerCase().replace(/^:|:$/g,"");
+        let channel = update.channel || this.servername;
 
-        if(update["payload"]){
-            let emote = "data:"+update["content-type"]+";base64,"+update["payload"];
+        if(update.payload){
+            let emote = "data:"+update["content-type"]+";base64,"+update.payload;
             this.getChannel(channel).emotes[name] = emote;
             return emote;
         }else{
@@ -1753,7 +1753,7 @@ class LichatClient{
     isAvailable(name){
         return cl.find(name, this.availableExtensions);
     }
-};
+}
 class LichatUI{
     constructor(el){
         let lichat = this;
@@ -2281,11 +2281,10 @@ class LichatUI{
                     this.currentChannel.s("SEARCH", {query: query})
                         .then((ev)=>this.showSearchResults(channel, ev.results, query))
                         .catch((e)=>channel.showStatus("Error: "+e.text));
-                    ;
                 },
                 addEmote: (ev)=>{
                     this.showEmotePicker = false;
-                    if(!ev in LichatUI.allEmoji) ev = ":"+ev+":";
+                    if(!(ev in LichatUI.allEmoji)) ev = ":"+ev+":";
                     if(ev) this.currentChannel.currentMessage.text += ev;
                 }
             }
@@ -2295,15 +2294,6 @@ class LichatUI{
             if(subcommand){
                 let command = this.commands["/"+subcommand];
                 if(command){
-                    let STRIP_COMMENTS = /(\/\/.*$)|(\/\*[\s\S]*?\*\/)|(\s*=[^,\)]*(('(?:\\'|[^'\r\n])*')|("(?:\\"|[^"\r\n])*"))|(\s*=[^,\)]*))/mg;
-                    let ARGUMENT_NAMES = /([^\s,]+)/g;
-                    function getParamNames(func) {
-                        let fnStr = func.toString().replace(STRIP_COMMENTS, '');
-                        let result = fnStr.slice(fnStr.indexOf('(')+1, fnStr.indexOf(')')).match(ARGUMENT_NAMES);
-                        if(result === null)
-                            result = [];
-                        return result;
-                    }
                     let arglist = getParamNames(command.handler);
                     channel.showStatus("/"+subcommand+" "+arglist.join(" ")+"\n\n"+command.help);
                 }else{
@@ -2312,12 +2302,22 @@ class LichatUI{
             }else{
                 let text = "<table><thead><tr><th>Command</th><th>Help</th></tr></thead><tbody>";
                 for(let name in this.commands){
-                    text += "<tr><td>"+name
-                        +"</td><td>"+this.commands[name].help
-                        +"</td></tr>";
+                    text += "<tr><td>"+name+
+                        "</td><td>"+this.commands[name].help+
+                        "</td></tr>";
                 }
                 text += "</tbody></table>";
                 channel.showStatus(text, {html: true});
+            }
+
+            let STRIP_COMMENTS = /(\/\/.*$)|(\/\*[\s\S]*?\*\/)|(\s*=[^,\)]*(('(?:\\'|[^'\r\n])*')|("(?:\\"|[^"\r\n])*"))|(\s*=[^,\)]*))/mg;
+            let ARGUMENT_NAMES = /([^\s,]+)/g;
+            function getParamNames(func) {
+                let fnStr = func.toString().replace(STRIP_COMMENTS, '');
+                let result = fnStr.slice(fnStr.indexOf('(')+1, fnStr.indexOf(')')).match(ARGUMENT_NAMES);
+                if(result === null)
+                    result = [];
+                return result;
             }
         }, "Show help information on the available commands.");
 
