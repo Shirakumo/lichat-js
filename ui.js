@@ -325,7 +325,10 @@ class LichatUI{
             },
             mounted: function(){
                 twemoji.parse(this.$refs.emoji);
-                this.$refs.input.focus();
+                Vue.nextTick(() => {
+                    this.$refs.input.value = "";
+                    this.$refs.input.focus();
+                });
             },
             methods: {
                 filter: function(ev){
