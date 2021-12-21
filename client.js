@@ -320,7 +320,7 @@ class LichatChannel{
                 else            end = mid - 1;
             }
         }
-        return message;
+        return [message, existing?false:true];
     }
 
     getMessage(from, id){

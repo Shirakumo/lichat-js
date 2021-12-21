@@ -1331,7 +1331,7 @@ class LichatChannel{
                 else            end = mid - 1;
             }
         }
-        return message;
+        return [message, existing?false:true];
     }
 
     getMessage(from, id){
@@ -1793,8 +1793,8 @@ class LichatUI{
         };
 
         supersede(LichatChannel, 'record', function(nextMethod, update){
-            let message = nextMethod(update);
-            let notify = true;
+            const [message, inserted] = nextMethod(update);
+            let notify = inserted && !this.isPrimary;
             if(lichat.currentChannel == message.channel){
                 let output = lichat.app.$refs.output;
                 if(!output)

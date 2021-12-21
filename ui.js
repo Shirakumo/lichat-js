@@ -44,8 +44,8 @@ class LichatUI{
         };
 
         supersede(LichatChannel, 'record', function(nextMethod, update){
-            let message = nextMethod(update);
-            let notify = true;
+            const [message, inserted] = nextMethod(update);
+            let notify = inserted && !this.isPrimary;
             if(lichat.currentChannel == message.channel){
                 let output = lichat.app.$refs.output;
                 if(!output)
