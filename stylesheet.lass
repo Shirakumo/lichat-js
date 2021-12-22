@@ -289,12 +289,12 @@
     (>header
      :max-width 10em
      :min-width 10em
-     :overflow hidden
-     :text-overflow ellipsis
      :position relative
      (>time
       :font-variant-numeric tabular-nums)
-     ())
+     (>.name
+      :overflow-x hidden
+      :text-overflow ellipsis))
     (>.content
      :flex-grow 1
      :padding 0 0.5em

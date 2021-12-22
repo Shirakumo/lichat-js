@@ -384,8 +384,11 @@ class LichatUI{
             methods: {
                 requestPermission: function(){
                     Notification.requestPermission()
-                        .then(()=>{this.havePermission = (Notification.permission === 'granted');})
-                        .catch((e)=>{this.errorMessage = ""+e;});
+                        .then((permission)=>{
+                            switch(permission){
+                            case 'granted': this.havePermission = true; break;
+                            case 'denied': this.errorMessage = "Lichat cannot show desktop notifications unless you grant permission."; break;
+                            }});
                 },
                 close: function(){
                     lichat.saveSetup();
