@@ -205,8 +205,8 @@
                        v-bind:readonly="client.isConnected">
               </div>
               <div class="row">
-                <label>Aliases</label>
-                <input type="text" name="aliases" required v-model="client.aliases">
+                <label title="Separated via two spaces">Aliases</label>
+                <input type="text" name="aliases" required v-model="$data.aliases">
               </div>
               <div class="row">
                 <label>Hostname</label>
@@ -429,7 +429,7 @@
               v-if="showSettings"
               v-on:close="showSettings = false"></ui-configure>
           <client-configure
-              v-bind:client="{...defaultClient}"
+              v-bind:client="$data.defaultClient"
               v-if="showClientMenu"
               v-on:close="showClientMenu = false"></client-configure>
           <nav>

@@ -1541,12 +1541,6 @@ class LichatUI{
         this.showSettings = false;
         this.errorMessage = null;
         this.db = null;
-        this.defaultClient = {
-            name: "TyNET",
-            hostname: "chat.tymoon.eu",
-            ssl: true,
-            port: LichatDefaultSSLPort
-        };
 
         this.options = {
             transmitTyping: true,
@@ -1854,8 +1848,15 @@ class LichatUI{
             props: {client: Object},
             data: ()=>{
                 return {
-                    errorMessage: null
+                    errorMessage: null,
+                    aliases: ""
                 };
+            },
+            created: function(){
+                this.aliases = this.client.aliases.join("  ");
+            },
+            mounted: function(){
+                this.$el.querySelector("input").focus();
             },
             methods: {
                 remove: function(){
@@ -1872,6 +1873,7 @@ class LichatUI{
                         });
                 },
                 close: function(){
+                    this.client.aliases = this.aliases.split("  ");
                     lichat.saveSetup();
                     this.$emit('close');
                 }
@@ -2210,6 +2212,31 @@ class LichatUI{
         }, "Deny permission for an update type to another user in the channel.");
 
         // FIXME: missing commands from extensions, and also this is very repetitious...
+    }
+
+    get defaultClient(){
+        if(this.clients.length == 0){
+            return {
+                name: "TyNET",
+                username: "",
+                password: "",
+                aliases: [],
+                hostname: "chat.tymoon.eu",
+                port: LichatDefaultSSLPort,
+                ssl: true
+            };
+        }else{
+            let template = this.clients[0];
+            return {
+                name: "",
+                username: template.username,
+                password: "",
+                aliases: template.aliases,
+                hostname: "",
+                port: LichatDefaultSSLPort,
+                ssl: true
+            };
+        }
     }
 
     addClient(client){
