@@ -53,7 +53,7 @@
    :background white
    :border 0.15em solid (hex 303030)
    :margin 0 0.2em))
- (input
+ ((:or input select)
   :font-size inherit
   :background (hex 202020)
   :color (hex FFFFFF)
@@ -63,6 +63,7 @@
  (input[readonly]
   :color (hex 808080))
  ((:or input[type=submit] input[type=button])
+  :background (hex 303030)
   :cursor pointer)
  ((:and input :hover)
   :background (hex 505050))
@@ -71,6 +72,7 @@
   :top 0 :left 0 :right 0 :bottom 0
   :background (rgba 50 50 50 0.5)
   :z-index 100
+  :font-size 14pt
   (>.popup
    :width 30em
    :margin 10em auto
@@ -90,7 +92,9 @@
     (label
      :display inline-block
      :box-sizing border-box
-     :min-width 10em))))
+     :min-width 10em)
+    (.row
+     (label :margin-right 1em)))))
  (nav :position relative)
  (.submenu
   :border-radius 0.2em
@@ -166,7 +170,8 @@
     (>header
      :font-size 1.5em
      :display flex
-     (>.name :flex-grow 1))
+     (>.name :flex-grow 1)
+     (>img.icon :border-color red))
     (>ul
      :list-style none
      :padding 0 0 0 1em)
@@ -212,7 +217,11 @@
     ((:and .channel :hover)
      :background (hex 0088EE))
     ((:and .channel :hover :after)
-     :background (hex 0088EE))))
+     :background (hex 0088EE)))
+   (.server.connected
+    (>header
+     (>img.icon
+      :border-color green))))
   (>footer
    :font-size 1.5em
    :background (hex 202020)
@@ -284,7 +293,8 @@
      :text-overflow ellipsis
      :position relative
      (>time
-      :font-variant-numeric tabular-nums))
+      :font-variant-numeric tabular-nums)
+     ())
     (>.content
      :flex-grow 1
      :padding 0 0.5em

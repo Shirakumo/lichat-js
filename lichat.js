@@ -1554,7 +1554,7 @@ class LichatUI{
             playSound: false,
             notificationLevel: 'mention',
             font: 'sans-serif',
-            fontSize: '14pt',
+            fontSize: '14',
             sidebarWidth: '15em',
         };
 
@@ -1867,6 +1867,44 @@ class LichatUI{
                     this.$emit('close');
                 }
             }
+        });
+
+        Vue.component('ui-configure', {
+            template: "#ui-configure",
+            props: {options: Object},
+            data: ()=>{
+                let it = document.fonts.entries();
+                let fonts = [];
+                while(true){
+                    let font = it.next();
+                    if(font.done){
+                        break;
+                    }else{
+                        fonts.push(font.value[0].family);
+                    }
+                }
+                let knownFonts = ['Arial','Calibri','Comic Sans MS','Consolas','Courier New'];
+                for(let font of knownFonts)
+                    if(document.fonts.check("12px "+font))
+                        fonts.push(font);
+
+                fonts = [...new Set(fonts)].sort();
+                fonts.unshift('serif');
+                fonts.unshift('monospace');
+                fonts.unshift('sans-serif');
+                
+                return {
+                    errorMessage: null,
+                    havePermission: Notification.permission === 'granted',
+                    fonts: fonts
+                };
+            },
+            methods: {
+                requestPermission: function(){
+                    Notification.requestPermission()
+                        .then(()=>{this.havePermission = (Notification.permission === 'granted');})
+                        .catch((e)=>{this.errorMessage = ""+e;});
+                }            }
         });
 
         Vue.component("create-channel", {
@@ -2280,7 +2318,9 @@ class LichatUI{
         tx.onerror = (ev)=>console.error(ev);
         tx.objectStore("clients").getAll().onsuccess = (ev)=>{
             for(let options of ev.target.result){
-                this.addClient(new LichatClient(options));
+                let client = new LichatClient(options);
+                this.addClient(client)
+                    .catch((ev)=>client.getEmergencyChannel().showStatus("Connection failed "+(ev.reason || "")));
             }
         };
         tx.objectStore("options").get("general").onsuccess = (ev)=>{

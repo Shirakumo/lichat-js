@@ -233,6 +233,55 @@
           </div>
         </div>
       </transition>
+    </script><script type="text/x-template" id="ui-configure">
+      <transition name="modal">
+        <div class="popup-container" v-on:click.self.stop="$emit('close')">
+          <div class="popup">
+            <header>
+              <h2>Global Settings</h2>
+              <div class="error-message" v-if="errorMessage">{{errorMessage}}</div>
+            </header>
+            <section>
+              <div class="row">
+                <label>Font</label>
+                <input type="text" name="font" list="fonts"
+                       v-model="options.font">
+                <datalist id="fonts">
+                  <option v-for="font in fonts" v-bind:value="font"></option>
+                </datalist>
+              </div>
+              <div class="row">
+                <label>Font Size</label>
+                <input type="number" name="font-size" min="1" max="32"
+                       v-model="options.fontSize">
+              </div>
+              <div class="row">
+                <label>Default Notify Level</label>
+                <select name="notification-level"
+                        v-model="options.notificationLevel">
+                  <option value="all">All messages</option>
+                  <option value="mention">Only mentions</option>
+                  <option value="none">None</option>
+                </select>
+              </div>
+              <div class="row">
+                <label>Show Notification Popups</label>
+                <input type="checkbox" name="show-notifications"
+                       v-model="options.showNotifications">
+                <input type="button" value="Grant Permission"
+                       v-if="!havePermission"
+                       v-on:click="requestPermission">
+              </div>
+              <div class="row">
+                <label>Play Notification Sound</label>
+                <input type="checkbox" name="play-sound"
+                       v-model="options.playSound">
+              </div>
+              <input type="button" value="Save" v-on:click="$emit('close')">
+            </section>
+          </div>
+        </div>
+      </transition>
     </script>
     <script type="text/x-template" id="create-channel">
       <transition name="modal">
@@ -343,7 +392,7 @@
       <div class="side" v-bind:style="{width: options.sidebarWidth, minWidth: options.sidebarWidth, maxWidth: options.sidebarWidth}">
         <nav v-show="0 < clients.length">
           <section class="server" v-for="client in clients">
-            <header>
+            <header v-bind:class.connected="client.isConnected">
               <img class="icon" v-bind:src="client.icon">
               <span class="name">{{client.name || client.servername}}</span>
               <nav>
@@ -375,6 +424,10 @@
           </section>
         </nav>
         <footer>
+          <ui-configure
+              v-bind:options="options"
+              v-if="showSettings"
+              v-on:close="showSettings = false"></ui-configure>
           <client-configure
               v-bind:client="{...defaultClient}"
               v-if="showClientMenu"
@@ -416,7 +469,7 @@
           </nav>
         </header>
         <section class="output" ref="output"
-                 v-bind:style="{fontFamily: options.font, fontSize: options.fontSize}">
+                 v-bind:style="{fontFamily: options.font, fontSize: options.fontSize+'pt'}">
           <message v-for="message in currentChannel.messageList"
                    v-bind:message="message"
                    v-bind:key="message.gid"></message>
