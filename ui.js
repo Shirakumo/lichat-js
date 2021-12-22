@@ -23,6 +23,12 @@ class LichatUI{
             sidebarWidth: '15em',
         };
 
+        this.autoComplete = {
+            index: 0,
+            prefix: null,
+            pretext: null
+        };
+        
         let DBOpenRequest = window.indexedDB.open("lichatjs", 4);
         DBOpenRequest.onerror = e=>{
             console.error(e);
@@ -524,6 +530,14 @@ class LichatUI{
                         });
                     }
                 },
+                handleKeypress: (ev)=>{
+                    if(ev.keyCode === 9){
+                        ev.preventDefault();
+                        this.currentChannel.currentMessage.text = this.autoCompleteInput(this.currentChannel.currentMessage.text);
+                    }else{
+                        this.autoComplete.prefix = null;
+                    }
+                },
                 submit: (ev)=>{
                     let channel = this.currentChannel;
                     let message = channel.currentMessage;
@@ -882,6 +896,36 @@ class LichatUI{
         let store = tx.objectStore("clients");
         store.clear();
         tx.onerror = (ev)=>console.error(ev);
+    }
+
+    autoCompleteInput(text){
+        // FIXME: this is not a very good auto-completer, as it chokes on completions with spaces.
+        let ac = this.autoComplete;
+        if(ac.prefix === null){
+            ac.index = 0;
+            ac.prefix = text.split(" ").splice(-1)[0].toLowerCase();
+            ac.pretext = text.substr(0, text.length-ac.prefix.length);
+        }
+        
+        var matches = [];
+        for(let user of this.currentChannel.getUserList()){
+            if(user.toLowerCase().indexOf(ac.prefix) === 0 &&
+               user !== this.currentChannel.client.username)
+                matches.push(user);
+        }
+        for(let emote of this.currentChannel.getEmoteList()){
+            emote = ":"+emote+":";
+            if(emote.toLowerCase().indexOf(ac.prefix) === 0)
+                matches.push(emote);
+        }
+        if(0 < matches.length){
+            matches.sort();
+            let match = matches[ac.index];
+            ac.index = (ac.index+1)%matches.length;
+            return ac.pretext+match
+                + ((ac.pretext === "" && match[match.length-1] !== ":")? ": ": " ");
+        }
+        return text;
     }
 
     static linkifyURLs(text){

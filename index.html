@@ -491,6 +491,7 @@
             <textarea placeholder="Write something..." autofocus ref="input"
                       v-model="currentChannel.currentMessage.text"
                       v-on:input="$event.target.style.minHeight = $event.target.scrollHeight+'px';"
+                      v-on:keydown="handleKeypress"
                       v-on:keydown.enter.prevent.stop="submit"></textarea>
           </div>
           <nav>

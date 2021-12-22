@@ -279,6 +279,10 @@ class LichatChannel{
         return this._client.getUser(name.toLowerCase());
     }
 
+    getUserList(){
+        return Object.keys(this.users);
+    }
+
     clearUsers(){
         this.users = {};
     }

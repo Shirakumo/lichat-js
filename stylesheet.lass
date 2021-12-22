@@ -287,12 +287,15 @@
     :padding 0.2em
     :display flex
     (>header
+     :display flex
+     :align-items flex-start
      :max-width 10em
      :min-width 10em
      :position relative
      (>time
       :font-variant-numeric tabular-nums)
      (>.name
+      :flex-grow 1
       :overflow-x hidden
       :text-overflow ellipsis))
     (>.content
