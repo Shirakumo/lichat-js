@@ -1624,8 +1624,8 @@ class LichatUI{
                     }]
                 });
                 notification.addEventListener('notificationclick', (ev)=>{
-                    event.notification.close();
-                    if(event.action != 'close'){
+                    ev.notification.close();
+                    if(ev.action != 'close'){
                         message.highlight();
                     }
                 });
