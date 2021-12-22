@@ -35,7 +35,7 @@ var CL = function(){
         var visit;
         visit = (name)=>{
             if(nodes[name] === "temporary")
-                cl.error("DEPENDENCY-CYCLE",{node: name});
+                throw new Error("Dependency cycle around "+name);
             nodes[name] = "temporary";
             for(target of (edges[name]||[])){
                 visit(target);
@@ -97,7 +97,7 @@ var CL = function(){
         if(classes[name])
             return classes[name];
         if(error)
-            cl.error("NO-SUCH-CLASS",{name: name});
+            throw new Error("No such class "+name);
         return null;
     };
 
@@ -115,7 +115,7 @@ var CL = function(){
     self.requiredArg = (name)=>{
         return (e)=>{
             if(e[name] === undefined)
-                cl.error("MISSING-INITARG",{object:e, initarg:name, text: "The initarg "+name+" is missing."});
+                throw new Error("Object "+e+" is missing the initarg "+name);
             else
                 return e[name];
             return null;
@@ -239,12 +239,6 @@ var CL = function(){
         return hash;
     };
 
-    self.error = (type, initargs)=>{
-        initargs.stack = new Error().stack;
-        var condition = new Condition(type, initargs);
-        throw condition;
-    };
-
     self.T = self.intern("T", "LICHAT-PROTOCOL");
     self.NIL = self.intern("NIL", "LICHAT-PROTOCOL");
 
@@ -291,17 +285,4 @@ StandardObject.prototype.set = function(key, val){
     self[varname] = val;
     cl.pushnew(varname, self.fields);
     return val;
-};
-
-// Special type argument to allow cheap pseudo-subclassing.
-var Condition = function(type, initargs){
-    var self = this;
-    StandardObject.call(self, initargs);
-    self.type = type;
-    return self;
-};
-Condition.prototype = Object.create(StandardObject.prototype);
-Condition.prototype.report = function(){
-    var self = this;
-    return "Condition of type ["+self.type+"]"+(self.text?": "+self.text:"");
 };

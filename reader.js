@@ -131,7 +131,7 @@ var LichatReader = function(){
         // FIXME: Catch symbol errors
         switch(stream.readChar()){
         case "(": return self.readSexprList(stream);
-        case ")": cl.error("INCOMPLETE-TOKEN");
+        case ")": throw new Error("INCOMPLETE-TOKEN");
         case "\"": return self.readSexprString(stream);
         case "0": case "1": case "2": case "3": case "4":
         case "5": case "6": case "7": case "8": case "9": case ".":
@@ -149,21 +149,21 @@ var LichatReader = function(){
         if(sexpr instanceof Array){
             var type = sexpr.shift();
             if(!cl.symbolp(type))
-                cl.error("MALFORMED-WIRE-OBJECT",{text: "First item in list is not a symbol.", sexpr: sexpr});
+                throw new Error("First item in list is not a symbol: "+sexpr);
             
             var initargs = {};
             for(var i=0; i<sexpr.length; i+=2){
                 var key = sexpr[i];
                 var val = sexpr[i+1];
                 if(!cl.symbolp(key) || key.pkg !== "KEYWORD"){
-                    cl.error("MALFORMED-WIRE-OBJECT",{text: "Key is not of type Keyword.", key: key});
+                    throw new Error(key+" is not of type Keyword.");
                 }
                 initargs[key.name.toLowerCase()] = val;
             }
             if(initargs.id === undefined)
-                cl.error("MISSING-ID", {sexpr: sexpr});
+                throw new Error("MISSING-ID");
             if(initargs.clock === undefined)
-                cl.error("MISSING-CLOCK", {sexpr: sexpr});
+                throw new Error("MISSING-CLOCK");
             return cl.makeInstance(type, initargs);
         }else{
             return sexpr;

@@ -35,7 +35,7 @@ var CL = function(){
         var visit;
         visit = (name)=>{
             if(nodes[name] === "temporary")
-                cl.error("DEPENDENCY-CYCLE",{node: name});
+                throw new Error("Dependency cycle around "+name);
             nodes[name] = "temporary";
             for(target of (edges[name]||[])){
                 visit(target);
@@ -97,7 +97,7 @@ var CL = function(){
         if(classes[name])
             return classes[name];
         if(error)
-            cl.error("NO-SUCH-CLASS",{name: name});
+            throw new Error("No such class "+name);
         return null;
     };
 
@@ -115,7 +115,7 @@ var CL = function(){
     self.requiredArg = (name)=>{
         return (e)=>{
             if(e[name] === undefined)
-                cl.error("MISSING-INITARG",{object:e, initarg:name, text: "The initarg "+name+" is missing."});
+                throw new Error("Object "+e+" is missing the initarg "+name);
             else
                 return e[name];
             return null;
@@ -239,12 +239,6 @@ var CL = function(){
         return hash;
     };
 
-    self.error = (type, initargs)=>{
-        initargs.stack = new Error().stack;
-        var condition = new Condition(type, initargs);
-        throw condition;
-    };
-
     self.T = self.intern("T", "LICHAT-PROTOCOL");
     self.NIL = self.intern("NIL", "LICHAT-PROTOCOL");
 
@@ -292,19 +286,6 @@ StandardObject.prototype.set = function(key, val){
     cl.pushnew(varname, self.fields);
     return val;
 };
-
-// Special type argument to allow cheap pseudo-subclassing.
-var Condition = function(type, initargs){
-    var self = this;
-    StandardObject.call(self, initargs);
-    self.type = type;
-    return self;
-};
-Condition.prototype = Object.create(StandardObject.prototype);
-Condition.prototype.report = function(){
-    var self = this;
-    return "Condition of type ["+self.type+"]"+(self.text?": "+self.text:"");
-};
 var LichatStream = function(string){
     var self = this;
     self.string = string || "";
@@ -317,7 +298,7 @@ var LichatStream = function(string){
             i++;
             return character;
         }else if(errorp){
-            cl.error("END-OF-STREAM");
+            throw new Error("END-OF-STREAM");
         }
         return null;
     };
@@ -326,7 +307,7 @@ var LichatStream = function(string){
         if(0 < i){
             i--;
         }else{
-            cl.error("BEGINNING-OF-STREAM");
+            throw new Error("BEGINNING-OF-STREAM");
         }
     };
 
@@ -335,7 +316,7 @@ var LichatStream = function(string){
         if(i < self.string.length){
             return self.string[i];
         }else if(errorp){
-            cl.error("END-OF-STREAM");
+            throw new Error("END-OF-STREAM");
         }
         return null;
     };
@@ -599,7 +580,7 @@ var LichatPrinter = function(){
                     "Number",  ()=> self.printSexprNumber(sexpr, stream),
                     "Symbol",  ()=> self.printSexprSymbol(sexpr, stream),
                     "Boolean", ()=> self.printSexprToken((sexpr)?"T":"NIL", stream),
-                    true, ()=> cl.error("UNPRINTABLE-OBJECT",{object: sexpr}));
+                    true, ()=>{throw new Error(sexpr+" is unprintable");});
     };
 
     self.toWire = (wireable, stream)=>{
@@ -756,7 +737,7 @@ var LichatReader = function(){
         // FIXME: Catch symbol errors
         switch(stream.readChar()){
         case "(": return self.readSexprList(stream);
-        case ")": cl.error("INCOMPLETE-TOKEN");
+        case ")": throw new Error("INCOMPLETE-TOKEN");
         case "\"": return self.readSexprString(stream);
         case "0": case "1": case "2": case "3": case "4":
         case "5": case "6": case "7": case "8": case "9": case ".":
@@ -774,21 +755,21 @@ var LichatReader = function(){
         if(sexpr instanceof Array){
             var type = sexpr.shift();
             if(!cl.symbolp(type))
-                cl.error("MALFORMED-WIRE-OBJECT",{text: "First item in list is not a symbol.", sexpr: sexpr});
+                throw new Error("First item in list is not a symbol: "+sexpr);
             
             var initargs = {};
             for(var i=0; i<sexpr.length; i+=2){
                 var key = sexpr[i];
                 var val = sexpr[i+1];
                 if(!cl.symbolp(key) || key.pkg !== "KEYWORD"){
-                    cl.error("MALFORMED-WIRE-OBJECT",{text: "Key is not of type Keyword.", key: key});
+                    throw new Error(key+" is not of type Keyword.");
                 }
                 initargs[key.name.toLowerCase()] = val;
             }
             if(initargs.id === undefined)
-                cl.error("MISSING-ID", {sexpr: sexpr});
+                throw new Error("MISSING-ID");
             if(initargs.clock === undefined)
-                cl.error("MISSING-CLOCK", {sexpr: sexpr});
+                throw new Error("MISSING-CLOCK");
             return cl.makeInstance(type, initargs);
         }else{
             return sexpr;
@@ -1335,7 +1316,7 @@ class LichatClient{
 
     send(wireable){
         if(!this._socket || this._socket.readyState != 1)
-            cl.error("NOT-CONNECTED",{text: "The client is not connected."});
+            throw new Error("The client is not connected.");
         let stream = new LichatStream();
         this._printer.toWire(wireable, stream);
         this._socket.send(stream.string+'\u0000');

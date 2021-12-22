@@ -532,7 +532,7 @@ class LichatClient{
 
     send(wireable){
         if(!this._socket || this._socket.readyState != 1)
-            cl.error("NOT-CONNECTED",{text: "The client is not connected."});
+            throw new Error("The client is not connected.");
         let stream = new LichatStream();
         this._printer.toWire(wireable, stream);
         this._socket.send(stream.string+'\u0000');
