@@ -148,14 +148,14 @@ var LichatReader = function(){
         var sexpr = self.readSexpr(stream);
         if(sexpr instanceof Array){
             var type = sexpr.shift();
-            if(!(type instanceof Symbol))
+            if(!cl.symbolp(type))
                 cl.error("MALFORMED-WIRE-OBJECT",{text: "First item in list is not a symbol.", sexpr: sexpr});
             
             var initargs = {};
             for(var i=0; i<sexpr.length; i+=2){
                 var key = sexpr[i];
                 var val = sexpr[i+1];
-                if(! key instanceof Symbol || key.pkg !== "KEYWORD"){
+                if(!cl.symbolp(key) || key.pkg !== "KEYWORD"){
                     cl.error("MALFORMED-WIRE-OBJECT",{text: "Key is not of type Keyword.", key: key});
                 }
                 initargs[key.name.toLowerCase()] = val;

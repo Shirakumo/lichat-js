@@ -1,34 +1,20 @@
 // Special objects
-var Restart = function(name, args){
-    var self = this;
-    self.name = name;
-    self.args = (args===undefined)?[]:args;
-    return self;
-};
-
-var Symbol = function(name, pkg){
-    var self = this;
-    if(!name) throw "Cannot create symbol with empty name.";
-    self.name = name;
-    self.pkg = pkg || null;
-    self.toString = ()=>{
-        return self.name;
-    };
-    return self;
-};
-
-var Keyword = function(name){
-    var self = this;
-    Symbol.call(self, name, "KEYWORD");
-    return self;
-};
-Keyword.prototype = Object.create(Symbol.prototype);
-
 var CL = function(){
     var self = this;
     var symbols = {};
     var classes = {};
 
+    var Symbol = function(name, pkg){
+        var self = this;
+        if(!name) throw "Cannot create symbol with empty name.";
+        self.name = name;
+        self.pkg = pkg || null;
+        self.toString = ()=>{
+            return self.name;
+        };
+        return self;
+    };
+    
     self.computeClassPrecedenceList = (c)=>{
         var nodes = {};
         var edges = {};
@@ -147,6 +133,8 @@ var CL = function(){
             if(instance === true || instance === false){
                 return true;
             }
+        }else if(type === "Symbol"){
+            return self.symbolp(instance);
         }else if(instance instanceof StandardObject){
             if(instance.type === type
                || instance.isInstanceOf(type)){
@@ -164,11 +152,7 @@ var CL = function(){
     self.intern = (name, pkg)=>{
         var symbol = self.findSymbol(name, pkg);
         if(!symbol){
-            if(pkg === "KEYWORD"){
-                symbol = new Keyword(name);
-            }else{
-                symbol = new Symbol(name, pkg || "LICHAT-JS");
-            }
+            symbol = new Symbol(name, pkg || "LICHAT-JS");
             if(symbols[symbol.pkg] === undefined){
                 symbols[symbol.pkg] = {};
             }
@@ -191,6 +175,10 @@ var CL = function(){
 
     self.makeSymbol = (name)=>{
         return new Symbol(name);
+    };
+
+    self.symbolp = (thing)=>{
+        return thing.constructor === Symbol;
     };
 
     self.argTypecase = (object, args, ...cases)=>{
@@ -295,7 +283,7 @@ StandardObject.prototype.set = function(key, val){
     var self = this;
     var varname;
     if(self.fields === undefined) self.fields = [];
-    if(key instanceof Symbol){
+    if(cl.symbolp(key)){
         varname = key.name.toLowerCase();
     }else{
         varname = key.toString();
@@ -785,14 +773,14 @@ var LichatReader = function(){
         var sexpr = self.readSexpr(stream);
         if(sexpr instanceof Array){
             var type = sexpr.shift();
-            if(!(type instanceof Symbol))
+            if(!cl.symbolp(type))
                 cl.error("MALFORMED-WIRE-OBJECT",{text: "First item in list is not a symbol.", sexpr: sexpr});
             
             var initargs = {};
             for(var i=0; i<sexpr.length; i+=2){
                 var key = sexpr[i];
                 var val = sexpr[i+1];
-                if(! key instanceof Symbol || key.pkg !== "KEYWORD"){
+                if(!cl.symbolp(key) || key.pkg !== "KEYWORD"){
                     cl.error("MALFORMED-WIRE-OBJECT",{text: "Key is not of type Keyword.", key: key});
                 }
                 initargs[key.name.toLowerCase()] = val;
