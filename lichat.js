@@ -1957,6 +1957,9 @@ class LichatUI{
                     this.$refs.input.value = "";
                     this.$refs.input.focus();
                 });
+                document.addEventListener('click', (ev)=>{
+                    this.$emit('close');
+                });
             },
             methods: {
                 filter: function(ev){
@@ -2109,10 +2112,12 @@ class LichatUI{
                         .then((ev)=>this.showSearchResults(channel, ev.results, query))
                         .catch((e)=>channel.showStatus("Error: "+e.text));
                 },
-                addEmote: (ev)=>{
+                addEmote: (emote)=>{
                     this.showEmotePicker = false;
-                    if(!(ev in LichatUI.allEmoji)) ev = ":"+ev+":";
-                    if(ev) this.currentChannel.currentMessage.text += ev;
+                    if(emote){
+                        if(!(emote in LichatUI.allEmoji)) ev = ":"+ev+":";
+                        this.currentChannel.currentMessage.text += emote;
+                    }
                 }
             }
         });
