@@ -138,6 +138,15 @@ class LichatUI{
                         break;
                 }
                 this.channelList.splice(i, 0, channel);
+                lichat.saveSetup();
+            }
+        };
+
+        LichatClient.prototype.removeFromChannelList = function(channel){
+            let index = this.channelList.indexOf(channel);
+            if(0 <= index){
+                this.channelList.splice(i, 1);
+                lichat.saveSetup();
             }
         };
 
@@ -375,7 +384,12 @@ class LichatUI{
                     Notification.requestPermission()
                         .then(()=>{this.havePermission = (Notification.permission === 'granted');})
                         .catch((e)=>{this.errorMessage = ""+e;});
-                }            }
+                },
+                close: function(){
+                    lichat.saveSetup();
+                    this.$emit('close');
+                }
+            }
         });
 
         Vue.component("create-channel", {
@@ -623,9 +637,10 @@ class LichatUI{
             name = (0 < name.length)? name.join(" ") : channel.name;
             channel.client.s("LEAVE", {channel: name})
                 .then(()=>{
-                    channel.client.channelList = channel.client.channelList.filter(c => c !== channel);
+                    let index = channel.client.channelList.indexOf(channel);
+                    channel.client.removeFromChannelList(channel);
                     if(channel == this.currentChannel){
-                        this.currentChannel = null;
+                        this.currentChannel = channel.client.channelList[index];
                     }
                 }).catch((e)=>channel.showStatus("Error: "+e.text));
         }, "Leave a channel. If no channel is specified, leaves the current channel.");

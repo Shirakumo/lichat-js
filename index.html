@@ -235,7 +235,7 @@
       </transition>
     </script><script type="text/x-template" id="ui-configure">
       <transition name="modal">
-        <div class="popup-container" v-on:click.self.stop="$emit('close')">
+        <div class="popup-container" v-on:click.self.stop="close">
           <div class="popup">
             <header>
               <h2>Global Settings</h2>
@@ -277,7 +277,7 @@
                 <input type="checkbox" name="play-sound"
                        v-model="options.playSound">
               </div>
-              <input type="button" value="Save" v-on:click="$emit('close')">
+              <input type="button" value="Save" v-on:click="close">
             </section>
           </div>
         </div>
