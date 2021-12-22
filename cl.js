@@ -1,11 +1,4 @@
 // Special objects
-var Return = function(name, value){
-    var self = this;
-    self.name = (name===undefined)?null:name;
-    self.value = (value===undefined)?null:value;
-    return self;
-};
-
 var Restart = function(name, args){
     var self = this;
     self.name = name;
@@ -79,7 +72,7 @@ var CL = function(){
             directSuperclasses = ["StandardObject"];
         if(initforms === undefined) initforms = {};
         if(constructor === undefined) constructor=()=>{};
-        directSuperclasses = self.mapcar(self.findClass, directSuperclasses);
+        directSuperclasses = directSuperclasses.map(self.findClass);
         if(typeof name == 'string'){
             self.intern(name, "LICHAT-PROTOCOL");
         }
@@ -200,42 +193,6 @@ var CL = function(){
         return new Symbol(name);
     };
 
-    self.prog1 = (value, ...forms)=>{
-        var ret = value();
-        for(var form of forms){form();}
-        return ret;
-    };
-
-    self.prog2 = (form, value, ...forms)=>{
-        var ret = value();
-        form();
-        for(var form of forms){form();}
-        return ret;
-    };
-
-    self.progn = (...forms)=>{
-        var ret = null;
-        for(var form of forms){ret = form();}
-        return ret;
-    };
-
-    self.first = (array)=> array[0];
-    self.second = (array)=> array[1];
-    self.third = (array)=> array[2];
-    self.fourth = (array)=> array[3];
-
-    self.gt = (a, b)=> a>b;
-    self.lt = (a, b)=> a<b;
-
-    self.unwindProtect = (protect, cleanup)=>{
-        try{
-            self.prog1(protect, cleanup);
-        }catch(e){
-            cleanup();
-            throw e;
-        }
-    };
-
     self.argTypecase = (object, args, ...cases)=>{
         for(var i=0; i<cases.length; i+=2){
             var type = cases[i];
@@ -251,56 +208,6 @@ var CL = function(){
         self.push([], cases);
         self.push(object, cases);
         return self.argTypecase.apply(self, cases);
-    };
-
-    self.handlerCase = (form, ...cases)=>{
-        try{
-            return form();
-        }catch(e){
-            cases.push(true);
-            cases.push((e)=>{throw e;});
-            self.push([e], cases);
-            self.push(e, cases);
-            return self.argTypecase.apply(self, cases);
-        }
-    };
-
-    self.block = (name, ...forms)=>{
-        var handleReturn = (r)=>{
-            if(r.name === name){
-                return r.value;
-            }else{
-                throw r;
-            }
-        };
-        return self.handlerCase(()=>{self.progn.apply(self,forms);},
-                                "Return", handleReturn);
-    };
-
-    self.retFrom = (name, value)=>{
-        throw new Return(name, value);
-    };
-
-    self.ret = (value)=>{
-        throw new Return(null, value);
-    };
-
-    self.restartCase = (form, ...cases)=>{
-        var handleRestart = (r)=>{
-            for(var i=0; i<cases.length; i++){
-                var name = cases[i];
-                var form = cases[i+1];
-                if(name === r.name){
-                    return form.apply(form, r.args);
-                }
-            }
-            return null;
-        };
-        self.handlerCase(form, "Restart", handleRestart);
-    };
-
-    self.invokeRestart = (name, args)=>{
-        throw new Restart.apply(name, args);
     };
 
     self.universalUnixOffset = 2208988800;
@@ -325,25 +232,6 @@ var CL = function(){
         return arr;
     };
 
-    self.nconc = (target, arrays)=>{
-        for(var array of arrays){
-            for(var item of array){
-                target.push(item);
-            }
-        }
-        return target;
-    };
-
-    self.remove = (el, arr, key)=>{
-        key = key || ((a)=>a);
-        var newarr = [];
-        for(var item of arr){
-            if(key(item) !== el)
-                newarr.push(item);
-        }
-        return newarr;
-    };
-
     self.find = (el, arr, key, test)=>{
         test = test || ((a,b)=>{return a===b;});
         key = key || ((a)=>a);
@@ -352,24 +240,6 @@ var CL = function(){
                 return item;
         }
         return null;
-    };
-
-    self.sort = (arr, sort, key)=>{
-        key = key || ((a)=>a);
-        arr.sort((a, b)=>sort(key(b), key(a)));
-        return arr;
-    };
-
-    self.mapcar = (func, ...arrays)=>{
-        var min = 0;
-        for(arr of arrays)min = Math.max(min,arr.length);
-        var result = [];
-        for(var i=0; i<min; i++){
-            var args = [];
-            for(var array of arrays)args.push(array[i]);
-            result.push(func.apply(func, args));
-        }
-        return result;
     };
 
     self.sxhash = (object)=>{
@@ -381,80 +251,14 @@ var CL = function(){
         return hash;
     };
 
-    self.print = (object)=>{
-        if(console)
-            console.log(object);
-        return object;
-    };
-
     self.error = (type, initargs)=>{
         initargs.stack = new Error().stack;
         var condition = new Condition(type, initargs);
         throw condition;
     };
 
-    var formatDispatch = {};
-    self.format = (string, ...args)=>{
-        var stream = new LichatStream(string);
-        var varray = [""];
-        loop:
-        for(;;){
-            var c = stream.readChar(false);
-            switch(c){
-            case null: break loop;
-            case "~":
-                var at = false, colon = false;
-                readDirectiveChar:
-                for(;;){
-                    c = stream.readChar(false);
-                    switch(c){
-                    case null: self.error("FORMAT-ERROR",{text:"Premature end of format string."});
-                    case "@": at = true; readDirectiveChar(); break;
-                    case ":": colon = true; readDirectiveChar(); break;
-                    default:
-                        var dispatch = formatDispatch[c.toLowerCase()];
-                        if(!dispatch)
-                            self.error("FORMAT-ERROR",{text:"Unknown format directive "+c});
-                        if(args.length === 0)
-                            self.error("FORMAT-ERROR",{text:"No more arguments left."});
-                        dispatch(varray, at, colon, args);
-                        break readDirectiveChar;
-                    }
-                }
-                break;
-            default:
-                varray[varray.length-1] += c;
-            }
-        }
-        if(console)
-            console.log.apply(console, varray);
-        return null;
-    };
-
-    self.setFormatDispatcher = (c, handler)=>{
-        formatDispatch[c.toLowerCase()] = handler;
-        return handler;
-    };
-
-    self.setFormatDispatcher("a", (varray, a, c, args)=>{
-        varray[varray.length-1] += args.shift();
-    });
-
-    self.setFormatDispatcher("s", (varray, a, c, args)=>{
-        varray.push(args.shift());
-        varray.push("");
-    });
-
     self.T = self.intern("T", "LICHAT-PROTOCOL");
     self.NIL = self.intern("NIL", "LICHAT-PROTOCOL");
-
-    self.null = (arg)=>{
-        return !arg || (arg === self.NIL);
-    };
-
-    self.streq = (a, b)=>{
-        return a.toLowerCase() == b.toLowerCase();
-    };
 
     return self;
 };

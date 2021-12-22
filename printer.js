@@ -3,30 +3,30 @@ var LichatPrinter = function(){
 
     self.printSexprList = (list, stream)=>{
         stream.writeChar("(");
-        cl.unwindProtect(()=>{
+        try{
             for(var i=0; i<list.length; i++){
                 self.printSexpr(list[i], stream);
                 if(i+1 < list.length){
                     stream.writeChar(" ");
                 }
             }
-        },()=>{
+        }finally{
             stream.writeChar(")");
-        });
+        };
     };
 
     self.printSexprString = (string, stream)=>{
         stream.writeChar("\"");
-        cl.unwindProtect(()=>{
+        try{
             for(var character of string){
                 if(character === "\"" | character === "\\"){
                     stream.writeChar("\\");
                 }
                 stream.writeChar(character);
             }
-        },()=>{
+        }finally{
             stream.writeChar("\"");
-        });
+        };
     };
 
     self.printSexprNumber = (number, stream)=>{
