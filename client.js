@@ -341,7 +341,7 @@ class LichatChannel{
         let message = new LichatMessage({
             id: nextID(),
             from: "System",
-            clock: cl.getUniversalTime(),
+            clock: cl.getUniversalTime,
             text: text,
             type: "MESSAGE"
         }, this, options);

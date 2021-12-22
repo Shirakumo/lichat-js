@@ -12,7 +12,7 @@ var LichatPrinter = function(){
             }
         }finally{
             stream.writeChar(")");
-        };
+        }
     };
 
     self.printSexprString = (string, stream)=>{
@@ -26,7 +26,7 @@ var LichatPrinter = function(){
             }
         }finally{
             stream.writeChar("\"");
-        };
+        }
     };
 
     self.printSexprNumber = (number, stream)=>{

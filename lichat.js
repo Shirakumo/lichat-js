@@ -510,7 +510,7 @@ var LichatPrinter = function(){
             }
         }finally{
             stream.writeChar(")");
-        };
+        }
     };
 
     self.printSexprString = (string, stream)=>{
@@ -524,7 +524,7 @@ var LichatPrinter = function(){
             }
         }finally{
             stream.writeChar("\"");
-        };
+        }
     };
 
     self.printSexprNumber = (number, stream)=>{
@@ -1125,7 +1125,7 @@ class LichatChannel{
         let message = new LichatMessage({
             id: nextID(),
             from: "System",
-            clock: cl.getUniversalTime(),
+            clock: cl.getUniversalTime,
             text: text,
             type: "MESSAGE"
         }, this, options);
