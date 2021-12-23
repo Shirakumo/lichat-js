@@ -86,6 +86,11 @@
            v-on:click.stop="showInvite = true">
           <i class="fas fa-fw fa-user-plus"></i> Invite
         </a>
+        <create-channel
+            v-bind:client="channel.client"
+            v-bind:channel="channel"
+            v-if="showChannelCreate"
+            v-on:close="showChannelCreate = false;$emit('close')"></create-channel>
         <a class="create"
            v-on:click.stop="showChannelCreate = true">
           <i class="fas fa-fw fa-plus-circle"></i> Create Subchannel
@@ -298,7 +303,7 @@
                        v-model="name"
                        v-bind:readonly="anonymous">
               </div>
-              <div class="row">
+              <div class="row" v-if="channel == null">
                 <label>Anonymous</label>
                 <input type="checkbox" name="ssl"
                        v-model="anonymous">

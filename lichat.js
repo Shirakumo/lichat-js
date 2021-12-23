@@ -1943,13 +1943,17 @@ class LichatUI{
 
         Vue.component("create-channel", {
             template: "#create-channel",
-            props: {client: LichatClient},
+            props: {client: LichatClient, channel: Object},
             data: function(){
                 return {
                     name: "",
                     anonymous: false,
                     errorMessage: null
                 };
+            },
+            created: function(){
+                if(this.channel)
+                    this.name = this.channel.name+"/";
             },
             methods: {
                 create: function(){

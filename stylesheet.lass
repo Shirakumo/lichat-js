@@ -261,7 +261,7 @@
    (>nav
     :display flex
     (>* :margin 0 0.2em)
-    (input
+    (>input
      :width 20em
      :background (hex 151515)
      :color (hex FFFFFF)
