@@ -1129,7 +1129,7 @@ class LichatChannel{
         let message = new LichatMessage({
             id: nextID(),
             from: "System",
-            clock: cl.getUniversalTime,
+            clock: cl.getUniversalTime(),
             text: text,
             type: "MESSAGE"
         }, this, options);
@@ -1199,20 +1199,20 @@ class LichatClient{
         });
 
         this.addInternalHandler("JOIN", (ev)=>{
-            if(!this.servername){
+            if(!this.servername)
                 this.servername = ev.channel;
-
-                for(let name in this.channels){
-                    let channel = this.channels[name];
-                    if(channel.wasJoined && channel.name != this.servername)
-                        channel.s("JOIN", {}, true);
-                }
-            }
             let channel = this.getChannel(ev.channel);
             channel.joinUser(ev.from);
             if(ev.from === this.username){
-                if(this.isAvailable("shirakumo-backfill") && !channel.isPrimary)
-                    this.s("BACKFILL", {channel: ev.channel}, true);
+                if(channel.isPrimary){
+                    for(let name in this.channels){
+                        let channel = this.channels[name];
+                        if(channel.wasJoined && channel.name != this.servername)
+                            channel.s("JOIN", {}, true);
+                    }
+                }
+                //if(this.isAvailable("shirakumo-backfill") && !channel.isPrimary)
+                //    this.s("BACKFILL", {channel: ev.channel}, true);
                 if(this.isAvailable("shirakumo-channel-info"))
                     this.s("CHANNEL-INFO", {channel: ev.channel}, true);
                 if(this.isAvailable("shirakumo-emotes"))
@@ -1305,6 +1305,10 @@ class LichatClient{
     closeConnection(){
         for(let channel in this.channels)
             this.channels[channel].clearUsers();
+        if(this._pingTimer){
+            clearTimeout(this._pingTimer);
+            this._pingTimer = null;
+        }
         if(this._socket && this._socket.readyState < 2){
             this._socket.onclose = ()=>{};
             this._socket.close();
