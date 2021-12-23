@@ -248,21 +248,21 @@
             </header>
             <section>
               <div class="row">
-                <label>Font</label>
-                <input type="text" name="font" list="fonts"
+                <label for="font">Font</label>
+                <input type="text" id="font" list="fonts"
                        v-model="options.font">
                 <datalist id="fonts">
                   <option v-for="font in fonts" v-bind:value="font"></option>
                 </datalist>
               </div>
               <div class="row">
-                <label>Font Size</label>
-                <input type="number" name="font-size" min="1" max="32"
+                <label for="font-size">Font Size</label>
+                <input type="number" id="font-size" min="1" max="32"
                        v-model="options.fontSize">
               </div>
               <div class="row">
-                <label>Default Notify Level</label>
-                <select name="notification-level"
+                <label for="notification-level">Default Notify Level</label>
+                <select id="notification-level"
                         v-model="options.notificationLevel">
                   <option value="all">All messages</option>
                   <option value="mention">Only mentions</option>
@@ -270,17 +270,22 @@
                 </select>
               </div>
               <div class="row">
-                <label>Show Notification Popups</label>
-                <input type="checkbox" name="show-notifications"
+                <label for="show-notifications">Show Notification Popups</label>
+                <input type="checkbox" id="show-notifications"
                        v-model="options.showNotifications">
                 <input type="button" value="Grant Permission"
                        v-if="!havePermission"
                        v-on:click="requestPermission">
               </div>
               <div class="row">
-                <label>Play Notification Sound</label>
-                <input type="checkbox" name="play-sound"
+                <label for="play-sound">Play Notification Sound</label>
+                <input type="checkbox" id="play-sound"
                        v-model="options.playSound">
+              </div>
+              <div class="row">
+                <label for="transmit-typing">Show Typing Status</label>
+                <input type="checkbox" id="transmit-typing"
+                       v-model="options.transmitTyping">
               </div>
               <input type="button" value="Save" v-on:click="close">
             </section>

@@ -459,7 +459,7 @@ cl.defclass("REACT", ["CHANNEL-UPDATE"], {
     "update-id": cl.requiredArg("update-id"),
     emote: cl.requiredArg("emote")
 });
-
+cl.defclass("TYPING", ["CHANNEL-UPDATE"]);
 cl.defclass("FAILURE", ["TEXT-UPDATE"]);
 cl.defclass("MALFORMED-UPDATE", ["FAILURE"]);
 cl.defclass("UPDATE-TOO-LONG", ["FAILURE"]);
@@ -1173,7 +1173,7 @@ class LichatClient{
                                     "shirakumo-channel-info", "shirakumo-quiet", "shirakumo-pause",
                                     "shirakumo-server-management", "shirakumo-ip", "shirakumo-user-info",
                                     "shirakumo-icon", "shirakumo-bridge", "shirakumo-block",
-                                    "shirakumo-reactions", "shirakumo-link"];
+                                    "shirakumo-reactions", "shirakumo-link", "shirakumo-typing"];
         this.availableExtensions = [];
         this._socket = null;
         this._handlers = {};
@@ -1550,6 +1550,7 @@ class LichatUI{
         this.showSettings = false;
         this.errorMessage = null;
         this.db = null;
+        this.lastTypingUpdate = 0;
 
         this.options = {
             transmitTyping: true,
@@ -2078,6 +2079,11 @@ class LichatUI{
                         this.currentChannel.currentMessage.text = this.autoCompleteInput(this.currentChannel.currentMessage.text);
                     }else{
                         this.autoComplete.prefix = null;
+                        if(this.options.transmitTyping && this.currentChannel.client.isAvailable("shirakumo-typing")
+                           && this.lastTypingUpdate+4 < cl.getUniversalTime()){
+                            this.lastTypingUpdate = cl.getUniversalTime();
+                            this.currentChannel.s("TYPING");
+                        }
                     }
                 },
                 submit: (ev)=>{

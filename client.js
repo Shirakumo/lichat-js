@@ -389,7 +389,7 @@ class LichatClient{
                                     "shirakumo-channel-info", "shirakumo-quiet", "shirakumo-pause",
                                     "shirakumo-server-management", "shirakumo-ip", "shirakumo-user-info",
                                     "shirakumo-icon", "shirakumo-bridge", "shirakumo-block",
-                                    "shirakumo-reactions", "shirakumo-link"];
+                                    "shirakumo-reactions", "shirakumo-link", "shirakumo-typing"];
         this.availableExtensions = [];
         this._socket = null;
         this._handlers = {};

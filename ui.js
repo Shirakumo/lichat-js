@@ -12,6 +12,7 @@ class LichatUI{
         this.showSettings = false;
         this.errorMessage = null;
         this.db = null;
+        this.lastTypingUpdate = 0;
 
         this.options = {
             transmitTyping: true,
@@ -540,6 +541,11 @@ class LichatUI{
                         this.currentChannel.currentMessage.text = this.autoCompleteInput(this.currentChannel.currentMessage.text);
                     }else{
                         this.autoComplete.prefix = null;
+                        if(this.options.transmitTyping && this.currentChannel.client.isAvailable("shirakumo-typing")
+                           && this.lastTypingUpdate+4 < cl.getUniversalTime()){
+                            this.lastTypingUpdate = cl.getUniversalTime();
+                            this.currentChannel.s("TYPING");
+                        }
                     }
                 },
                 submit: (ev)=>{

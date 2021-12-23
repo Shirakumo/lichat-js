@@ -120,7 +120,7 @@ cl.defclass("REACT", ["CHANNEL-UPDATE"], {
     "update-id": cl.requiredArg("update-id"),
     emote: cl.requiredArg("emote")
 });
-
+cl.defclass("TYPING", ["CHANNEL-UPDATE"]);
 cl.defclass("FAILURE", ["TEXT-UPDATE"]);
 cl.defclass("MALFORMED-UPDATE", ["FAILURE"]);
 cl.defclass("UPDATE-TOO-LONG", ["FAILURE"]);
