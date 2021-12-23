@@ -65,7 +65,8 @@ class LichatUI{
                 else if(output.scrollTop === (output.scrollHeight - output.offsetHeight)){
                     if(!document.hidden) notify = false;
                     Vue.nextTick(() => {
-                        document.getElementById(message.gid).scrollIntoView();
+                        let el = document.getElementById(message.gid);
+                        if(el) el.scrollIntoView();
                     });
                 }
             }
@@ -148,6 +149,11 @@ class LichatUI{
             if(0 <= index){
                 this.channelList.splice(index, 1);
                 lichat.saveSetup();
+            }
+            if(channel == lichat.currentChannel){
+                if(this.channelList.length <= index)
+                    index = this.channelList.length-1;
+                lichat.currentChannel = this.channelList[index];
             }
         };
 
@@ -670,13 +676,8 @@ class LichatUI{
         this.addCommand("leave", (channel, ...name)=>{
             name = (0 < name.length)? name.join(" ") : channel.name;
             channel.client.s("LEAVE", {channel: name})
-                .then(()=>{
-                    let index = channel.client.channelList.indexOf(channel);
-                    channel.client.removeFromChannelList(channel);
-                    if(channel == this.currentChannel){
-                        this.currentChannel = channel.client.channelList[index];
-                    }
-                }).catch((e)=>channel.showStatus("Error: "+e.text));
+                .then(()=>channel.client.removeFromChannelList(channel))
+                .catch((e)=>channel.showStatus("Error: "+e.text));
         }, "Leave a channel. If no channel is specified, leaves the current channel.");
 
         this.addCommand("create", (channel, ...name)=>{
