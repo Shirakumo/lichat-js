@@ -508,9 +508,9 @@
             <emote-picker
                 v-bind:channel="currentChannel"
                 v-bind:classes="['big']"
-                v-show="showEmotePicker"
+                v-if="showEmotePicker"
                 v-on:close="addEmote"></emote-picker>
-            <a class="emote" v-on:click.stop="showEmotePicker = true">
+            <a class="emote" v-on:click.stop="showEmotePicker = !showEmotePicker">
               <i class="fas fa-smile"></i>
             </a>
             <input type="file" accept=".png,.jpg,.jpeg,.gif,.mp4,.webm,.mp3,.ogg" id="fileChooser" style="display:none" v-on:change="uploadFile">

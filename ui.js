@@ -394,6 +394,9 @@ class LichatUI{
                     fonts: fonts
                 };
             },
+            mounted: function(){
+                this.$el.querySelector("input").focus();
+            },
             methods: {
                 requestPermission: function(){
                     Notification.requestPermission()
@@ -424,6 +427,9 @@ class LichatUI{
                 if(this.channel)
                     this.name = this.channel.name+"/";
             },
+            mounted: function(){
+                this.$el.querySelector("input").focus();
+            },
             methods: {
                 create: function(){
                     this.client.s("CREATE", {channel: (this.anonymous)?null:this.name})
@@ -451,6 +457,7 @@ class LichatUI{
                 document.addEventListener('click', (ev)=>{
                     this.$emit('close');
                 });
+                this.$el.querySelector("input").focus();
             },
             methods: {
                 filter: function(ev){
@@ -619,8 +626,9 @@ class LichatUI{
                 addEmote: (emote)=>{
                     this.showEmotePicker = false;
                     if(emote){
-                        if(!(emote in LichatUI.allEmoji)) ev = ":"+ev+":";
+                        if(!(emote in LichatUI.allEmoji)) emote = ":"+emote+":";
                         this.currentChannel.currentMessage.text += emote;
+                        this.app.$refs.input.focus();
                     }
                 }
             }
