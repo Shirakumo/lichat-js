@@ -1684,7 +1684,7 @@ class LichatUI{
         LichatClient.prototype.removeFromChannelList = function(channel){
             let index = this.channelList.indexOf(channel);
             if(0 <= index){
-                this.channelList.splice(i, 1);
+                this.channelList.splice(index, 1);
                 lichat.saveSetup();
             }
         };
@@ -2082,7 +2082,7 @@ class LichatUI{
                         if(this.options.transmitTyping && this.currentChannel.client.isAvailable("shirakumo-typing")
                            && this.lastTypingUpdate+4 < cl.getUniversalTime()){
                             this.lastTypingUpdate = cl.getUniversalTime();
-                            this.currentChannel.s("TYPING");
+                            this.currentChannel.s("TYPING", {}, true);
                         }
                     }
                 },

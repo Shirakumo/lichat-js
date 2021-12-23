@@ -9,6 +9,7 @@
  :display flex
  :height 100vh
  :width 100%
+ :min-width 0
  :overflow hidden
  ((:or .roll-enter-active .roll-leave-active)
   :transition all 0.5s ease)
