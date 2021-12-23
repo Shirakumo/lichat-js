@@ -521,6 +521,10 @@ class LichatClient{
     closeConnection(){
         for(let channel in this.channels)
             this.channels[channel].clearUsers();
+        if(this._pingTimer){
+            clearTimeout(this._pingTimer);
+            this._pingTimer = null;
+        }
         if(this._socket && this._socket.readyState < 2){
             this._socket.onclose = ()=>{};
             this._socket.close();
