@@ -183,8 +183,35 @@ class LichatUI{
             }
         });
 
+        let popup = {
+            mounted: function(){
+                document.addEventListener('click', (ev)=>{
+                    this.$emit('close');
+                });
+                this.$nextTick(function(){
+                    let rect = this.$el.getBoundingClientRect();
+                    if(rect.left < 0) this.$el.style.left = "10px";
+                    if(rect.top < 0) this.$el.style.top = "10px";
+                    if(window.innerWidth < rect.right) this.$el.style.right = "10px";
+                    if(window.innerHeight < rect.bottom) this.$el.style.bottom = "10px";
+                });
+            }
+        };
+
+        let inputPopup = {
+            mounted: function(){
+                Vue.nextTick(() => {
+                    if(this.$refs.input){
+                        this.$refs.input.value = "";
+                        this.$refs.input.focus();
+                    }
+                });
+            }
+        };
+
         Vue.component("self-menu", {
             template: "#self-menu",
+            mixins: [popup],
             props: {client: LichatClient},
             data: ()=>{
                 return {
@@ -202,17 +229,13 @@ class LichatUI{
 
         Vue.component("user-menu", {
             template: "#user-menu",
+            mixins: [popup],
             props: {user: LichatUser},
             data: ()=>{
                 return {
                     showInvite: false,
                     showInfo: false
                 };
-            },
-            mounted: function(){
-                document.addEventListener('click', (ev)=>{
-                    this.$emit('close');
-                });
             },
             methods: {
                 whisper: function(){
@@ -252,6 +275,7 @@ class LichatUI{
 
         Vue.component("channel-menu", {
             template: "#channel-menu",
+            mixins: [popup],
             props: {channel: LichatChannel},
             data: ()=>{
                 return {
@@ -263,16 +287,12 @@ class LichatUI{
                     showUserList: false,
                     showPermissions: false
                 };
-            },
-            mounted: function(){
-                document.addEventListener('click', (ev)=>{
-                    this.$emit('close');
-                });
             }
         });
 
         Vue.component("message-menu", {
             template: "#message-menu",
+            mixins: [popup],
             props: {message: LichatMessage},
             data: ()=>{
                 return {
@@ -303,32 +323,24 @@ class LichatUI{
                         .then((e)=>this.message.channel.showStatus(this.message.from+" has been quieted."));
                     this.$emit('close');
                 }
-            },
-            mounted: function(){
-                document.addEventListener('click', (ev)=>{
-                    this.$emit('close');
-                });
             }
         });
 
         Vue.component("client-menu", {
             template: "#client-menu",
+            mixins: [popup],
             props: {client: LichatClient},
             data: ()=>{
                 return {
                     showConfigure: false,
                     showChannelCreate: false
                 };
-            },
-            mounted: function(){
-                document.addEventListener('click', (ev)=>{
-                    this.$emit('close');
-                });
             }
         });
 
         Vue.component("client-configure", {
             template: "#client-configure",
+            mixins: [inputPopup],
             props: {client: Object},
             data: ()=>{
                 return {
@@ -338,9 +350,6 @@ class LichatUI{
             },
             created: function(){
                 this.aliases = this.client.aliases.join("  ");
-            },
-            mounted: function(){
-                this.$el.querySelector("input").focus();
             },
             methods: {
                 remove: function(){
@@ -366,6 +375,7 @@ class LichatUI{
 
         Vue.component('ui-configure', {
             template: "#ui-configure",
+            mixins: [inputPopup],
             props: {options: Object},
             data: ()=>{
                 let it = document.fonts.entries();
@@ -415,6 +425,7 @@ class LichatUI{
 
         Vue.component("create-channel", {
             template: "#create-channel",
+            mixins: [inputPopup],
             props: {client: LichatClient, channel: Object},
             data: function(){
                 return {
@@ -439,8 +450,37 @@ class LichatUI{
             }
         });
 
+        Vue.component("list-users", {
+            template: "#list-users",
+            mixins: [inputPopup],
+            props: {channel: LichatChannel},
+            data: ()=>{
+                return {
+                    userList: [],
+                    userMenu: null,
+                    errorMessage: null
+                };
+            },
+            created: function(){
+                this.filter();
+            },
+            methods: {
+                filter: function(){
+                    let filter = (this.$refs.input)? this.$refs.input.value : "";
+                    filter = filter.toLowerCase();
+                    let list = [];
+                    for(let user of Object.values(this.channel.users)){
+                        if(user.name.includes(filter))
+                            list.push(user);
+                    }
+                    this.userList = list.sort();;
+                }
+            }
+        });
+
         Vue.component("emote-picker", {
             template: "#emote-picker",
+            mixins: [popup, inputPopup],
             props: {channel: LichatChannel, classes: Array},
             data: ()=>{
                 return {
@@ -450,14 +490,6 @@ class LichatUI{
             },
             mounted: function(){
                 twemoji.parse(this.$refs.emoji);
-                Vue.nextTick(() => {
-                    this.$refs.input.value = "";
-                    this.$refs.input.focus();
-                });
-                document.addEventListener('click', (ev)=>{
-                    this.$emit('close');
-                });
-                this.$el.querySelector("input").focus();
             },
             methods: {
                 filter: function(ev){

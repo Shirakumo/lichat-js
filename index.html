@@ -99,6 +99,10 @@
            v-on:click.stop="showChannelList = true">
           <i class="fas fa-fw fa-list"></i> List Subchannels
         </a>
+        <list-users
+            v-bind:channel="channel"
+            v-if="showUserList"
+            v-on:close="showUserList = false;$emit('close')"></list-users>
         <a class="users"
            v-on:click.stop="showUserList = true">
           <i class="fas fa-fw fa-users"></i> List Users
@@ -238,7 +242,8 @@
           </div>
         </div>
       </transition>
-    </script><script type="text/x-template" id="ui-configure">
+    </script>
+    <script type="text/x-template" id="ui-configure">
       <transition name="modal">
         <div class="popup-container" v-on:click.self.stop="close">
           <div class="popup">
@@ -249,7 +254,7 @@
             <section>
               <div class="row">
                 <label for="font">Font</label>
-                <input type="text" id="font" list="fonts"
+                <input type="text" id="font" list="fonts" ref="input"
                        v-model="options.font">
                 <datalist id="fonts">
                   <option v-for="font in fonts" v-bind:value="font"></option>
@@ -304,7 +309,7 @@
             <section>
               <div class="row">
                 <label>Channel name</label>
-                <input type="text" name="channelname" maxlength="32" required 
+                <input type="text" name="channelname" maxlength="32" required ref="input"
                        v-model="name"
                        v-bind:readonly="anonymous">
               </div>
@@ -319,6 +324,39 @@
           </div>
         </div>
       </transition>  
+    </script>
+    <script type="text/x-template" id="list-users">
+      <transition name="modal">
+        <div class="popup-container" v-on:click.self.stop="$emit('close')">
+          <div class="popup">
+            <header>
+              <h2>Users in {{channel.name}}</h2>
+              <div class="error-message" v-if="errorMessage">{{errorMessage}}</div>
+            </header>
+            <section>
+              <ul class="userlist">
+                <li v-for="user in userList">
+                  <img class="icon" v-bind:src="user.icon">
+                  <span class="name"
+                        v-bind:style="{color: user.color}"
+                        v-bind:title="user.name">{{user.name}}</span>
+                  <nav>
+                    <user-menu v-if="userMenu == user"
+                               v-on:close="userMenu = null"
+                               v-bind:user="user"></user-menu>
+                    <a class="settings"
+                       v-on:click.stop="userMenu = user">
+                      <i class="fas fa-ellipsis-h"></i>
+                    </a>
+                  </nav>
+                </li>
+              </ul>
+              <input type="text" placeholder="Filter..." v-on:input="filter" ref="input">
+              <input type="button" value="Close" v-on:click="$emit('close')">
+            </section>
+          </div>
+        </div>
+      </transition>
     </script>
     <script type="text/x-template" id="message">
       <div class="message"
