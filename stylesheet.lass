@@ -128,11 +128,15 @@
   :overflow hidden
   :z-index 10
   (>nav
+   :padding 0.2em 0.2em 0 0.2em
    :display flex
    :background (hex 303030)
-   (>a :padding 0.2em)
+   (>a :padding 0.2em 0.5em)
    ((:and >a :last-child)
-    :margin-left auto))
+    :margin-left auto)
+   (>a.active
+    :background (hex 202020)
+    :border-radius 0.3em 0.3em 0 0))
   (>ul
    :flex-grow 1
    :list-style none
@@ -263,7 +267,6 @@
    (>.topic
     :overflow-x hidden
     :text-overflow ellipsis
-    :padding 0.5em
     :flex-grow 1
     :font-size 0.8em)
    (>nav

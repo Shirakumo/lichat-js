@@ -162,10 +162,10 @@
     <script type="text/x-template" id="emote-picker">
       <div class="emote-picker" v-bind:class="classes" v-on:click.stop="">
         <nav>
-          <a class="emoji" v-on:click="tab = 'emoji'">
+          <a class="emoji" v-on:click="tab = 'emoji'" v-bind:class="{active: tab == 'emoji'}">
             <i class="fas fa-grin"></i>
           </a>
-          <a class="emotes" v-on:click="tab = 'emotes'">
+          <a class="emotes" v-on:click="tab = 'emotes'" v-bind:class="{active: tab == 'emotes'}">
             <i class="fas fa-icons"></i>
           </a>
           <a class="back" v-on:click="$emit('close')">
