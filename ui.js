@@ -556,6 +556,9 @@ class LichatUI{
             el: el || '.client',
             data: this,
             methods: {
+                isConnected(client){
+                    return client._socket && client._reconnectAttempts == 0;
+                },
                 switchChannel: (channel)=>{
                     channel.unread = 0;
                     channel.alerted = false;

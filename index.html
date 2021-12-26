@@ -439,8 +439,8 @@
     <div class="client">
       <div class="side" v-bind:style="{width: options.sidebarWidth, minWidth: options.sidebarWidth, maxWidth: options.sidebarWidth}">
         <nav v-show="0 < clients.length">
-          <section class="server" v-for="client in clients">
-            <header v-bind:class.connected="client.isConnected">
+          <section class="server" v-for="client in clients" v-bind:class="{connected: client._socket && client._reconnectAttempts == 0}">
+            <header>
               <img class="icon" v-bind:src="client.icon">
               <span class="name">{{client.name || client.servername}}</span>
               <nav>
