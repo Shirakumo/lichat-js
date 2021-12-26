@@ -77,7 +77,7 @@ class LichatUI{
             this.unread++;
             let notify = false;
             let level = this.notificationLevel;
-            if(level == 'inherit')
+            if(level == 'inherit' || !level)
                 level = lichat.options.notificationLevel;
             if(level == 'all')
                 notify = true;
@@ -503,6 +503,91 @@ class LichatUI{
                             child.style.display = child.getAttribute("title").includes(text)? "block" : "none";
                         }
                     }
+                }
+            }
+        });
+
+        Vue.component("channel-info", {
+            template: "#channel-info",
+            props: {channel: LichatChannel},
+            data: ()=>{
+                return {
+                    tab: 'info',
+                    errorMessage: null,
+                    info: {},
+                    emotes: []
+                };
+            },
+            created: function(){
+                Object.assign(this.info, this.channel.info);
+                for(let name in this.channel.emotes){
+                    this.emotes.push([name, this.channel.emotes[name]]);
+                }
+                this.emotes.sort((a,b)=>(a[0]<b[0])?-1:+1);
+            },
+            methods: {
+                isImage: function(key){
+                    return key === ':ICON';
+                },
+                toURL: function(value){
+                    if(!value) return EmptyIcon;
+                    else{
+                        let parts = value.split(" ");
+                        return "data:"+parts[0]+";base64,"+parts[1];
+                    }
+                },
+                setImage: function(ev){
+                    let key = ev.target.getAttribute("name");
+                    // FIXME: todo
+                },
+                saveInfo: function(){
+                    for(let key in info){
+                        let value = this.info[key];
+                        if(value !== this.channel.info[key]){
+                            this.channel.s("SET-CHANNEL-INFO", {key: LichatReader.fromString(key), text: value})
+                                .then((e)=>this.channel.info[key] = e.text)
+                                .catch((e)=>this.errorMessage = e.text);
+                        }
+                    }
+                },
+                deleteEmote: function(ev){
+                    let name = ev.target.getAttribute("name");
+                    this.channel.s("EMOTE", {"content-type": "image/png", name: name, payload: ""})
+                        .then((e)=>this.emotes = this.emotes.filter((o)=>o[0] !== e.name))
+                        .catch((e)=>this.errorMessage = e.text);
+                },
+                uploadEmote: function(ev){
+                    let file = this.$refs.files[0];
+                    let name = this.$refs.name.value;
+                    if(!file){
+                        this.errorMessage = "Need to select a file.";
+                        return;
+                    }
+                    if(!name){
+                        this.errorMessage = "Need a name.";
+                        return;
+                    }
+                    var reader = new FileReader();
+                    reader.onload = ()=>{
+                        let parts = reader.result.match(/data:(.*?)(;base64)?,(.*)/);
+                        this.currentChannel.s("EMOTE", {
+                            name: name,
+                            "content-type": parts[1],
+                            payload: parts[3]
+                        }).then((ev)=>{
+                            this.emotes.push([ev.name, ev["content-type"]+" "+ev.payload]);
+                            this.emotes.sort((a,b)=>(a[0]<b[0])?-1:+1);
+                        })
+                            .catch((ev)=>{
+                                channel.showStatus("Upload failed: "+ev.text);
+                            });
+                    };
+                    reader.readAsDataURL(ev);
+                },
+                destroy: function(ev){
+                    this.channel.s("DESTROY")
+                        .then(()=>this.$emit('close'))
+                        .catch((ev)=>this.errorMessage = ev.text);
                 }
             }
         });

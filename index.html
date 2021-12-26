@@ -74,10 +74,6 @@
            v-on:click="quiet">
           <i class="fas fa-fw fa-user-slash"></i> Quiet
         </a>
-        <a class="info"
-           v-on:click="showInfo = true">
-          <i class="fas fa-fw fa-info-circle"></i> View Info
-        </a>
       </nav>
     </script>
     <script type="text/x-template" id="channel-menu">
@@ -115,8 +111,12 @@
            v-on:click.stop="showPermissions = true">
           <i class="fas fa-fw fa-gavel"></i> Permissions
         </a>
-        <a class="info"
-           v-on:click.stop="showInfo = true">
+        <channel-info
+            v-bind:channel="channel"
+            v-if="showInfo"
+            v-on:close="showInfo = false;$emit('close')"></channel-info>
+          <a class="info"
+             v-on:click.stop="showInfo = true">
           <i class="fas fa-fw fa-info-circle"></i> View Info
         </a>
       </nav>
@@ -161,14 +161,14 @@
     </script>
     <script type="text/x-template" id="emote-picker">
       <div class="emote-picker" v-bind:class="classes" v-on:click.stop="">
-        <nav>
+        <nav class="tabbar">
           <a class="emoji" v-on:click="tab = 'emoji'" v-bind:class="{active: tab == 'emoji'}">
-            <i class="fas fa-grin"></i>
+            <i class="fas fa-grin"></i> Emoji
           </a>
           <a class="emotes" v-on:click="tab = 'emotes'" v-bind:class="{active: tab == 'emotes'}">
-            <i class="fas fa-icons"></i>
+            <i class="fas fa-icons"></i> Emotes
           </a>
-          <a class="back" v-on:click="$emit('close')">
+          <a class="close" v-on:click="$emit('close')">
             <i class="fas fa-times-circle"></i>
           </a>
         </nav>
@@ -353,6 +353,95 @@
               </ul>
               <input type="text" placeholder="Filter..." v-on:input="filter" ref="input">
               <input type="button" value="Close" v-on:click="$emit('close')">
+            </section>
+          </div>
+        </div>
+      </transition>
+    </script>
+    <script type="text/x-template" id="channel-info">
+      <transition name="modal">
+        <div class="popup-container" v-on:click.self.stop="$emit('close')">
+          <div class="popup">
+            <header>
+              <h2>{{channel.name}}</h2>
+              <div class="error-message" v-if="errorMessage">{{errorMessage}}</div>
+              <nav class="tabbar">
+                <a v-on:click="tab = 'info'" v-bind:class="{active: tab == 'info'}">
+                  <i class="fas fa-info-circle"></i> Info
+                </a>
+                <a v-on:click="tab = 'fields'" v-bind:class="{active: tab == 'fields'}">
+                  <i class="fas fa-tasks"></i> Fields
+                </a>
+                <a v-on:click="tab = 'emotes'" v-bind:class="{active: tab == 'emotes'}">
+                  <i class="fas fa-icons"></i> Emotes
+                </a>
+                <a v-on:click="tab = 'settings'" v-bind:class="{active: tab == 'settings'}">
+                  <i class="fas fa-cogs"></i> Settings
+                </a>
+              </nav>
+            </header>
+            <section class="info" v-show="tab == 'info'">
+              <div class="row">
+                <label>Name:</label>
+                <span class="name">{{channel.name}}</span>
+              </div>
+              <div class="row">
+                <label>Creator:</label>
+                <span class="creator"></span>
+              </div>
+              <div class="row">
+                <label>No. Users:</label>
+                <span class="users">{{Object.keys(channel.users).length}}</span>
+              </div>
+              <div class="row">
+                <label>My capabilities:</label>
+                <span class="capabilities">{{channel.capabilities.join(", ")}}</span>
+              </div>
+            </section>
+            <section class="fields" v-show="tab == 'fields'">
+              <div class="row" v-for="(v, k) in info">
+                <label>{{k}}</label>
+                <template v-if="channel.isPermitted('SET-CHANNEL-INFO')">
+                  <img v-if="isImage(k)" v-bind:name="k" v-bind:src="toURL(v)" v-on:click="setImage">
+                  <input type="text" v-bind:name="k" v-model="info[k]" v-else>
+                </template>
+                <template v-else>
+                  <img v-if="isImage(k)" v-bind:src="toURL(v)">
+                  <span v-else-if="v">{{v}}</span>
+                  <span v-else class="unset">no value</span>
+                </template>
+                <input type="button" value="Save" 
+                       v-if="channel.isPermitted('SET-CHANNEL-INFO')"
+                       v-on:click="saveInfo">
+              </div>
+            </section>
+            <section class="emotes" v-show="tab == 'emotes'">
+              <ul class="emotes">
+                <li v-for="[k, v] in emotes">
+                  <img class="emote" v-bind:src="v">
+                  <span class="name">:{{k}}:</span>
+                  <a v-if="channel.isPermitted('EMOTE')" v-bind.name="k" v-on.click="deleteEmote">
+                    <i class="fas fa-trash"></i>
+                  </a>
+                </li>
+              </ul>
+              <div class="row" v-if="channel.isPermitted('EMOTE')">
+                <input type="file" ref="file" accept=".png,.jpg,.jpeg,.gif">
+                <input type="text" ref="name">
+                <input type="button" value="submit" v-on:click="uploadEmote">
+              </div>
+            </section>
+            <section class="settings" v-show="tab == 'settings'">
+              <label>Notify on</label>
+              <select v-model="channel.notificationLevel">
+                <option value="inherit">Use client setting</option>
+                <option value="all">All messages</option>
+                <option value="mention">Only mentions</option>
+                <option value="none">None</option>
+              </select>
+              <input class="confirm" type="button" value="Destroy"
+                     v-if="channel.isPermitted('DESTROY')"
+                     v-on:click="destroy">
             </section>
           </div>
         </div>

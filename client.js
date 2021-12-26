@@ -184,6 +184,7 @@ class LichatChannel{
         this.emotes = {};
         this.info = {};
         this.messages = {};
+        this._capabilities = null;
         // KLUDGE: need this to stop Vue from being Weird As Fuck.
         Object.defineProperty(this.emotes, 'nested', { configurable: false });
         Object.defineProperty(this.messages, 'nested', { configurable: false });
@@ -201,7 +202,7 @@ class LichatChannel{
         this.unread = 0;
         this.alerted = false;
         this.lastRead = null;
-        this.notificationLevel = 'inherit';
+        this.notificationLevel = this.isPrimary? 'none' : 'inherit';
     }
 
     get name(){
@@ -239,6 +240,18 @@ class LichatChannel{
 
     get topic(){
         return this.info[":TOPIC"];
+    }
+
+    get capabilities(){
+        if(this._capabilities == null){
+            this._capabilities = [];
+            this.s("CAPABILITIES");
+        }
+        return this._capabilities;
+    }
+
+    set capabilities(value){
+        this._capabilities = value.sort();
     }
 
     getEmote(name){
@@ -354,6 +367,10 @@ class LichatChannel{
         return message;
     }
 
+    isPermitted(update){
+        return this.capabilities.includes(update);
+    }
+
     encode(){
         return {
             name: this.name,
@@ -428,12 +445,13 @@ class LichatClient{
                             channel.s("JOIN", {}, true);
                     }
                 }
+                channel.s("USERS", {}, true);
                 //if(this.isAvailable("shirakumo-backfill") && !channel.isPrimary)
-                //    this.s("BACKFILL", {channel: ev.channel}, true);
+                //    channel.s("BACKFILL", true);
                 if(this.isAvailable("shirakumo-channel-info"))
-                    this.s("CHANNEL-INFO", {channel: ev.channel}, true);
+                    channel.s("CHANNEL-INFO", {}, true);
                 if(this.isAvailable("shirakumo-emotes"))
-                    this.s("EMOTES", {channel: ev.channel, names: channel.getEmoteList()}, true);
+                    channel.s("EMOTES", {names: channel.getEmoteList()}, true);
             }
         });
 
@@ -464,6 +482,16 @@ class LichatClient{
             let message = this.getChannel(ev.channel).getMessage(ev.target, ev["update-id"]);
             if(message) message.addReaction(ev);
             else console.warn("Received react with no message", ev.target, ev["update-id"]);
+        });
+
+        this.addHandler("CAPABILITIES", (ev)=>{
+            this.getChannel(ev.channel).capabilities = ev.permitted;
+        });
+
+        this.addHandler("USERS", (ev)=>{
+            for(let name of ev.users){
+                this.getChannel(ev.channel).users[name.toLowerCase()] = this.getUser(name);
+            }
         });
     }
 
