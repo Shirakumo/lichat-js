@@ -333,9 +333,12 @@
      (>time
       :font-variant-numeric tabular-nums)
      (>.name
+      :white-space nowrap
       :flex-grow 1
       :overflow-x hidden
-      :text-overflow ellipsis))
+      :text-overflow ellipsis)
+     (>.name.me
+      :color white !important))
     (>.content
      :flex-grow 1
      :padding 0 0.5em
