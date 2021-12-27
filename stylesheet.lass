@@ -117,12 +117,6 @@
      (li
       :display flex
       :height 2em
-      (img
-       :margin-right 1em
-       :height 2em
-       :width 5em
-       :object-fit scale-down
-       :object-position left center)
       (.name
        :flex-grow 1)))
     (label
@@ -137,7 +131,19 @@
      (label :margin-right 1em)))
    (>section.emotes
     :margin 0
-    :min-height 0)))
+    :min-height 0
+    (img
+     :margin-right 1em
+     :height 2em
+     :width 5em
+     :object-fit scale-down
+     :object-position left center))
+   (>section.fields
+    (img
+     :min-height 1em
+     :min-width 1em
+     :max-height 2em
+     :max-width 100%))))
  (nav.tabbar
   :padding 0.2em 0.2em 0 0.2em
   :display flex

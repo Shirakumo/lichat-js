@@ -605,8 +605,21 @@ class LichatUI{
                     }
                 },
                 setImage: function(ev){
-                    let key = ev.target.closest("a").getAttribute("name");
-                    // FIXME: todo
+                    let key = ev.target.getAttribute("name");
+                    let onFile = ()=>{
+                        this.$refs.file.removeEventListener('change', onFile);
+                        let file = this.$refs.file.files[0];
+                        if(file){
+                            var reader = new FileReader();
+                            reader.onload = ()=>{
+                                let parts = reader.result.match(/data:(.*?)(;base64)?,(.*)/);
+                                this.info[key] = parts[1]+" "+parts[3];
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    };
+                    this.$refs.file.addEventListener('change', onFile);
+                    this.$refs.file.click();
                 },
                 saveInfo: function(){
                     for(let key in this.info){

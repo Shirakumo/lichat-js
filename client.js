@@ -112,6 +112,14 @@ class LichatUser{
         this._name = name;
         this._client = client;
         this.info = {};
+        this.info[":BIRTHDAY"] = "";
+        this.info[":CONTACT"] = "";
+        this.info[":LOCATION"] = "";
+        this.info[":PUBLIC-KEY"] = "";
+        this.info[":REAL-NAME"] = "";
+        this.info[":STATUS"] = "";
+        if(client.isAvailable('shirakumo-icon'))
+            this.info[":ICON"] = "";
     }
 
     get name(){
@@ -197,7 +205,9 @@ class LichatChannel{
         this.info[":NEWS"] = "";
         this.info[":TOPIC"] = "";
         this.info[":RULES"] = "";
-        this.info[":CONTACT"] = "";
+        this.info[":CONTACT"] = "";;
+        if(client.isAvailable('shirakumo-icon'))
+            this.info[":ICON"] = "";
         // KLUDGE: spillage from ui
         this.unread = 0;
         this.alerted = false;
@@ -409,7 +419,7 @@ class LichatClient{
                                     "shirakumo-server-management", "shirakumo-ip", "shirakumo-user-info",
                                     "shirakumo-icon", "shirakumo-bridge", "shirakumo-block",
                                     "shirakumo-reactions", "shirakumo-link", "shirakumo-typing"];
-        this.availableExtensions = [];
+        this.availableExtensions = ["shirakumo-icon"];
         this._socket = null;
         this._handlers = {};
         this._internalHandlers = {};

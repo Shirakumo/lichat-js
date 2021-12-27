@@ -905,6 +905,14 @@ class LichatUser{
         this._name = name;
         this._client = client;
         this.info = {};
+        this.info[":BIRTHDAY"] = "";
+        this.info[":CONTACT"] = "";
+        this.info[":LOCATION"] = "";
+        this.info[":PUBLIC-KEY"] = "";
+        this.info[":REAL-NAME"] = "";
+        this.info[":STATUS"] = "";
+        if(client.isAvailable('shirakumo-icon'))
+            this.info[":ICON"] = "";
     }
 
     get name(){
@@ -990,7 +998,9 @@ class LichatChannel{
         this.info[":NEWS"] = "";
         this.info[":TOPIC"] = "";
         this.info[":RULES"] = "";
-        this.info[":CONTACT"] = "";
+        this.info[":CONTACT"] = "";;
+        if(client.isAvailable('shirakumo-icon'))
+            this.info[":ICON"] = "";
         // KLUDGE: spillage from ui
         this.unread = 0;
         this.alerted = false;
@@ -1202,7 +1212,7 @@ class LichatClient{
                                     "shirakumo-server-management", "shirakumo-ip", "shirakumo-user-info",
                                     "shirakumo-icon", "shirakumo-bridge", "shirakumo-block",
                                     "shirakumo-reactions", "shirakumo-link", "shirakumo-typing"];
-        this.availableExtensions = [];
+        this.availableExtensions = ["shirakumo-icon"];
         this._socket = null;
         this._handlers = {};
         this._internalHandlers = {};
@@ -2189,8 +2199,21 @@ class LichatUI{
                     }
                 },
                 setImage: function(ev){
-                    let key = ev.target.closest("a").getAttribute("name");
-                    // FIXME: todo
+                    let key = ev.target.getAttribute("name");
+                    let onFile = ()=>{
+                        this.$refs.file.removeEventListener('change', onFile);
+                        let file = this.$refs.file.files[0];
+                        if(file){
+                            var reader = new FileReader();
+                            reader.onload = ()=>{
+                                let parts = reader.result.match(/data:(.*?)(;base64)?,(.*)/);
+                                this.info[key] = parts[1]+" "+parts[3];
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    };
+                    this.$refs.file.addEventListener('change', onFile);
+                    this.$refs.file.click();
                 },
                 saveInfo: function(){
                     for(let key in this.info){

@@ -478,9 +478,8 @@
               </div>
               <div class="row" v-if="channel.isPermitted('PAUSE')">
                 <label>Slow Mode</label>
-                <input type="number" ref="pause" min="0">
-                <input type="button" v-bind:value="(0 < $refs.pause.value)?'Activate':'Deactivate'"
-                       v-on:click="toggleSlowMode">
+                <input type="number" ref="pause" min="0" value="0">
+                <input type="button" value="Save" v-on:click="toggleSlowMode">
               </div>
               <input class="confirm" type="button" value="Destroy Channel"
                      v-if="channel.isPermitted('DESTROY')"
