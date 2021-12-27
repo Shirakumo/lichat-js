@@ -241,7 +241,7 @@
                        v-bind:readonly="client && client.isConnected">
               </div>
               <input type="button" value="Save" v-if="client" v-on:click="save">
-              <input type="button" value="Delete" v-if="client" v-on:click="remove">
+              <input type="button" value="Delete" class="confirm" v-if="client" v-on:click="remove">
               <input type="button" value="Create" v-else v-on:click.stop="create">
             </section>
             <section v-if="tab == 'ban'">
