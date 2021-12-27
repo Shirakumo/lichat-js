@@ -368,6 +368,8 @@ class LichatChannel{
     }
 
     isPermitted(update){
+        if(typeof update === 'string' || update instanceof String)
+            update = cl.intern(update, "LICHAT-PROTOCOL");
         return this.capabilities.includes(update);
     }
 
@@ -394,7 +396,7 @@ class LichatClient{
         this.username = options.username || "";
         this.password = options.password || null;
         this.hostname = options.hostname || "localhost";
-        this.port = options.port || options.ssl? LichatDefaultSSLPort: LichatDefaultPort;
+        this.port = options.port || (options.ssl? LichatDefaultSSLPort: LichatDefaultPort);
         this.ssl = options.ssl;
         this.disconnectHandler = ()=>{};
         this.servername = null;
@@ -570,12 +572,11 @@ class LichatClient{
     send(wireable){
         if(!this._socket || this._socket.readyState != 1)
             throw new Error("The client is not connected.");
+        if(!cl.typep(wireable, "PING") && !cl.typep(wireable, "PONG"))
+            console.debug("Send", wireable);
         let stream = new LichatStream();
         this._printer.toWire(wireable, stream);
         this._socket.send(stream.string+'\u0000');
-
-        if(!cl.typep(wireable, "PING") && !cl.typep(wireable, "PONG"))
-            console.debug("Send", wireable);
         return wireable;
     }
 
@@ -585,11 +586,15 @@ class LichatClient{
         let update = cl.makeInstance(type, args);
         if(noPromise) return this.send(update);
         return new Promise((ok, fail)=>{
+            try{
+                this.send(update);
+            }catch(e){
+                fail(e);
+            }
             this.addCallback(update.id, (u) => {
                 if(cl.typep(u, "FAILURE")) fail(u);
                 else                       ok(u);
             }, fail);
-            this.send(update);
         });
     }
 

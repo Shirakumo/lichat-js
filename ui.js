@@ -281,11 +281,9 @@ class LichatUI{
                 return {
                     showInvite: false,
                     showInfo: false,
-                    showPause: false,
                     showChannelCreate: false,
                     showChannelList: false,
-                    showUserList: false,
-                    showPermissions: false
+                    showUserList: false
                 };
             }
         });
@@ -345,6 +343,7 @@ class LichatUI{
             data: ()=>{
                 return {
                     errorMessage: null,
+                    options: this.defaultClient,
                     tab: 'settings',
                     aliases: "",
                     bans: [],
@@ -352,16 +351,21 @@ class LichatUI{
                 };
             },
             created: function(){
-                this.aliases = this.client.aliases.join("  ");
-                if(this.client.isConnected){
-                    if(this.client.isPermitted('BAN'))
-                        this.client.s("BLACKLIST")
-                        .then((ev)=>this.bans = ev.target)
-                        .catch((ev)=>this.errorMessage = ev.text);
-                    if(this.client.isPermitted('IP-BAN'))
-                        this.client.s("IP-BLACKLIST")
-                        .then((ev)=>this.ipBans = ev.target)
-                        .catch((ev)=>this.errorMessage = ev.text);
+                if(this.client){
+                    Object.assign(this.options, this.client);
+                    this.options.aliases = this.client.aliases.join("  ");
+                    if(this.client.isConnected){
+                        if(this.client.isPermitted('BAN')){
+                            console.log("W???");
+                            this.client.s("BLACKLIST", {})
+                                .then((ev)=>this.bans = ev.target)
+                                .catch((ev)=>this.errorMessage = ev.text);
+                        }
+                        if(this.client.isPermitted('IP-BAN'))
+                            this.client.s("IP-BLACKLIST", {})
+                                .then((ev)=>this.ipBans = ev.target)
+                                .catch((ev)=>this.errorMessage = ev.text);
+                    }
                 }
             },
             methods: {
@@ -370,44 +374,67 @@ class LichatUI{
                     this.close();
                 },
                 create: function(){
-                    let client = new LichatClient(this.client);
+                    let client = new LichatClient(this.options);
                     lichat.addClient(client)
-                        .then(()=>this.close())
+                        .then(()=>{
+                            lichat.saveSetup();
+                            this.$emit('close');
+                        })
                         .catch((e)=>{
+                            console.log(e);
                             lichat.removeClient(client);
                             this.errorMessage = e.reason || e.text || "Failed to connect";
                         });
                 },
-                close: function(){
-                    this.client.aliases = this.aliases.split("  ");
+                save: function(){
+                    this.client.name = this.options.name;
+                    this.client.aliases = this.options.aliases.split("  ");
+                    this.client.username = this.options.username;
+                    this.client.password = this.options.password;
+                    this.client.hostname = this.options.hostname;
+                    this.client.port = this.options.port;
+                    this.client.ssl = this.options.ssl;
                     lichat.saveSetup();
                     this.$emit('close');
                 },
                 deleteBan: function(ev){
-                    this.client.s("UNBAN", {target: ev.target.getAttribute("name")})
+                    this.client.s("UNBAN", {target: ev.target.closest("a").getAttribute("name")})
                         .then((ev)=>this.bans = this.bans.filter((name)=>name !== ev.target))
                         .catch((ev)=>this.errorMessage = ev.text);
                 },
                 addBan: function(ev){
                     this.client.s("BAN", {target: this.$refs.name.value})
-                        .then((ev)=>this.bans.push(ev.target))
+                        .then((ev)=>{
+                            this.bans.push(ev.target);
+                            this.$refs.name.value = '';
+                        })
                         .catch((ev)=>this.errorMessage = ev.text);
                 },
                 deleteIpBan: function(ev){
-                    this.client.s("IP-UNBAN", {ip: ev.target.getAttribute("ip"), mask: ev.target.getAttribute("mask")})
+                    this.client.s("IP-UNBAN", {ip: ev.target.closest("a").getAttribute("ip"),
+                                               mask: ev.target.closest("a").getAttribute("mask")})
                         .then((ev)=>this.client.s("IP-BLACKLIST"))
                         .then((ev)=>this.ipBans = ev.target)
                         .catch((ev)=>this.errorMessage = ev.text);
                 },
                 addIpUnban: function(ev){
                     this.client.s("IP-UNBAN", {ip: this.$refs.ip.value, mask: this.$refs.mask.value})
-                        .then((ev)=>this.client.s("IP-BLACKLIST"))
+                        .then((ev)=>{
+                            this.$refs.ip.value = '';
+                            this.$refs.mask.value = '';
+                            return this.client.s("IP-BLACKLIST");
+                        })
                         .then((ev)=>this.ipBans = ev.target)
                         .catch((ev)=>this.errorMessage = ev.text);
+                    this.$refs.name.value = '';
                 },
                 addIpBan: function(ev){
                     this.client.s("IP-BAN", {ip: this.$refs.ip.value, mask: this.$refs.mask.value})
-                        .then((ev)=>this.client.s("IP-BLACKLIST"))
+                        .then((ev)=>{
+                            this.$refs.ip.value = '';
+                            this.$refs.mask.value = '';
+                            return this.client.s("IP-BLACKLIST");
+                        })
                         .then((ev)=>this.ipBans = ev.target)
                         .catch((ev)=>this.errorMessage = ev.text);
                 },
@@ -548,8 +575,8 @@ class LichatUI{
             }
         });
 
-        Vue.component("channel-info", {
-            template: "#channel-info",
+        Vue.component("channel-configure", {
+            template: "#channel-configure",
             props: {channel: LichatChannel},
             data: ()=>{
                 return {
@@ -578,11 +605,11 @@ class LichatUI{
                     }
                 },
                 setImage: function(ev){
-                    let key = ev.target.getAttribute("name");
+                    let key = ev.target.closest("a").getAttribute("name");
                     // FIXME: todo
                 },
                 saveInfo: function(){
-                    for(let key in info){
+                    for(let key in this.info){
                         let value = this.info[key];
                         if(value !== this.channel.info[key]){
                             this.channel.s("SET-CHANNEL-INFO", {key: LichatReader.fromString(key), text: value})
@@ -592,13 +619,13 @@ class LichatUI{
                     }
                 },
                 deleteEmote: function(ev){
-                    let name = ev.target.getAttribute("name");
+                    let name = ev.target.closest("a").getAttribute("name");
                     this.channel.s("EMOTE", {"content-type": "image/png", name: name, payload: ""})
                         .then((e)=>this.emotes = this.emotes.filter((o)=>o[0] !== e.name))
                         .catch((e)=>this.errorMessage = e.text);
                 },
                 uploadEmote: function(ev){
-                    let file = this.$refs.files[0];
+                    let file = this.$refs.file.files[0];
                     let name = this.$refs.name.value;
                     if(!file){
                         this.errorMessage = "Need to select a file.";
@@ -611,19 +638,21 @@ class LichatUI{
                     var reader = new FileReader();
                     reader.onload = ()=>{
                         let parts = reader.result.match(/data:(.*?)(;base64)?,(.*)/);
-                        this.currentChannel.s("EMOTE", {
+                        this.channel.s("EMOTE", {
                             name: name,
                             "content-type": parts[1],
                             payload: parts[3]
                         }).then((ev)=>{
-                            this.emotes.push([ev.name, ev["content-type"]+" "+ev.payload]);
+                            this.emotes.push([ev.name, this.toURL(ev["content-type"]+" "+ev.payload)]);
                             this.emotes.sort((a,b)=>(a[0]<b[0])?-1:+1);
                         })
-                            .catch((ev)=>{
-                                channel.showStatus("Upload failed: "+ev.text);
-                            });
+                            .catch((e)=>this.errorMessage = e.text);
                     };
-                    reader.readAsDataURL(ev);
+                    reader.readAsDataURL(file);
+                },
+                toggleSlowMode: function(){
+                    this.channel.s("PAUSE", {by: Integer.parseInt(this.$refs.pause.value)})
+                        .catch((ev)=>this.errorMessage = ev.text);
                 },
                 destroy: function(ev){
                     this.channel.s("DESTROY")
@@ -716,7 +745,7 @@ class LichatUI{
                     }else{
                         this.autoComplete.prefix = null;
                         if(this.options.transmitTyping && this.currentChannel.client.isAvailable("shirakumo-typing")
-                           && this.lastTypingUpdate+4 < cl.getUniversalTime()){
+                           && this.lastTypingUpdate+4 < cl.getUniversalTime() && this.currentChannel.isPermitted('TYPING')){
                             this.lastTypingUpdate = cl.getUniversalTime();
                             this.currentChannel.s("TYPING", {}, true);
                         }
