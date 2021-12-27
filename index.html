@@ -18,6 +18,10 @@
            v-on:click.stop="showIdentitySwitcher = true">
           <i class="fas fa-fw fa-sign-out-alt"></i> Change Identity
         </a>
+        <user-configure
+            v-bind:user="client.user"
+            v-if="showInfo"
+            v-on:close="showInfo = false;$emit('close')"></user-configure>
         <a class="info"
            v-on:click.stop="showInfo = true">
           <i class="fas fa-fw fa-info-circle"></i> View Info
