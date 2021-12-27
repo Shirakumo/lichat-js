@@ -195,8 +195,19 @@
             <header>
               <h2>Configure Client</h2>
               <div class="error-message" v-if="errorMessage">{{errorMessage}}</div>
+              <nav class="tabbar">
+                <a v-on:click="tab = 'settings'" v-bind:class="{active: tab == 'settings'}">
+                  <i class="fas fa-info-circle"></i> Settings
+                </a>
+                <a v-on:click="tab = 'ban'" v-bind:class="{active: tab == 'ban'}" v-if="client.isPermitted('BAN')">
+                  <i class="fas fa-user-slash"></i> User Bans
+                </a>
+                <a v-on:click="tab = 'ip-ban'" v-bind:class="{active: tab == 'ip-ban'}" v-if="client.isPermitted('IP-BAN')">
+                  <i class="fas fa-ban"></i> Ip Bans
+                </a>
+              </nav>
             </header>
-            <section>
+            <section v-if="tab == 'settings'">
               <div class="row">
                 <label>Name</label>
                 <input type="text" name="name" required v-model="client.name">
@@ -238,6 +249,33 @@
               <input type="button" value="Save" v-if="client._reader" v-on:click="close">
               <input type="button" value="Delete" v-if="client._reader" v-on:click="remove">
               <input type="button" value="Create" v-else v-on:click.stop="create">
+            </section>
+            <section v-if="tab == 'ban'">
+              <ul class="bans">
+                <li v-for="name in bans">
+                  <span class="name">{{name}}</span>
+                  <a v-bind.name="name" v-on:click="deleteBan">
+                    <i class="fas fa-trash"></i>
+                  </a>
+                </li>
+              </ul>
+              <input type="text" ref="name">
+              <input type="button" value="Ban" v-on:click="addBan">
+            </section>
+            <section v-if="tab == 'ip-ban'">
+              <ul class="bans">
+                <li v-for="[ip, mask] in ipBans">
+                  <span class="ip">{{ip}}</span>
+                  <span class="mask">{{mask}}</span>
+                  <a v-bind.ip="ip" v-bind.mask="mask" v-on:click="deleteIpBan">
+                    <i class="fas fa-trash"></i>
+                  </a>
+                </li>
+              </ul>
+              <input type="text" ref="ip" pattern="^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$">
+              <input type="text" ref="mask" pattern="^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$">
+              <input type="button" value="Ban" v-on:click="addIpBan">
+              <input type="button" value="Unban" v-on:click="addIpUnban">
             </section>
           </div>
         </div>
@@ -420,7 +458,7 @@
                 <li v-for="[k, v] in emotes">
                   <img class="emote" v-bind:src="v">
                   <span class="name">:{{k}}:</span>
-                  <a v-if="channel.isPermitted('EMOTE')" v-bind.name="k" v-on.click="deleteEmote">
+                  <a v-if="channel.isPermitted('EMOTE')" v-bind.name="k" v-on:click="deleteEmote">
                     <i class="fas fa-trash"></i>
                   </a>
                 </li>

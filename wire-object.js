@@ -105,6 +105,9 @@ cl.defclass("KILL", ["TARGET-UPDATE"]);
 cl.defclass("DESTROY", ["CHANNEL-UPDATE"]);
 cl.defclass("BAN", ["TARGET-UPDATE"]);
 cl.defclass("UNBAN", ["TARGET-UPDATE"]);
+cl.defclass("BLACKLIST", [], {
+    target: null
+});
 cl.defclass("IP-BAN", [], {
     ip: cl.requiredArg("ip"),
     mask: cl.requiredArg("mask")
@@ -113,8 +116,14 @@ cl.defclass("IP-UNBAN", [], {
     ip: cl.requiredArg("ip"),
     mask: cl.requiredArg("mask")
 });
+cl.defclass("IP-BLACKLIST", [], {
+    target: null
+});
 cl.defclass("BLOCK", ["TARGET-UPDATE"]);
 cl.defclass("UNBLOCK", ["TARGET-UPDATE"]);
+cl.defclass("BLOCKED", [], {
+    target: null
+});
 cl.defclass("REACT", ["CHANNEL-UPDATE"], {
     target: cl.requiredArg("target"),
     "update-id": cl.requiredArg("update-id"),

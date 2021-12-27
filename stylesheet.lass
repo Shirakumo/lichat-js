@@ -108,6 +108,8 @@
      :display inline-block
      :box-sizing border-box
      :min-width 10em)
+    ((:or input select)
+     :background (hex 151515))
     (.row
      (label :margin-right 1em)))
    (>section.emotes
@@ -289,6 +291,7 @@
    (>.name
     :margin-right 1em)
    (>.topic
+    :white-space nowrap
     :overflow-x hidden
     :text-overflow ellipsis
     :flex-grow 1

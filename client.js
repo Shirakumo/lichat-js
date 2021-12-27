@@ -779,4 +779,8 @@ class LichatClient{
     isAvailable(name){
         return cl.find(name, this.availableExtensions);
     }
+
+    isPermitted(update){
+        return this.primaryChannel.isPermitted(update);
+    }
 }

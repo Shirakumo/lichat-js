@@ -444,6 +444,9 @@ cl.defclass("KILL", ["TARGET-UPDATE"]);
 cl.defclass("DESTROY", ["CHANNEL-UPDATE"]);
 cl.defclass("BAN", ["TARGET-UPDATE"]);
 cl.defclass("UNBAN", ["TARGET-UPDATE"]);
+cl.defclass("BLACKLIST", [], {
+    target: null
+});
 cl.defclass("IP-BAN", [], {
     ip: cl.requiredArg("ip"),
     mask: cl.requiredArg("mask")
@@ -452,8 +455,14 @@ cl.defclass("IP-UNBAN", [], {
     ip: cl.requiredArg("ip"),
     mask: cl.requiredArg("mask")
 });
+cl.defclass("IP-BLACKLIST", [], {
+    target: null
+});
 cl.defclass("BLOCK", ["TARGET-UPDATE"]);
 cl.defclass("UNBLOCK", ["TARGET-UPDATE"]);
+cl.defclass("BLOCKED", [], {
+    target: null
+});
 cl.defclass("REACT", ["CHANNEL-UPDATE"], {
     target: cl.requiredArg("target"),
     "update-id": cl.requiredArg("update-id"),
@@ -1563,6 +1572,10 @@ class LichatClient{
     isAvailable(name){
         return cl.find(name, this.availableExtensions);
     }
+
+    isPermitted(update){
+        return this.primaryChannel.isPermitted(update);
+    }
 }
 class LichatUI{
     constructor(el){
@@ -1911,11 +1924,24 @@ class LichatUI{
             data: ()=>{
                 return {
                     errorMessage: null,
-                    aliases: ""
+                    tab: 'settings',
+                    aliases: "",
+                    bans: [],
+                    ipBans: []
                 };
             },
             created: function(){
                 this.aliases = this.client.aliases.join("  ");
+                if(this.client.isConnected){
+                    if(this.client.isPermitted('BAN'))
+                        this.client.s("BLACKLIST")
+                        .then((ev)=>this.bans = ev.target)
+                        .catch((ev)=>this.errorMessage = ev.text);
+                    if(this.client.isPermitted('IP-BAN'))
+                        this.client.s("IP-BLACKLIST")
+                        .then((ev)=>this.ipBans = ev.target)
+                        .catch((ev)=>this.errorMessage = ev.text);
+                }
             },
             methods: {
                 remove: function(){
@@ -1935,7 +1961,35 @@ class LichatUI{
                     this.client.aliases = this.aliases.split("  ");
                     lichat.saveSetup();
                     this.$emit('close');
-                }
+                },
+                deleteBan: function(ev){
+                    this.client.s("UNBAN", {target: ev.target.getAttribute("name")})
+                        .then((ev)=>this.bans = this.bans.filter((name)=>name !== ev.target))
+                        .catch((ev)=>this.errorMessage = ev.text);
+                },
+                addBan: function(ev){
+                    this.client.s("BAN", {target: this.$refs.name.value})
+                        .then((ev)=>this.bans.push(ev.target))
+                        .catch((ev)=>this.errorMessage = ev.text);
+                },
+                deleteIpBan: function(ev){
+                    this.client.s("IP-UNBAN", {ip: ev.target.getAttribute("ip"), mask: ev.target.getAttribute("mask")})
+                        .then((ev)=>this.client.s("IP-BLACKLIST"))
+                        .then((ev)=>this.ipBans = ev.target)
+                        .catch((ev)=>this.errorMessage = ev.text);
+                },
+                addIpUnban: function(ev){
+                    this.client.s("IP-UNBAN", {ip: this.$refs.ip.value, mask: this.$refs.mask.value})
+                        .then((ev)=>this.client.s("IP-BLACKLIST"))
+                        .then((ev)=>this.ipBans = ev.target)
+                        .catch((ev)=>this.errorMessage = ev.text);
+                },
+                addIpBan: function(ev){
+                    this.client.s("IP-BAN", {ip: this.$refs.ip.value, mask: this.$refs.mask.value})
+                        .then((ev)=>this.client.s("IP-BLACKLIST"))
+                        .then((ev)=>this.ipBans = ev.target)
+                        .catch((ev)=>this.errorMessage = ev.text);
+                },
             }
         });
 
