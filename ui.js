@@ -239,33 +239,33 @@ class LichatUI{
             },
             methods: {
                 whisper: function(){
-                    this.user.client.s("CREATE", {})
-                        .then((e)=>this.user.client.s("PULL", {
+                    this.user.client.s("create", {})
+                        .then((e)=>this.user.client.s("pull", {
                             target: this.user.name,
                             channel: e.channel
                         })).catch((e)=>this.user.client.showStatus("Error: "+e.text));
                     this.$emit('close');
                 },
                 block: function(){
-                    this.user.client.s("BLOCK", {target: this.message.from})
+                    this.user.client.s("block", {target: this.message.from})
                         .then((e)=>this.user.client.showStatus(this.user.name+" has been blocked."))
                         .catch((e)=>this.user.client.showStatus("Error: "+e.text));
                     this.$emit('close');
                 },
                 unblock: function(){
-                    this.user.client.s("UNBLOCK", {target: this.user.name})
+                    this.user.client.s("unblock", {target: this.user.name})
                         .then((e)=>this.user.client.showStatus(this.user.name+" has been unblocked."))
                         .catch((e)=>this.user.client.showStatus("Error: "+e.text));
                     this.$emit('close');
                 },
                 ban: function(){
-                    this.user.client.s("BAN", {target: this.user.name})
+                    this.user.client.s("ban", {target: this.user.name})
                         .then((e)=>this.user.client.showStatus(this.user.name+" has been banned."))
                         .catch((e)=>this.user.client.showStatus("Error: "+e.text));
                     this.$emit('close');
                 },
                 unban: function(){
-                    this.user.client.s("UNBAN", {target: this.user.name})
+                    this.user.client.s("unban", {target: this.user.name})
                         .then((e)=>this.user.client.showStatus(this.user.name+" has been unbanned."))
                         .catch((e)=>this.user.client.showStatus("Error: "+e.text));
                     this.$emit('close');
@@ -305,18 +305,18 @@ class LichatUI{
                     this.$emit('close');
                 },
                 kick: function(){
-                    this.message.channel.s("KICK", {target: this.message.from})
+                    this.message.channel.s("kick", {target: this.message.from})
                         .catch((e)=>this.message.channel.showStatus("Error: "+e.text));
                     this.$emit('close');
                 },
                 quiet: function(){
-                    this.message.channel.s("QUIET", {target: this.message.from})
+                    this.message.channel.s("quiet", {target: this.message.from})
                         .catch((e)=>this.message.channel.showStatus("Error: "+e.text))
                         .then((e)=>this.message.channel.showStatus(this.message.from+" has been quieted."));
                     this.$emit('close');
                 },
                 unquiet: function(){
-                    this.message.channel.s("UNQUIET", {target: this.message.from})
+                    this.message.channel.s("unquiet", {target: this.message.from})
                         .catch((e)=>this.message.channel.showStatus("Error: "+e.text))
                         .then((e)=>this.message.channel.showStatus(this.message.from+" has been quieted."));
                     this.$emit('close');
@@ -355,14 +355,13 @@ class LichatUI{
                     Object.assign(this.options, this.client);
                     this.options.aliases = this.client.aliases.join("  ");
                     if(this.client.isConnected){
-                        if(this.client.isPermitted('BAN')){
-                            console.log("W???");
-                            this.client.s("BLACKLIST", {})
+                        if(this.client.isPermitted('ban')){
+                            this.client.s("blacklist", {})
                                 .then((ev)=>this.bans = ev.target)
                                 .catch((ev)=>this.errorMessage = ev.text);
                         }
-                        if(this.client.isPermitted('IP-BAN'))
-                            this.client.s("IP-BLACKLIST", {})
+                        if(this.client.isPermitted('ip-ban'))
+                            this.client.s("ip-blacklist", {})
                                 .then((ev)=>this.ipBans = ev.target)
                                 .catch((ev)=>this.errorMessage = ev.text);
                     }
@@ -398,12 +397,12 @@ class LichatUI{
                     this.$emit('close');
                 },
                 deleteBan: function(ev){
-                    this.client.s("UNBAN", {target: ev.target.closest("a").getAttribute("name")})
+                    this.client.s("unban", {target: ev.target.closest("a").getAttribute("name")})
                         .then((ev)=>this.bans = this.bans.filter((name)=>name !== ev.target))
                         .catch((ev)=>this.errorMessage = ev.text);
                 },
                 addBan: function(ev){
-                    this.client.s("BAN", {target: this.$refs.name.value})
+                    this.client.s("ban", {target: this.$refs.name.value})
                         .then((ev)=>{
                             this.bans.push(ev.target);
                             this.$refs.name.value = '';
@@ -411,29 +410,29 @@ class LichatUI{
                         .catch((ev)=>this.errorMessage = ev.text);
                 },
                 deleteIpBan: function(ev){
-                    this.client.s("IP-UNBAN", {ip: ev.target.closest("a").getAttribute("ip"),
+                    this.client.s("ip-unban", {ip: ev.target.closest("a").getAttribute("ip"),
                                                mask: ev.target.closest("a").getAttribute("mask")})
-                        .then((ev)=>this.client.s("IP-BLACKLIST"))
+                        .then((ev)=>this.client.s("ip-blacklist"))
                         .then((ev)=>this.ipBans = ev.target)
                         .catch((ev)=>this.errorMessage = ev.text);
                 },
                 addIpUnban: function(ev){
-                    this.client.s("IP-UNBAN", {ip: this.$refs.ip.value, mask: this.$refs.mask.value})
+                    this.client.s("ip-unban", {ip: this.$refs.ip.value, mask: this.$refs.mask.value})
                         .then((ev)=>{
                             this.$refs.ip.value = '';
                             this.$refs.mask.value = '';
-                            return this.client.s("IP-BLACKLIST");
+                            return this.client.s("ip-blacklist");
                         })
                         .then((ev)=>this.ipBans = ev.target)
                         .catch((ev)=>this.errorMessage = ev.text);
                     this.$refs.name.value = '';
                 },
                 addIpBan: function(ev){
-                    this.client.s("IP-BAN", {ip: this.$refs.ip.value, mask: this.$refs.mask.value})
+                    this.client.s("ip-ban", {ip: this.$refs.ip.value, mask: this.$refs.mask.value})
                         .then((ev)=>{
                             this.$refs.ip.value = '';
                             this.$refs.mask.value = '';
-                            return this.client.s("IP-BLACKLIST");
+                            return this.client.s("ip-blacklist");
                         })
                         .then((ev)=>this.ipBans = ev.target)
                         .catch((ev)=>this.errorMessage = ev.text);
@@ -511,7 +510,7 @@ class LichatUI{
             },
             methods: {
                 create: function(){
-                    this.client.s("CREATE", {channel: (this.anonymous)?null:this.name})
+                    this.client.s("create", {channel: (this.anonymous)?null:this.name})
                         .then(()=>this.$emit('close'))
                         .catch((e)=>this.errorMessage = e.text);
                 }
@@ -575,27 +574,20 @@ class LichatUI{
             }
         });
 
-        Vue.component("channel-configure", {
-            template: "#channel-configure",
-            props: {channel: LichatChannel},
+        let configureWidget = {
             data: ()=>{
                 return {
                     tab: 'info',
                     errorMessage: null,
-                    info: {},
-                    emotes: []
+                    info: {}
                 };
             },
             created: function(){
-                Object.assign(this.info, this.channel.info);
-                for(let name in this.channel.emotes){
-                    this.emotes.push([name, this.channel.emotes[name]]);
-                }
-                this.emotes.sort((a,b)=>(a[0]<b[0])?-1:+1);
+                Object.assign(this.info, this.object.info);
             },
             methods: {
                 isImage: function(key){
-                    return key === ':ICON';
+                    return key === ':icon';
                 },
                 toURL: function(value){
                     if(!value) return EmptyIcon;
@@ -624,16 +616,105 @@ class LichatUI{
                 saveInfo: function(){
                     for(let key in this.info){
                         let value = this.info[key];
-                        if(value !== this.channel.info[key]){
-                            this.channel.s("SET-CHANNEL-INFO", {key: LichatReader.fromString(key), text: value})
-                                .then((e)=>this.channel.info[key] = e.text)
+                        if(value !== this.object.info[key]){
+                            this.object.s(this.setInfoUpdate, {key: LichatReader.fromString(key), text: value})
+                                .then((e)=>this.object.info[key] = e.text)
                                 .catch((e)=>this.errorMessage = e.text);
                         }
                     }
                 },
+            }
+        };
+
+        Vue.component("user-configure", {
+            template: "#user-configure",
+            mixins: [configureWidget],
+            props: {user: LichatUser},
+            data: ()=>{
+                return {
+                    registered: false,
+                    connections: 0,
+                    channels: [],
+                    registeredOn: [],
+                    connectionInfo: []
+                };
+            },
+            computed: {
+                object: function(){return this.user;},
+                setInfoUpdate: ()=>"set-user-info"
+            },
+            created: function(){
+                for(let channel of this.user.client.channelList){
+                    if(channel.hasUser(this.user))
+                        this.channels.push(channel.name);
+                }
+                if(this.user.client.isPermitted('user-info'))
+                    this.user.s('user-info')
+                    .then((ev)=>{
+                        this.registered = ev.registered;
+                        this.connections = ev.connections;
+                        Object.assign(this.info, this.user.info);
+                    })
+                    .catch((ev)=>this.errorMessage = ev.text);
+                if(this.user.client.isPermitted('server-info'))
+                    this.user.s('server-info')
+                    .then((ev)=>{
+                        for(let entry of ev.attributes){
+                            if(entry[0] == cl.intern("channels", "lichat")){
+                                this.channels = entry[1];
+                            }else if(entry[0] == cl.intern("registered-on", "lichat")){
+                                this.registeredOn = cl.universalToUnix(entry[1]);
+                            }
+                        }
+                        this.connectionInfo = [];
+                        for(let connection of ev.connections){
+                            let info = {};
+                            for(let entry of connection){
+                                if(entry[0] == cl.intern("connected-on", "lichat")){
+                                    info.connectedOn = cl.universalToUnix(entry[1]);
+                                }else if(entry[0] == cl.intern("ip", "shirakumo")){
+                                    info.ip = entry[1];
+                                }else if(entry[0] == cl.intern("ssl", "shirakumo")){
+                                    info.ssl = entry[1];
+                                }
+                            }
+                            this.connectionInfo.push(info);
+                        }
+                    })
+                    .catch((ev)=>this.errorMessage = ev.text);
+            },
+            methods: {
+                kill: function(){
+                    this.user.s("kill")
+                        .then(()=>this.$emit('close'))
+                        .catch((ev)=>this.errorMessage = ev.text);
+                }
+            }
+        });
+
+        Vue.component("channel-configure", {
+            template: "#channel-configure",
+            mixins: [configureWidget],
+            props: {channel: LichatChannel},
+            data: ()=>{
+                return {
+                    emotes: []
+                };
+            },
+            created: function(){
+                for(let name in this.channel.emotes){
+                    this.emotes.push([name, this.channel.emotes[name]]);
+                }
+                this.emotes.sort((a,b)=>(a[0]<b[0])?-1:+1);
+            },
+            computed: {
+                object: function(){return this.channel;},
+                setInfoUpdate: ()=>"set-channel-info"
+            },
+            methods: {
                 deleteEmote: function(ev){
                     let name = ev.target.closest("a").getAttribute("name");
-                    this.channel.s("EMOTE", {"content-type": "image/png", name: name, payload: ""})
+                    this.channel.s("emote", {"content-type": "image/png", name: name, payload: ""})
                         .then((e)=>this.emotes = this.emotes.filter((o)=>o[0] !== e.name))
                         .catch((e)=>this.errorMessage = e.text);
                 },
@@ -651,7 +732,7 @@ class LichatUI{
                     var reader = new FileReader();
                     reader.onload = ()=>{
                         let parts = reader.result.match(/data:(.*?)(;base64)?,(.*)/);
-                        this.channel.s("EMOTE", {
+                        this.channel.s("emote", {
                             name: name,
                             "content-type": parts[1],
                             payload: parts[3]
@@ -664,11 +745,11 @@ class LichatUI{
                     reader.readAsDataURL(file);
                 },
                 toggleSlowMode: function(){
-                    this.channel.s("PAUSE", {by: Integer.parseInt(this.$refs.pause.value)})
+                    this.channel.s("pause", {by: Integer.parseInt(this.$refs.pause.value)})
                         .catch((ev)=>this.errorMessage = ev.text);
                 },
                 destroy: function(ev){
-                    this.channel.s("DESTROY")
+                    this.channel.s("destroy")
                         .then(()=>this.$emit('close'))
                         .catch((ev)=>this.errorMessage = ev.text);
                 }
@@ -690,7 +771,7 @@ class LichatUI{
                 react: function(emote){
                     this.emotePicker = false;
                     if(emote)
-                        this.message.channel.s("REACT", {
+                        this.message.channel.s("react", {
                             target: this.message.from,
                             "update-id": this.message.id,
                             emote: emote
@@ -698,7 +779,7 @@ class LichatUI{
                 },
                 edit: function(){
                     this.editText = this.editText.trimEnd();
-                    this.message.channel.s("EDIT", {
+                    this.message.channel.s("edit", {
                         from: this.message.from,
                         id: this.message.id,
                         text: this.editText
@@ -760,7 +841,7 @@ class LichatUI{
                         if(this.options.transmitTyping && this.currentChannel.client.isAvailable("shirakumo-typing")
                            && this.lastTypingUpdate+4 < cl.getUniversalTime() && this.currentChannel.isPermitted('TYPING')){
                             this.lastTypingUpdate = cl.getUniversalTime();
-                            this.currentChannel.s("TYPING", {}, true);
+                            this.currentChannel.s("typing", {}, true);
                         }
                     }
                 },
@@ -772,7 +853,7 @@ class LichatUI{
                         if(message.text.startsWith("/")){
                             this.processCommand(message.text, channel);
                         }else{
-                            channel.s("MESSAGE", {
+                            channel.s("message", {
                                 "text": message.text,
                                 "reply-to": (message.replyTo)? [message.replyTo.author.name, message.replyTo.id]: null
                             }).catch((e)=>channel.showStatus("Error: "+e.text));
@@ -802,7 +883,7 @@ class LichatUI{
                         return new Promise((ok, fail)=>{
                             reader.onload = ()=>{
                                 let parts = reader.result.match(/data:(.*?)(;base64)?,(.*)/);
-                                this.currentChannel.s("DATA", {
+                                this.currentChannel.s("data", {
                                     filename: ev.name,
                                     "content-type": parts[1],
                                     payload: parts[3]
@@ -822,7 +903,7 @@ class LichatUI{
                     let channel = this.currentChannel;
                     let query = this.search;
                     this.search = null;
-                    this.currentChannel.s("SEARCH", {query: query})
+                    this.currentChannel.s("search", {query: query})
                         .then((ev)=>this.showSearchResults(channel, ev.results, query))
                         .catch((e)=>channel.showStatus("Error: "+e.text));
                 },
@@ -878,7 +959,7 @@ class LichatUI{
             if(channel.client.hasChannel(name) && channel.client.getChannel(name).isPresent){
                 this.app.switchChannel(channel.client.getChannel(name));
             }else{
-                channel.client.s("JOIN", {channel: name})
+                channel.client.s("join", {channel: name})
                     .then(()=>{this.currentChannel = channel.client.getChannel(name);})
                     .catch((e)=>channel.showStatus("Error: "+e.text));
             }
@@ -886,42 +967,46 @@ class LichatUI{
 
         this.addCommand("leave", (channel, ...name)=>{
             name = (0 < name.length)? name.join(" ") : channel.name;
-            channel.client.s("LEAVE", {channel: name})
+            channel.client.s("leave", {channel: name})
                 .then(()=>channel.client.removeFromChannelList(channel))
                 .catch((e)=>channel.showStatus("Error: "+e.text));
         }, "Leave a channel. If no channel is specified, leaves the current channel.");
 
         this.addCommand("create", (channel, ...name)=>{
             name = (0 < name.length)? name.join(" ") : null;
-            channel.client.s("CREATE", {channel: name})
+            channel.client.s("create", {channel: name})
                 .then(()=>{this.currentChannel = channel.client.getChannel(name);})
                 .catch((e)=>channel.showStatus("Error: "+e.text));
         }, "Creates a new channel. If no name is specified, creates an anonymous channel.");
 
         this.addCommand("kick", (channel, ...name)=>{
-            channel.s("KICK", {target: name.join(" ")})
+            channel.s("kick", {target: name.join(" ")})
                 .catch((e)=>channel.showStatus("Error: "+e.text));
         }, "Kick a user fromde the channel.");
         
         this.addCommand("pull", (channel, ...name)=>{
-            channel.s("PULL", {target: name.join(" ")})
+            channel.s("pull", {target: name.join(" ")})
                 .catch((e)=>channel.showStatus("Error: "+e.text));
         }, "Pull a user into the channel.");
 
         this.addCommand("register", (channel, ...password)=>{
-            channel.client.s("REGISTER", {password: password.join(" ")})
-                .then(()=>channel.showStatus("Registration complete."))
+            password = password.join(" ");
+            channel.client.s("register", {password: password})
+                .then(()=>{
+                    channel.client.password = password;
+                    channel.showStatus("Registration complete.");
+                })
                 .catch((e)=>channel.showStatus("Error: "+e.text));
         }, "Try to register your current username with a password.");
 
         this.addCommand("grant", (channel, type, ...user)=>{
-            channel.s("GRANT", {update: LichatReader.fromString(type), target: user.join(" ")})
+            channel.s("grant", {update: LichatReader.fromString(type), target: user.join(" ")})
                 .then(()=>channel.showStatus("Permission granted."))
                 .catch((e)=>channel.showStatus("Error: "+e.text));
         }, "Grant permission for an update type to another user in the channel.");
 
         this.addCommand("deny", (channel, type, ...user)=>{
-            channel.s("DENY", {update: LichatReader.fromString(type), target: user.join(" ")})
+            channel.s("deny", {update: LichatReader.fromString(type), target: user.join(" ")})
                 .then(()=>channel.showStatus("Permission denied."))
                 .catch((e)=>channel.showStatus("Error: "+e.text));
         }, "Deny permission for an update type to another user in the channel.");
@@ -977,16 +1062,16 @@ class LichatUI{
         };
 
         client.disconnectHandler = (ev)=>{
-            this.currentChannel.showStatus("Disconnected: "+(ev.reason || "connection lost"));
+            this.currentChannel.showStatus("Disconnected: "+(ev.reason || ev.text || "connection lost"));
         };
 
-        client.addHandler("CONNECT", (ev)=>{
+        client.addHandler("connect", (ev)=>{
             if(0 < client.channelList.length){
                 client.getEmergencyChannel().showStatus("Connected");
             }
         });
 
-        client.addHandler("JOIN", (ev)=>{
+        client.addHandler("join", (ev)=>{
             ev.text = " ** Joined " + ev.channel;
             let channel = client.getChannel(ev.channel);
             channel.record(ev);
@@ -998,7 +1083,7 @@ class LichatUI{
             }
         });
         
-        client.addHandler("LEAVE", (ev)=>{
+        client.addHandler("leave", (ev)=>{
             ev.text = " ** Left " + ev.channel;
             client.getChannel(ev.channel).record(ev);
         });

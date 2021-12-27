@@ -7,8 +7,8 @@ var CL = function(){
     var Symbol = function(name, pkg){
         var self = this;
         if(!name) throw "Cannot create symbol with empty name.";
-        self.name = name;
-        self.pkg = pkg || null;
+        self.name = name.toLowerCase();
+        self.pkg = pkg.toLowerCase();
         self.toString = ()=>{
             return self.name;
         };
@@ -60,10 +60,10 @@ var CL = function(){
         if(constructor === undefined) constructor=()=>{};
         directSuperclasses = directSuperclasses.map(self.findClass);
         if(typeof name == 'string'){
-            self.intern(name, "LICHAT-PROTOCOL");
+            self.intern(name, "lichat");
         }
         for(initarg in initforms){
-            self.intern(initarg.toUpperCase(), "KEYWORD");
+            self.intern(initarg, "keyword");
         }
 
         var c = function(initargs){
@@ -85,7 +85,7 @@ var CL = function(){
         c.directSuperclasses = directSuperclasses;
         c.superclasses = self.computeClassPrecedenceList(c);
 
-        classes[name] = c;        
+        self.setClass(name, c);
         return name;
     };
 
@@ -94,8 +94,12 @@ var CL = function(){
     };
 
     self.findClass = (name, error)=>{
-        if(classes[name])
-            return classes[name];
+        if(name instanceof Symbol)
+            name = name.name;
+        name = name.toLowerCase();
+        let found = classes[name];
+        if(found)
+            return found;
         if(error)
             throw new Error("No such class "+name);
         return null;
@@ -106,6 +110,7 @@ var CL = function(){
     };
 
     self.setClass = (name, c)=>{
+        name = name.toLowerCase();
         if(c)
             classes[name] = c;
         else
@@ -152,7 +157,7 @@ var CL = function(){
     self.intern = (name, pkg)=>{
         var symbol = self.findSymbol(name, pkg);
         if(!symbol){
-            symbol = new Symbol(name, pkg || "LICHAT-JS");
+            symbol = new Symbol(name, pkg || "lichat-js");
             if(symbols[symbol.pkg] === undefined){
                 symbols[symbol.pkg] = {};
             }
@@ -162,19 +167,15 @@ var CL = function(){
     };
 
     self.findSymbol = (name, pkg)=>{
-        var pkgspace = symbols[pkg || "LICHAT-JS"];
+        var pkgspace = symbols[pkg? pkg.toLowerCase(): "lichat-js"];
         if(pkgspace === undefined) return null;
-        var symbol = pkgspace[name];
+        var symbol = pkgspace[name.toLowerCase()];
         if(symbol === undefined) return null;
         return symbol;
     };
 
     self.kw = (name)=>{
-        return self.intern(name, "KEYWORD");
-    };
-
-    self.makeSymbol = (name)=>{
-        return new Symbol(name);
+        return self.intern(name, "keyword");
     };
 
     self.symbolp = (thing)=>{
@@ -239,8 +240,8 @@ var CL = function(){
         return hash;
     };
 
-    self.T = self.intern("T", "LICHAT-PROTOCOL");
-    self.NIL = self.intern("NIL", "LICHAT-PROTOCOL");
+    self.T = self.intern("T", "LICHAT");
+    self.NIL = self.intern("NIL", "LICHAT");
 
     return self;
 };

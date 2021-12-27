@@ -112,14 +112,14 @@ class LichatUser{
         this._name = name;
         this._client = client;
         this.info = {};
-        this.info[":BIRTHDAY"] = "";
-        this.info[":CONTACT"] = "";
-        this.info[":LOCATION"] = "";
-        this.info[":PUBLIC-KEY"] = "";
-        this.info[":REAL-NAME"] = "";
-        this.info[":STATUS"] = "";
+        this.info[":birthday"] = "";
+        this.info[":contact"] = "";
+        this.info[":location"] = "";
+        this.info[":public-key"] = "";
+        this.info[":real-name"] = "";
+        this.info[":status"] = "";
         if(client.isAvailable('shirakumo-icon'))
-            this.info[":ICON"] = "";
+            this.info[":icon"] = "";
     }
 
     get name(){
@@ -127,7 +127,7 @@ class LichatUser{
     }
 
     get icon(){
-        let icon = this.info[":ICON"];
+        let icon = this.info[":icon"];
         if(!icon) return EmptyIcon;
         let data = icon.split(" ");
         return "data:"+data[0]+";base64,"+data[1];
@@ -143,6 +143,10 @@ class LichatUser{
 
     get isSelf(){
         return this._client.username.localeCompare(this._name, undefined, { sensitivity: 'accent' }) === 0;
+    }
+
+    get isServer(){
+        return this._client.servername.localeCompare(this._name, undefined, { sensitivity: 'accent' }) === 0;;
     }
 
     get isBlocked(){
@@ -181,6 +185,12 @@ class LichatUser{
         if(typeof(channel) === "string") channel = this._client.getChannel(channel);
         return channel.hasUser(this);
     }
+
+    s(type, args, noPromise){
+        args = args || {};
+        args.target = this.name;
+        return this._client.s(type, args, noPromise);
+    }
 }
 
 class LichatChannel{
@@ -202,12 +212,12 @@ class LichatChannel{
             this.currentMessage.text = "";
             this.currentMessage.replyTo = null;
         };
-        this.info[":NEWS"] = "";
-        this.info[":TOPIC"] = "";
-        this.info[":RULES"] = "";
-        this.info[":CONTACT"] = "";;
+        this.info[":news"] = "";
+        this.info[":topic"] = "";
+        this.info[":rules"] = "";
+        this.info[":contact"] = "";;
         if(client.isAvailable('shirakumo-icon'))
-            this.info[":ICON"] = "";
+            this.info[":icon"] = "";
         // KLUDGE: spillage from ui
         this.unread = 0;
         this.alerted = false;
@@ -242,20 +252,20 @@ class LichatChannel{
     }
 
     get icon(){
-        let icon = this.info[":ICON"];
+        let icon = this.info[":icon"];
         if(!icon) return EmptyIcon;
         let data = icon.split(" ");
         return "data:"+data[0]+";base64,"+data[1];
     }
 
     get topic(){
-        return this.info[":TOPIC"];
+        return this.info[":topic"];
     }
 
     get capabilities(){
         if(this._capabilities == null){
             this._capabilities = [];
-            this.s("CAPABILITIES");
+            this.s("capabilities");
         }
         return this._capabilities;
     }
@@ -295,7 +305,7 @@ class LichatChannel{
     }
 
     hasUser(user){
-        if(user instanceof LichatUser) user = thing.name;
+        if(user instanceof LichatUser) user = user.name;
         return this.users[user.toLowerCase()] !== undefined;
     }
 
@@ -371,7 +381,7 @@ class LichatChannel{
             from: "System",
             clock: cl.getUniversalTime(),
             text: text,
-            type: "MESSAGE"
+            type: "message"
         }, this, options);
         this.messageList.push(message);
         return message;
@@ -379,7 +389,7 @@ class LichatChannel{
 
     isPermitted(update){
         if(typeof update === 'string' || update instanceof String)
-            update = cl.intern(update, "LICHAT-PROTOCOL");
+            update = cl.intern(update, "lichat");
         return this.capabilities.includes(update);
     }
 
@@ -433,18 +443,18 @@ class LichatClient{
             this.getChannel(data.name).decode(data);
         }
 
-        this.addInternalHandler("CONNECT", (ev)=>{
+        this.addInternalHandler("connect", (ev)=>{
             this.availableExtensions = ev.extensions;
         });
 
-        this.addInternalHandler("PING", (ev)=>{
-            this.s("PONG", {}, true);
+        this.addInternalHandler("ping", (ev)=>{
+            this.s("pong", {}, true);
         });
 
-        this.addInternalHandler("PONG", (ev)=>{
+        this.addInternalHandler("pong", (ev)=>{
         });
 
-        this.addInternalHandler("JOIN", (ev)=>{
+        this.addInternalHandler("join", (ev)=>{
             if(!this.servername)
                 this.servername = ev.channel;
             let channel = this.getChannel(ev.channel);
@@ -454,53 +464,65 @@ class LichatClient{
                     for(let name in this.channels){
                         let channel = this.channels[name];
                         if(channel.wasJoined && channel.name != this.servername)
-                            channel.s("JOIN", {}, true);
+                            channel.s("join", {}, true);
                     }
                 }
-                channel.s("USERS", {}, true);
+                channel.s("users", {}, true);
                 //if(this.isAvailable("shirakumo-backfill") && !channel.isPrimary)
                 //    channel.s("BACKFILL", true);
                 if(this.isAvailable("shirakumo-channel-info"))
-                    channel.s("CHANNEL-INFO", {}, true);
+                    channel.s("channel-info", {}, true);
                 if(this.isAvailable("shirakumo-emotes"))
-                    channel.s("EMOTES", {names: channel.getEmoteList()}, true);
+                    channel.s("emotes", {names: channel.getEmoteList()}, true);
             }
         });
 
-        this.addInternalHandler("LEAVE", (ev)=>{
+        this.addInternalHandler("leave", (ev)=>{
             let channel = this.getChannel(ev.channel);
             channel.leaveUser(ev.from);
         });
 
-        this.addInternalHandler("EMOTE", (ev)=>{
+        this.addInternalHandler("emote", (ev)=>{
             this.addEmote(ev);
         });
 
-        this.addInternalHandler("SET-CHANNEL-INFO", (ev)=>{
+        this.addInternalHandler("set-channel-info", (ev)=>{
             this.getChannel(ev.channel).info[LichatPrinter.toString(ev.key)] = ev.text;
         });
 
-        this.addHandler("MESSAGE", (ev)=>{
+        this.addInternalHandler("set-user-info", (ev)=>{
+            let target = ev.target || this.username;
+            this.getUser(target).info[LichatPrinter.toString(ev.key)] = ev.text;
+        });
+
+        this.addInternalHandler("user-info", (ev)=>{
+            let user = this.getUser(ev.target);
+            for(let entry of ev.info){
+                user.info[LichatPrinter.toString(entry[0])] = entry[1];
+            }
+        });
+
+        this.addHandler("message", (ev)=>{
             this.getChannel(ev.channel).record(ev);
         });
 
-        this.addHandler("EDIT", (ev)=>{
+        this.addHandler("edit", (ev)=>{
             let message = this.getChannel(ev.channel).getMessage(ev.from, ev.id);
             if(message) message.text = ev.text;
             else console.warn("Received react with no message", ev.target, ev["update-id"]);
         });
 
-        this.addHandler("REACT", (ev)=>{
+        this.addHandler("react", (ev)=>{
             let message = this.getChannel(ev.channel).getMessage(ev.target, ev["update-id"]);
             if(message) message.addReaction(ev);
             else console.warn("Received react with no message", ev.target, ev["update-id"]);
         });
 
-        this.addHandler("CAPABILITIES", (ev)=>{
+        this.addHandler("capabilities", (ev)=>{
             this.getChannel(ev.channel).capabilities = ev.permitted;
         });
 
-        this.addHandler("USERS", (ev)=>{
+        this.addHandler("users", (ev)=>{
             for(let name of ev.users){
                 this.getChannel(ev.channel).users[name.toLowerCase()] = this.getUser(name);
             }
@@ -509,6 +531,7 @@ class LichatClient{
 
     reconnect(){
         try{
+            this.clearReconnect();
             this.openConnection();
         }catch(e){
             this.scheduleReconnect();
@@ -518,14 +541,22 @@ class LichatClient{
     scheduleReconnect(){
         this._reconnectAttempts++;
         let secs = Math.pow(2, this._reconnectAttempts);
-        setTimeout(()=>this.reconnect(), secs*1000);
+        this._reconnecter = setTimeout(()=>this.reconnect(), secs*1000);
+    }
+
+    clearReconnect(){
+        if(this._reconnecter){
+            clearTimeout(this._reconnecter);
+            this._reconnecter = null;
+            this._reconnectAttempts = 0;
+        }
     }
 
     openConnection(){
         return new Promise((ok, fail) => {
             this._socket = new WebSocket((this.ssl?"wss://":"ws://")+this.hostname+":"+this.port, "lichat");
             this._socket.onopen = ()=>{
-                this.s("CONNECT", {
+                this.s("connect", {
                     password: this.password || null,
                     version: LichatVersion,
                     extensions: this.supportedExtensions
@@ -534,20 +565,20 @@ class LichatClient{
             this._socket.onmessage = (e)=>{
                 let update = this._reader.fromWire(new LichatStream(e.data));
                 try{
-                    if(!(cl.typep(update, "WIRE-OBJECT")))
+                    if(!(cl.typep(update, "wire-object")))
                         fail({text: "non-Update message", update: update});
-                    else if(update.type !== "CONNECT")
+                    else if(update.type !== "connect")
                         fail({text: update.text, update: update});
                     else{
                     }
                 }catch(err){
                     this.closeConnection();
                 }
+                this.clearReconnect();
+                
                 if(!this.username)
                     this.username = update.from;
-                if(0 < this._reconnectAttempts)
-                    this._reconnectAttempts = 0;
-                
+
                 this._socket.onmessage = ev => this.handleMessage(ev);
                 this._socket.onclose = ev => this.handleClose(ev);
                 this.process(update);
@@ -560,6 +591,7 @@ class LichatClient{
     }
 
     closeConnection(){
+        this.clearReconnect();
         for(let channel in this.channels)
             this.channels[channel].clearUsers();
         if(this._pingTimer){
@@ -579,10 +611,14 @@ class LichatClient{
         return this._socket && this._reconnectAttempts == 0;
     }
 
+    get isConnecting(){
+        return this._socket && 0 < this._reconnectAttempts;
+    }
+
     send(wireable){
         if(!this._socket || this._socket.readyState != 1)
             throw new Error("The client is not connected.");
-        if(!cl.typep(wireable, "PING") && !cl.typep(wireable, "PONG"))
+        if(!cl.typep(wireable, "ping") && !cl.typep(wireable, "pong"))
             console.debug("Send", wireable);
         let stream = new LichatStream();
         this._printer.toWire(wireable, stream);
@@ -602,7 +638,7 @@ class LichatClient{
                 fail(e);
             }
             this.addCallback(update.id, (u) => {
-                if(cl.typep(u, "FAILURE")) fail(u);
+                if(cl.typep(u, "failure")) fail(u);
                 else                       ok(u);
             }, fail);
         });
@@ -612,7 +648,7 @@ class LichatClient{
         if(this._pingTimer) clearTimeout(this._pingTimer);
         this._pingTimer = setTimeout(()=>{
             if(this._socket.readyState == 1){
-                this.s("PING", {}, true);
+                this.s("ping", {}, true);
                 this.startDelayPing();
             }
         }, this.pingDelay);
@@ -655,9 +691,9 @@ class LichatClient{
     }
 
     process(update){
-        if(!cl.typep(update, "PING") && !cl.typep(update, "PONG"))
+        if(!cl.typep(update, "ping") && !cl.typep(update, "pong"))
             console.debug("Update",update);
-        if(cl.typep(update, "UPDATE-FAILURE"))
+        if(cl.typep(update, "update-failure"))
             this.processCallbacks(update["update-id"], update);
         else
             this.processCallbacks(update.id, update);
@@ -796,6 +832,7 @@ class LichatClient{
     }
 
     isPermitted(update){
+        if(!this.isConnected) return false;
         return this.primaryChannel.isPermitted(update);
     }
 }

@@ -6,163 +6,163 @@ var nextID = ()=>{
     return ID;
 };
 
-cl.defclass("WIRE-OBJECT", []);
-cl.defclass("UPDATE", ["WIRE-OBJECT"], {
+cl.defclass("wire-object", []);
+cl.defclass("update", ["wire-object"], {
     clock: cl.getUniversalTime,
     id: nextID,
     from: null
 });
-cl.defclass("PING", ["UPDATE"]);
-cl.defclass("PONG", ["UPDATE"]);
-cl.defclass("CONNECT", ["UPDATE"], {
+cl.defclass("ping", ["update"]);
+cl.defclass("pong", ["update"]);
+cl.defclass("connect", ["update"], {
     password: null,
     version: LichatVersion,
     extensions: []
 });
-cl.defclass("DISCONNECT", ["UPDATE"]);
-cl.defclass("REGISTER", ["UPDATE"], {
+cl.defclass("disconnect", ["update"]);
+cl.defclass("register", ["update"], {
     password: cl.requiredArg("password")
 });
-cl.defclass("CHANNEL-UPDATE", ["UPDATE"], {
+cl.defclass("channel-update", ["update"], {
     channel: cl.requiredArg("channel"),
     bridge: null
 });
-cl.defclass("TARGET-UPDATE", ["UPDATE"], {
+cl.defclass("target-update", ["update"], {
     target: cl.requiredArg("target")
 });
-cl.defclass("TEXT-UPDATE", ["UPDATE"], {
+cl.defclass("text-update", ["update"], {
     text: cl.requiredArg("text")
 });
-cl.defclass("JOIN", ["CHANNEL-UPDATE"]);
-cl.defclass("LEAVE", ["CHANNEL-UPDATE"]);
-cl.defclass("CREATE", ["CHANNEL-UPDATE"], {
+cl.defclass("join", ["channel-update"]);
+cl.defclass("leave", ["channel-update"]);
+cl.defclass("create", ["channel-update"], {
     channel: null
 });
-cl.defclass("KICK", ["CHANNEL-UPDATE", "TARGET-UPDATE"]);
-cl.defclass("PULL", ["CHANNEL-UPDATE", "TARGET-UPDATE"]);
-cl.defclass("PERMISSIONS", ["CHANNEL-UPDATE"], {
+cl.defclass("kick", ["channel-update", "target-update"]);
+cl.defclass("pull", ["channel-update", "target-update"]);
+cl.defclass("permissions", ["channel-update"], {
     permissions: []
 });
-cl.defclass("GRANT", ["CHANNEL-UPDATE", "TARGET-UPDATE"], {
+cl.defclass("grant", ["channel-update", "target-update"], {
     update: cl.requiredArg("update")
 });
-cl.defclass("DENY", ["CHANNEL-UPDATE", "TARGET-UPDATE"], {
+cl.defclass("deny", ["channel-update", "target-update"], {
     update: cl.requiredArg("update")
 });
-cl.defclass("CAPABILITIES", ["CHANNEL-UPDATE"], {
+cl.defclass("capabilities", ["channel-update"], {
     permitted: []
 });
-cl.defclass("MESSAGE", ["CHANNEL-UPDATE", "TEXT-UPDATE"], {
+cl.defclass("message", ["channel-update", "text-update"], {
     bridge: null,
     link: null,
     "reply-to": null
 });
-cl.defclass("EDIT", ["CHANNEL-UPDATE", "TEXT-UPDATE"]);
-cl.defclass("USERS", ["CHANNEL-UPDATE"], {
+cl.defclass("edit", ["channel-update", "text-update"]);
+cl.defclass("users", ["channel-update"], {
     users: []
 });
-cl.defclass("CHANNELS", ["UPDATE"], {
+cl.defclass("channels", ["update"], {
     channels: []
 });
-cl.defclass("USER-INFO", ["TARGET-UPDATE"], {
+cl.defclass("user-info", ["target-update"], {
     registered: false,
     connections: 1,
     info: []
 });
-cl.defclass("SERVER-INFO", ["TARGET-UPDATE"], {
+cl.defclass("server-info", ["target-update"], {
     attributes: [],
     connections: []
 });
-cl.defclass("BACKFILL", ["CHANNEL-UPDATE"]);
-cl.defclass("DATA", ["CHANNEL-UPDATE"], {
+cl.defclass("backfill", ["channel-update"]);
+cl.defclass("data", ["channel-update"], {
     "content-type": cl.requiredArg("content-type"),
     filename: null,
     payload: cl.requiredArg("payload")
 });
-cl.defclass("EMOTES", ["UPDATE"], {
+cl.defclass("emotes", ["update"], {
     names: []
 });
-cl.defclass("EMOTE", ["UPDATE"], {
+cl.defclass("emote", ["update"], {
     "content-type": cl.requiredArg("content-type"),
     name: cl.requiredArg("name"),
     payload: cl.requiredArg("payload")
 });
-cl.defclass("CHANNEL-INFO", ["CHANNEL-UPDATE"], {
+cl.defclass("channel-info", ["channel-update"], {
     keys: true
 });
-cl.defclass("SET-CHANNEL-INFO", ["CHANNEL-UPDATE", "TEXT-UPDATE"], {
+cl.defclass("set-channel-info", ["channel-update", "text-update"], {
     key: cl.requiredArg("key")
 });
-cl.defclass("SET-USER-INFO", ["TEXT-UPDATE"], {
+cl.defclass("set-user-info", ["text-update"], {
     key: cl.requiredArg("key")
 });
-cl.defclass("PAUSE", ["CHANNEL-UPDATE"], {
+cl.defclass("pause", ["channel-update"], {
     by: cl.requiredArg("by")
 });
-cl.defclass("QUIET", ["CHANNEL-UPDATE","TARGET-UPDATE"]);
-cl.defclass("UNQUIET", ["CHANNEL-UPDATE","TARGET-UPDATE"]);
-cl.defclass("KILL", ["TARGET-UPDATE"]);
-cl.defclass("DESTROY", ["CHANNEL-UPDATE"]);
-cl.defclass("BAN", ["TARGET-UPDATE"]);
-cl.defclass("UNBAN", ["TARGET-UPDATE"]);
-cl.defclass("BLACKLIST", ["UPDATE"], {
+cl.defclass("quiet", ["channel-update","target-update"]);
+cl.defclass("unquiet", ["channel-update","target-update"]);
+cl.defclass("kill", ["target-update"]);
+cl.defclass("destroy", ["channel-update"]);
+cl.defclass("ban", ["target-update"]);
+cl.defclass("unban", ["target-update"]);
+cl.defclass("blacklist", ["update"], {
     target: null
 });
-cl.defclass("IP-BAN", ["UPDATE"], {
+cl.defclass("ip-ban", ["update"], {
     ip: cl.requiredArg("ip"),
     mask: cl.requiredArg("mask")
 });
-cl.defclass("IP-UNBAN", ["UPDATE"], {
+cl.defclass("ip-unban", ["update"], {
     ip: cl.requiredArg("ip"),
     mask: cl.requiredArg("mask")
 });
-cl.defclass("IP-BLACKLIST", ["UPDATE"], {
+cl.defclass("ip-blacklist", ["update"], {
     target: null
 });
-cl.defclass("BLOCK", ["TARGET-UPDATE"]);
-cl.defclass("UNBLOCK", ["TARGET-UPDATE"]);
-cl.defclass("BLOCKED", ["UPDATE"], {
+cl.defclass("block", ["target-update"]);
+cl.defclass("unblock", ["target-update"]);
+cl.defclass("blocked", ["update"], {
     target: null
 });
-cl.defclass("REACT", ["CHANNEL-UPDATE"], {
+cl.defclass("react", ["channel-update"], {
     target: cl.requiredArg("target"),
     "update-id": cl.requiredArg("update-id"),
     emote: cl.requiredArg("emote")
 });
-cl.defclass("TYPING", ["CHANNEL-UPDATE"]);
-cl.defclass("FAILURE", ["TEXT-UPDATE"]);
-cl.defclass("MALFORMED-UPDATE", ["FAILURE"]);
-cl.defclass("UPDATE-TOO-LONG", ["FAILURE"]);
-cl.defclass("CONNECTION-UNSTABLE", ["FAILURE"]);
-cl.defclass("TOO-MANY-CONNECTIONS", ["FAILURE"]);
-cl.defclass("UPDATE-FAILURE", ["FAILURE"], {
+cl.defclass("typing", ["channel-update"]);
+cl.defclass("failure", ["text-update"]);
+cl.defclass("malformed-update", ["failure"]);
+cl.defclass("update-too-long", ["failure"]);
+cl.defclass("connection-unstable", ["failure"]);
+cl.defclass("too-many-connections", ["failure"]);
+cl.defclass("update-failure", ["failure"], {
     "update-id": cl.requiredArg("update-id")
 });
-cl.defclass("INVALID-UPDATE", ["UPDATE-FAILURE"]);
-cl.defclass("USERNAME-MISMATCH", ["UPDATE-FAILURE"]);
-cl.defclass("INCOMPATIBLE-VERSION", ["UPDATE-FAILURE"], {
+cl.defclass("invalid-update", ["update-failure"]);
+cl.defclass("username-mismatch", ["update-failure"]);
+cl.defclass("incompatible-version", ["update-failure"], {
     "compatible-versions": cl.requiredArg("compatible-versions")
 });
-cl.defclass("INVALID-PASSWORD", ["UPDATE-FAILURE"]);
-cl.defclass("NO-SUCH-PROFILE", ["UPDATE-FAILURE"]);
-cl.defclass("USERNAME-TAKEN", ["UPDATE-FAILURE"]);
-cl.defclass("NO-SUCH-CHANNEL", ["UPDATE-FAILURE"]);
-cl.defclass("ALREADY-IN-CHANNEL", ["UPDATE-FAILURE"]);
-cl.defclass("NOT-IN-CHANNEL", ["UPDATE-FAILURE"]);
-cl.defclass("CHANNELNAME-TAKEN", ["UPDATE-FAILURE"]);
-cl.defclass("BAD-NAME", ["UPDATE-FAILURE"]);
-cl.defclass("INSUFFICIENT-PERMISSIONS", ["UPDATE-FAILURE"]);
-cl.defclass("NO-SUCH-USER", ["UPDATE-FAILURE"]);
-cl.defclass("TOO-MANY-UPDATES", ["UPDATE-FAILURE"]);
-cl.defclass("BAD-CONTENT-TYPE", ["UPDATE-FAILURE"], {
+cl.defclass("invalid-password", ["update-failure"]);
+cl.defclass("no-such-profile", ["update-failure"]);
+cl.defclass("username-taken", ["update-failure"]);
+cl.defclass("no-such-channel", ["update-failure"]);
+cl.defclass("already-in-channel", ["update-failure"]);
+cl.defclass("not-in-channel", ["update-failure"]);
+cl.defclass("channelname-taken", ["update-failure"]);
+cl.defclass("bad-name", ["update-failure"]);
+cl.defclass("insufficient-permissions", ["update-failure"]);
+cl.defclass("no-such-user", ["update-failure"]);
+cl.defclass("too-many-updates", ["update-failure"]);
+cl.defclass("bad-content-type", ["update-failure"], {
     "allowed-content-types": []
 });
-cl.defclass("NO-SUCH-CHANNEL-INFO", ["UPDATE-FAILURE"], {
+cl.defclass("no-such-channel-info", ["update-failure"], {
     key: cl.requiredArg("key")
 });
-cl.defclass("MALFORMED-CHANNEL-INFO", ["UPDATE-FAILURE"]);
-cl.defclass("NO-SUCH-USER-INFO", ["UPDATE-FAILURE"], {
+cl.defclass("malformed-channel-info", ["update-failure"]);
+cl.defclass("no-such-user-info", ["update-failure"], {
     key: cl.requiredArg("key")
 });
-cl.defclass("MALFORMED-USER-INFO", ["UPDATE-FAILURE"]);
-cl.defclass("CLOCK-SKEWED", ["UPDATE-FAILURE"]);
+cl.defclass("malformed-user-info", ["update-failure"]);
+cl.defclass("clock-skewed", ["update-failure"]);

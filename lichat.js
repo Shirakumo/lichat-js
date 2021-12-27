@@ -7,8 +7,8 @@ var CL = function(){
     var Symbol = function(name, pkg){
         var self = this;
         if(!name) throw "Cannot create symbol with empty name.";
-        self.name = name;
-        self.pkg = pkg || null;
+        self.name = name.toLowerCase();
+        self.pkg = pkg.toLowerCase();
         self.toString = ()=>{
             return self.name;
         };
@@ -60,10 +60,10 @@ var CL = function(){
         if(constructor === undefined) constructor=()=>{};
         directSuperclasses = directSuperclasses.map(self.findClass);
         if(typeof name == 'string'){
-            self.intern(name, "LICHAT-PROTOCOL");
+            self.intern(name, "lichat");
         }
         for(initarg in initforms){
-            self.intern(initarg.toUpperCase(), "KEYWORD");
+            self.intern(initarg, "keyword");
         }
 
         var c = function(initargs){
@@ -85,7 +85,7 @@ var CL = function(){
         c.directSuperclasses = directSuperclasses;
         c.superclasses = self.computeClassPrecedenceList(c);
 
-        classes[name] = c;        
+        self.setClass(name, c);
         return name;
     };
 
@@ -94,8 +94,12 @@ var CL = function(){
     };
 
     self.findClass = (name, error)=>{
-        if(classes[name])
-            return classes[name];
+        if(name instanceof Symbol)
+            name = name.name;
+        name = name.toLowerCase();
+        let found = classes[name];
+        if(found)
+            return found;
         if(error)
             throw new Error("No such class "+name);
         return null;
@@ -106,6 +110,7 @@ var CL = function(){
     };
 
     self.setClass = (name, c)=>{
+        name = name.toLowerCase();
         if(c)
             classes[name] = c;
         else
@@ -152,7 +157,7 @@ var CL = function(){
     self.intern = (name, pkg)=>{
         var symbol = self.findSymbol(name, pkg);
         if(!symbol){
-            symbol = new Symbol(name, pkg || "LICHAT-JS");
+            symbol = new Symbol(name, pkg || "lichat-js");
             if(symbols[symbol.pkg] === undefined){
                 symbols[symbol.pkg] = {};
             }
@@ -162,19 +167,15 @@ var CL = function(){
     };
 
     self.findSymbol = (name, pkg)=>{
-        var pkgspace = symbols[pkg || "LICHAT-JS"];
+        var pkgspace = symbols[pkg? pkg.toLowerCase(): "lichat-js"];
         if(pkgspace === undefined) return null;
-        var symbol = pkgspace[name];
+        var symbol = pkgspace[name.toLowerCase()];
         if(symbol === undefined) return null;
         return symbol;
     };
 
     self.kw = (name)=>{
-        return self.intern(name, "KEYWORD");
-    };
-
-    self.makeSymbol = (name)=>{
-        return new Symbol(name);
+        return self.intern(name, "keyword");
     };
 
     self.symbolp = (thing)=>{
@@ -239,8 +240,8 @@ var CL = function(){
         return hash;
     };
 
-    self.T = self.intern("T", "LICHAT-PROTOCOL");
-    self.NIL = self.intern("NIL", "LICHAT-PROTOCOL");
+    self.T = self.intern("T", "LICHAT");
+    self.NIL = self.intern("NIL", "LICHAT");
 
     return self;
 };
@@ -345,166 +346,166 @@ var nextID = ()=>{
     return ID;
 };
 
-cl.defclass("WIRE-OBJECT", []);
-cl.defclass("UPDATE", ["WIRE-OBJECT"], {
+cl.defclass("wire-object", []);
+cl.defclass("update", ["wire-object"], {
     clock: cl.getUniversalTime,
     id: nextID,
     from: null
 });
-cl.defclass("PING", ["UPDATE"]);
-cl.defclass("PONG", ["UPDATE"]);
-cl.defclass("CONNECT", ["UPDATE"], {
+cl.defclass("ping", ["update"]);
+cl.defclass("pong", ["update"]);
+cl.defclass("connect", ["update"], {
     password: null,
     version: LichatVersion,
     extensions: []
 });
-cl.defclass("DISCONNECT", ["UPDATE"]);
-cl.defclass("REGISTER", ["UPDATE"], {
+cl.defclass("disconnect", ["update"]);
+cl.defclass("register", ["update"], {
     password: cl.requiredArg("password")
 });
-cl.defclass("CHANNEL-UPDATE", ["UPDATE"], {
+cl.defclass("channel-update", ["update"], {
     channel: cl.requiredArg("channel"),
     bridge: null
 });
-cl.defclass("TARGET-UPDATE", ["UPDATE"], {
+cl.defclass("target-update", ["update"], {
     target: cl.requiredArg("target")
 });
-cl.defclass("TEXT-UPDATE", ["UPDATE"], {
+cl.defclass("text-update", ["update"], {
     text: cl.requiredArg("text")
 });
-cl.defclass("JOIN", ["CHANNEL-UPDATE"]);
-cl.defclass("LEAVE", ["CHANNEL-UPDATE"]);
-cl.defclass("CREATE", ["CHANNEL-UPDATE"], {
+cl.defclass("join", ["channel-update"]);
+cl.defclass("leave", ["channel-update"]);
+cl.defclass("create", ["channel-update"], {
     channel: null
 });
-cl.defclass("KICK", ["CHANNEL-UPDATE", "TARGET-UPDATE"]);
-cl.defclass("PULL", ["CHANNEL-UPDATE", "TARGET-UPDATE"]);
-cl.defclass("PERMISSIONS", ["CHANNEL-UPDATE"], {
+cl.defclass("kick", ["channel-update", "target-update"]);
+cl.defclass("pull", ["channel-update", "target-update"]);
+cl.defclass("permissions", ["channel-update"], {
     permissions: []
 });
-cl.defclass("GRANT", ["CHANNEL-UPDATE", "TARGET-UPDATE"], {
+cl.defclass("grant", ["channel-update", "target-update"], {
     update: cl.requiredArg("update")
 });
-cl.defclass("DENY", ["CHANNEL-UPDATE", "TARGET-UPDATE"], {
+cl.defclass("deny", ["channel-update", "target-update"], {
     update: cl.requiredArg("update")
 });
-cl.defclass("CAPABILITIES", ["CHANNEL-UPDATE"], {
+cl.defclass("capabilities", ["channel-update"], {
     permitted: []
 });
-cl.defclass("MESSAGE", ["CHANNEL-UPDATE", "TEXT-UPDATE"], {
+cl.defclass("message", ["channel-update", "text-update"], {
     bridge: null,
     link: null,
     "reply-to": null
 });
-cl.defclass("EDIT", ["CHANNEL-UPDATE", "TEXT-UPDATE"]);
-cl.defclass("USERS", ["CHANNEL-UPDATE"], {
+cl.defclass("edit", ["channel-update", "text-update"]);
+cl.defclass("users", ["channel-update"], {
     users: []
 });
-cl.defclass("CHANNELS", ["UPDATE"], {
+cl.defclass("channels", ["update"], {
     channels: []
 });
-cl.defclass("USER-INFO", ["TARGET-UPDATE"], {
+cl.defclass("user-info", ["target-update"], {
     registered: false,
     connections: 1,
     info: []
 });
-cl.defclass("SERVER-INFO", ["TARGET-UPDATE"], {
+cl.defclass("server-info", ["target-update"], {
     attributes: [],
     connections: []
 });
-cl.defclass("BACKFILL", ["CHANNEL-UPDATE"]);
-cl.defclass("DATA", ["CHANNEL-UPDATE"], {
+cl.defclass("backfill", ["channel-update"]);
+cl.defclass("data", ["channel-update"], {
     "content-type": cl.requiredArg("content-type"),
     filename: null,
     payload: cl.requiredArg("payload")
 });
-cl.defclass("EMOTES", ["UPDATE"], {
+cl.defclass("emotes", ["update"], {
     names: []
 });
-cl.defclass("EMOTE", ["UPDATE"], {
+cl.defclass("emote", ["update"], {
     "content-type": cl.requiredArg("content-type"),
     name: cl.requiredArg("name"),
     payload: cl.requiredArg("payload")
 });
-cl.defclass("CHANNEL-INFO", ["CHANNEL-UPDATE"], {
+cl.defclass("channel-info", ["channel-update"], {
     keys: true
 });
-cl.defclass("SET-CHANNEL-INFO", ["CHANNEL-UPDATE", "TEXT-UPDATE"], {
+cl.defclass("set-channel-info", ["channel-update", "text-update"], {
     key: cl.requiredArg("key")
 });
-cl.defclass("SET-USER-INFO", ["TEXT-UPDATE"], {
+cl.defclass("set-user-info", ["text-update"], {
     key: cl.requiredArg("key")
 });
-cl.defclass("PAUSE", ["CHANNEL-UPDATE"], {
+cl.defclass("pause", ["channel-update"], {
     by: cl.requiredArg("by")
 });
-cl.defclass("QUIET", ["CHANNEL-UPDATE","TARGET-UPDATE"]);
-cl.defclass("UNQUIET", ["CHANNEL-UPDATE","TARGET-UPDATE"]);
-cl.defclass("KILL", ["TARGET-UPDATE"]);
-cl.defclass("DESTROY", ["CHANNEL-UPDATE"]);
-cl.defclass("BAN", ["TARGET-UPDATE"]);
-cl.defclass("UNBAN", ["TARGET-UPDATE"]);
-cl.defclass("BLACKLIST", ["UPDATE"], {
+cl.defclass("quiet", ["channel-update","target-update"]);
+cl.defclass("unquiet", ["channel-update","target-update"]);
+cl.defclass("kill", ["target-update"]);
+cl.defclass("destroy", ["channel-update"]);
+cl.defclass("ban", ["target-update"]);
+cl.defclass("unban", ["target-update"]);
+cl.defclass("blacklist", ["update"], {
     target: null
 });
-cl.defclass("IP-BAN", ["UPDATE"], {
+cl.defclass("ip-ban", ["update"], {
     ip: cl.requiredArg("ip"),
     mask: cl.requiredArg("mask")
 });
-cl.defclass("IP-UNBAN", ["UPDATE"], {
+cl.defclass("ip-unban", ["update"], {
     ip: cl.requiredArg("ip"),
     mask: cl.requiredArg("mask")
 });
-cl.defclass("IP-BLACKLIST", ["UPDATE"], {
+cl.defclass("ip-blacklist", ["update"], {
     target: null
 });
-cl.defclass("BLOCK", ["TARGET-UPDATE"]);
-cl.defclass("UNBLOCK", ["TARGET-UPDATE"]);
-cl.defclass("BLOCKED", ["UPDATE"], {
+cl.defclass("block", ["target-update"]);
+cl.defclass("unblock", ["target-update"]);
+cl.defclass("blocked", ["update"], {
     target: null
 });
-cl.defclass("REACT", ["CHANNEL-UPDATE"], {
+cl.defclass("react", ["channel-update"], {
     target: cl.requiredArg("target"),
     "update-id": cl.requiredArg("update-id"),
     emote: cl.requiredArg("emote")
 });
-cl.defclass("TYPING", ["CHANNEL-UPDATE"]);
-cl.defclass("FAILURE", ["TEXT-UPDATE"]);
-cl.defclass("MALFORMED-UPDATE", ["FAILURE"]);
-cl.defclass("UPDATE-TOO-LONG", ["FAILURE"]);
-cl.defclass("CONNECTION-UNSTABLE", ["FAILURE"]);
-cl.defclass("TOO-MANY-CONNECTIONS", ["FAILURE"]);
-cl.defclass("UPDATE-FAILURE", ["FAILURE"], {
+cl.defclass("typing", ["channel-update"]);
+cl.defclass("failure", ["text-update"]);
+cl.defclass("malformed-update", ["failure"]);
+cl.defclass("update-too-long", ["failure"]);
+cl.defclass("connection-unstable", ["failure"]);
+cl.defclass("too-many-connections", ["failure"]);
+cl.defclass("update-failure", ["failure"], {
     "update-id": cl.requiredArg("update-id")
 });
-cl.defclass("INVALID-UPDATE", ["UPDATE-FAILURE"]);
-cl.defclass("USERNAME-MISMATCH", ["UPDATE-FAILURE"]);
-cl.defclass("INCOMPATIBLE-VERSION", ["UPDATE-FAILURE"], {
+cl.defclass("invalid-update", ["update-failure"]);
+cl.defclass("username-mismatch", ["update-failure"]);
+cl.defclass("incompatible-version", ["update-failure"], {
     "compatible-versions": cl.requiredArg("compatible-versions")
 });
-cl.defclass("INVALID-PASSWORD", ["UPDATE-FAILURE"]);
-cl.defclass("NO-SUCH-PROFILE", ["UPDATE-FAILURE"]);
-cl.defclass("USERNAME-TAKEN", ["UPDATE-FAILURE"]);
-cl.defclass("NO-SUCH-CHANNEL", ["UPDATE-FAILURE"]);
-cl.defclass("ALREADY-IN-CHANNEL", ["UPDATE-FAILURE"]);
-cl.defclass("NOT-IN-CHANNEL", ["UPDATE-FAILURE"]);
-cl.defclass("CHANNELNAME-TAKEN", ["UPDATE-FAILURE"]);
-cl.defclass("BAD-NAME", ["UPDATE-FAILURE"]);
-cl.defclass("INSUFFICIENT-PERMISSIONS", ["UPDATE-FAILURE"]);
-cl.defclass("NO-SUCH-USER", ["UPDATE-FAILURE"]);
-cl.defclass("TOO-MANY-UPDATES", ["UPDATE-FAILURE"]);
-cl.defclass("BAD-CONTENT-TYPE", ["UPDATE-FAILURE"], {
+cl.defclass("invalid-password", ["update-failure"]);
+cl.defclass("no-such-profile", ["update-failure"]);
+cl.defclass("username-taken", ["update-failure"]);
+cl.defclass("no-such-channel", ["update-failure"]);
+cl.defclass("already-in-channel", ["update-failure"]);
+cl.defclass("not-in-channel", ["update-failure"]);
+cl.defclass("channelname-taken", ["update-failure"]);
+cl.defclass("bad-name", ["update-failure"]);
+cl.defclass("insufficient-permissions", ["update-failure"]);
+cl.defclass("no-such-user", ["update-failure"]);
+cl.defclass("too-many-updates", ["update-failure"]);
+cl.defclass("bad-content-type", ["update-failure"], {
     "allowed-content-types": []
 });
-cl.defclass("NO-SUCH-CHANNEL-INFO", ["UPDATE-FAILURE"], {
+cl.defclass("no-such-channel-info", ["update-failure"], {
     key: cl.requiredArg("key")
 });
-cl.defclass("MALFORMED-CHANNEL-INFO", ["UPDATE-FAILURE"]);
-cl.defclass("NO-SUCH-USER-INFO", ["UPDATE-FAILURE"], {
+cl.defclass("malformed-channel-info", ["update-failure"]);
+cl.defclass("no-such-user-info", ["update-failure"], {
     key: cl.requiredArg("key")
 });
-cl.defclass("MALFORMED-USER-INFO", ["UPDATE-FAILURE"]);
-cl.defclass("CLOCK-SKEWED", ["UPDATE-FAILURE"]);
+cl.defclass("malformed-user-info", ["update-failure"]);
+cl.defclass("clock-skewed", ["update-failure"]);
 var LichatPrinter = function(){
     var self = this;
 
@@ -565,14 +566,10 @@ var LichatPrinter = function(){
 
     self.printSexprSymbol = (symbol, stream)=>{
         switch(symbol.pkg){
-        case null:
-            stream.writeChar("#");
+        case "keyword":
             stream.writeChar(":");
             break;
-        case "KEYWORD":
-            stream.writeChar(":");
-            break;
-        case "LICHAT-PROTOCOL":
+        case "lichat":
             break;
         default:
             self.printSexprToken(symbol.pkg, stream);
@@ -593,10 +590,10 @@ var LichatPrinter = function(){
     };
 
     self.toWire = (wireable, stream)=>{
-        if(cl.typep(wireable, "WIRE-OBJECT")){
-            var list = [cl.findSymbol(wireable.type, "LICHAT-PROTOCOL")];
+        if(cl.typep(wireable, "wire-object")){
+            var list = [cl.findSymbol(wireable.type, "lichat")];
             for(var key of wireable.fields){
-                list.push(cl.findSymbol(key.toUpperCase(), "KEYWORD"));
+                list.push(cl.findSymbol(key, "keyword"));
                 list.push(wireable[key]);
             }
             self.printSexpr(list, stream);
@@ -617,7 +614,7 @@ var LichatReader = function(){
     var self = this;
 
     self.whitespace = "\u0009\u000A\u000B\u000C\u000D\u0020\u0085\u00A0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2008\u2009\u200A\u2028\u2029\u202F\u205F\u3000\u180E\u200B\u200C\u200D\u2060\uFEFF";
-    self.invalidSymbol = cl.makeSymbol("INVALID-SYMBOL");
+    self.invalidSymbol = cl.intern("INVALID-SYMBOL");
 
     self.isWhitespace = (character)=>{
         return self.whitespace.indexOf(character) >= 0;
@@ -627,17 +624,6 @@ var LichatReader = function(){
         while(self.isWhitespace(stream.readChar()));
         stream.unreadChar();
         return stream;
-    };
-
-    self.isProtocolSymbol = (name)=>{
-        return self.protocolSymbols.indexOf(name) >= 0;
-    };
-
-    self.safeFindSymbol = (name, pkg)=>{
-        if(pkg === null){
-            return cl.makeSymbol(name);
-        }
-        return cl.intern(name, pkg);
     };
 
     self.readSexprList = (stream)=>{
@@ -666,7 +652,7 @@ var LichatReader = function(){
     };
 
     self.readSexprKeyword = (stream)=>{
-        return cl.intern(self.readSexprToken(stream), "KEYWORD");
+        return cl.intern(self.readSexprToken(stream), "keyword");
     };
 
     self.readSexprNumber = (stream)=>{
@@ -728,13 +714,9 @@ var LichatReader = function(){
         var token = self.readSexprToken(stream);
         if(stream.peekChar(false) === ":"){
             stream.readChar();
-            if(token === "#"){
-                return self.safeFindSymbol(self.readSexprToken(stream), null);
-            }else{
-                return self.safeFindSymbol(self.readSexprToken(stream), token);
-            }
+            return cl.intern(self.readSexprToken(stream), token);
         }else{
-            var symbol = self.safeFindSymbol(token, "LICHAT-PROTOCOL");
+            var symbol = cl.intern(token, "LICHAT");
             if(symbol == cl.NIL) return null;
             if(symbol == cl.T) return true;
             return symbol;
@@ -770,7 +752,7 @@ var LichatReader = function(){
             for(var i=0; i<sexpr.length; i+=2){
                 var key = sexpr[i];
                 var val = sexpr[i+1];
-                if(!cl.symbolp(key) || key.pkg !== "KEYWORD"){
+                if(!cl.symbolp(key) || key.pkg !== "keyword"){
                     throw new Error(key+" is not of type Keyword.");
                 }
                 initargs[key.name.toLowerCase()] = val;
@@ -905,14 +887,14 @@ class LichatUser{
         this._name = name;
         this._client = client;
         this.info = {};
-        this.info[":BIRTHDAY"] = "";
-        this.info[":CONTACT"] = "";
-        this.info[":LOCATION"] = "";
-        this.info[":PUBLIC-KEY"] = "";
-        this.info[":REAL-NAME"] = "";
-        this.info[":STATUS"] = "";
+        this.info[":birthday"] = "";
+        this.info[":contact"] = "";
+        this.info[":location"] = "";
+        this.info[":public-key"] = "";
+        this.info[":real-name"] = "";
+        this.info[":status"] = "";
         if(client.isAvailable('shirakumo-icon'))
-            this.info[":ICON"] = "";
+            this.info[":icon"] = "";
     }
 
     get name(){
@@ -920,7 +902,7 @@ class LichatUser{
     }
 
     get icon(){
-        let icon = this.info[":ICON"];
+        let icon = this.info[":icon"];
         if(!icon) return EmptyIcon;
         let data = icon.split(" ");
         return "data:"+data[0]+";base64,"+data[1];
@@ -936,6 +918,10 @@ class LichatUser{
 
     get isSelf(){
         return this._client.username.localeCompare(this._name, undefined, { sensitivity: 'accent' }) === 0;
+    }
+
+    get isServer(){
+        return this._client.servername.localeCompare(this._name, undefined, { sensitivity: 'accent' }) === 0;;
     }
 
     get isBlocked(){
@@ -974,6 +960,12 @@ class LichatUser{
         if(typeof(channel) === "string") channel = this._client.getChannel(channel);
         return channel.hasUser(this);
     }
+
+    s(type, args, noPromise){
+        args = args || {};
+        args.target = this.name;
+        return this._client.s(type, args, noPromise);
+    }
 }
 
 class LichatChannel{
@@ -995,12 +987,12 @@ class LichatChannel{
             this.currentMessage.text = "";
             this.currentMessage.replyTo = null;
         };
-        this.info[":NEWS"] = "";
-        this.info[":TOPIC"] = "";
-        this.info[":RULES"] = "";
-        this.info[":CONTACT"] = "";;
+        this.info[":news"] = "";
+        this.info[":topic"] = "";
+        this.info[":rules"] = "";
+        this.info[":contact"] = "";;
         if(client.isAvailable('shirakumo-icon'))
-            this.info[":ICON"] = "";
+            this.info[":icon"] = "";
         // KLUDGE: spillage from ui
         this.unread = 0;
         this.alerted = false;
@@ -1035,20 +1027,20 @@ class LichatChannel{
     }
 
     get icon(){
-        let icon = this.info[":ICON"];
+        let icon = this.info[":icon"];
         if(!icon) return EmptyIcon;
         let data = icon.split(" ");
         return "data:"+data[0]+";base64,"+data[1];
     }
 
     get topic(){
-        return this.info[":TOPIC"];
+        return this.info[":topic"];
     }
 
     get capabilities(){
         if(this._capabilities == null){
             this._capabilities = [];
-            this.s("CAPABILITIES");
+            this.s("capabilities");
         }
         return this._capabilities;
     }
@@ -1088,7 +1080,7 @@ class LichatChannel{
     }
 
     hasUser(user){
-        if(user instanceof LichatUser) user = thing.name;
+        if(user instanceof LichatUser) user = user.name;
         return this.users[user.toLowerCase()] !== undefined;
     }
 
@@ -1164,7 +1156,7 @@ class LichatChannel{
             from: "System",
             clock: cl.getUniversalTime(),
             text: text,
-            type: "MESSAGE"
+            type: "message"
         }, this, options);
         this.messageList.push(message);
         return message;
@@ -1172,7 +1164,7 @@ class LichatChannel{
 
     isPermitted(update){
         if(typeof update === 'string' || update instanceof String)
-            update = cl.intern(update, "LICHAT-PROTOCOL");
+            update = cl.intern(update, "lichat");
         return this.capabilities.includes(update);
     }
 
@@ -1226,18 +1218,18 @@ class LichatClient{
             this.getChannel(data.name).decode(data);
         }
 
-        this.addInternalHandler("CONNECT", (ev)=>{
+        this.addInternalHandler("connect", (ev)=>{
             this.availableExtensions = ev.extensions;
         });
 
-        this.addInternalHandler("PING", (ev)=>{
-            this.s("PONG", {}, true);
+        this.addInternalHandler("ping", (ev)=>{
+            this.s("pong", {}, true);
         });
 
-        this.addInternalHandler("PONG", (ev)=>{
+        this.addInternalHandler("pong", (ev)=>{
         });
 
-        this.addInternalHandler("JOIN", (ev)=>{
+        this.addInternalHandler("join", (ev)=>{
             if(!this.servername)
                 this.servername = ev.channel;
             let channel = this.getChannel(ev.channel);
@@ -1247,53 +1239,65 @@ class LichatClient{
                     for(let name in this.channels){
                         let channel = this.channels[name];
                         if(channel.wasJoined && channel.name != this.servername)
-                            channel.s("JOIN", {}, true);
+                            channel.s("join", {}, true);
                     }
                 }
-                channel.s("USERS", {}, true);
+                channel.s("users", {}, true);
                 //if(this.isAvailable("shirakumo-backfill") && !channel.isPrimary)
                 //    channel.s("BACKFILL", true);
                 if(this.isAvailable("shirakumo-channel-info"))
-                    channel.s("CHANNEL-INFO", {}, true);
+                    channel.s("channel-info", {}, true);
                 if(this.isAvailable("shirakumo-emotes"))
-                    channel.s("EMOTES", {names: channel.getEmoteList()}, true);
+                    channel.s("emotes", {names: channel.getEmoteList()}, true);
             }
         });
 
-        this.addInternalHandler("LEAVE", (ev)=>{
+        this.addInternalHandler("leave", (ev)=>{
             let channel = this.getChannel(ev.channel);
             channel.leaveUser(ev.from);
         });
 
-        this.addInternalHandler("EMOTE", (ev)=>{
+        this.addInternalHandler("emote", (ev)=>{
             this.addEmote(ev);
         });
 
-        this.addInternalHandler("SET-CHANNEL-INFO", (ev)=>{
+        this.addInternalHandler("set-channel-info", (ev)=>{
             this.getChannel(ev.channel).info[LichatPrinter.toString(ev.key)] = ev.text;
         });
 
-        this.addHandler("MESSAGE", (ev)=>{
+        this.addInternalHandler("set-user-info", (ev)=>{
+            let target = ev.target || this.username;
+            this.getUser(target).info[LichatPrinter.toString(ev.key)] = ev.text;
+        });
+
+        this.addInternalHandler("user-info", (ev)=>{
+            let user = this.getUser(ev.target);
+            for(let entry of ev.info){
+                user.info[LichatPrinter.toString(entry[0])] = entry[1];
+            }
+        });
+
+        this.addHandler("message", (ev)=>{
             this.getChannel(ev.channel).record(ev);
         });
 
-        this.addHandler("EDIT", (ev)=>{
+        this.addHandler("edit", (ev)=>{
             let message = this.getChannel(ev.channel).getMessage(ev.from, ev.id);
             if(message) message.text = ev.text;
             else console.warn("Received react with no message", ev.target, ev["update-id"]);
         });
 
-        this.addHandler("REACT", (ev)=>{
+        this.addHandler("react", (ev)=>{
             let message = this.getChannel(ev.channel).getMessage(ev.target, ev["update-id"]);
             if(message) message.addReaction(ev);
             else console.warn("Received react with no message", ev.target, ev["update-id"]);
         });
 
-        this.addHandler("CAPABILITIES", (ev)=>{
+        this.addHandler("capabilities", (ev)=>{
             this.getChannel(ev.channel).capabilities = ev.permitted;
         });
 
-        this.addHandler("USERS", (ev)=>{
+        this.addHandler("users", (ev)=>{
             for(let name of ev.users){
                 this.getChannel(ev.channel).users[name.toLowerCase()] = this.getUser(name);
             }
@@ -1302,6 +1306,7 @@ class LichatClient{
 
     reconnect(){
         try{
+            this.clearReconnect();
             this.openConnection();
         }catch(e){
             this.scheduleReconnect();
@@ -1311,14 +1316,22 @@ class LichatClient{
     scheduleReconnect(){
         this._reconnectAttempts++;
         let secs = Math.pow(2, this._reconnectAttempts);
-        setTimeout(()=>this.reconnect(), secs*1000);
+        this._reconnecter = setTimeout(()=>this.reconnect(), secs*1000);
+    }
+
+    clearReconnect(){
+        if(this._reconnecter){
+            clearTimeout(this._reconnecter);
+            this._reconnecter = null;
+            this._reconnectAttempts = 0;
+        }
     }
 
     openConnection(){
         return new Promise((ok, fail) => {
             this._socket = new WebSocket((this.ssl?"wss://":"ws://")+this.hostname+":"+this.port, "lichat");
             this._socket.onopen = ()=>{
-                this.s("CONNECT", {
+                this.s("connect", {
                     password: this.password || null,
                     version: LichatVersion,
                     extensions: this.supportedExtensions
@@ -1327,20 +1340,20 @@ class LichatClient{
             this._socket.onmessage = (e)=>{
                 let update = this._reader.fromWire(new LichatStream(e.data));
                 try{
-                    if(!(cl.typep(update, "WIRE-OBJECT")))
+                    if(!(cl.typep(update, "wire-object")))
                         fail({text: "non-Update message", update: update});
-                    else if(update.type !== "CONNECT")
+                    else if(update.type !== "connect")
                         fail({text: update.text, update: update});
                     else{
                     }
                 }catch(err){
                     this.closeConnection();
                 }
+                this.clearReconnect();
+                
                 if(!this.username)
                     this.username = update.from;
-                if(0 < this._reconnectAttempts)
-                    this._reconnectAttempts = 0;
-                
+
                 this._socket.onmessage = ev => this.handleMessage(ev);
                 this._socket.onclose = ev => this.handleClose(ev);
                 this.process(update);
@@ -1353,6 +1366,7 @@ class LichatClient{
     }
 
     closeConnection(){
+        this.clearReconnect();
         for(let channel in this.channels)
             this.channels[channel].clearUsers();
         if(this._pingTimer){
@@ -1372,10 +1386,14 @@ class LichatClient{
         return this._socket && this._reconnectAttempts == 0;
     }
 
+    get isConnecting(){
+        return this._socket && 0 < this._reconnectAttempts;
+    }
+
     send(wireable){
         if(!this._socket || this._socket.readyState != 1)
             throw new Error("The client is not connected.");
-        if(!cl.typep(wireable, "PING") && !cl.typep(wireable, "PONG"))
+        if(!cl.typep(wireable, "ping") && !cl.typep(wireable, "pong"))
             console.debug("Send", wireable);
         let stream = new LichatStream();
         this._printer.toWire(wireable, stream);
@@ -1395,7 +1413,7 @@ class LichatClient{
                 fail(e);
             }
             this.addCallback(update.id, (u) => {
-                if(cl.typep(u, "FAILURE")) fail(u);
+                if(cl.typep(u, "failure")) fail(u);
                 else                       ok(u);
             }, fail);
         });
@@ -1405,7 +1423,7 @@ class LichatClient{
         if(this._pingTimer) clearTimeout(this._pingTimer);
         this._pingTimer = setTimeout(()=>{
             if(this._socket.readyState == 1){
-                this.s("PING", {}, true);
+                this.s("ping", {}, true);
                 this.startDelayPing();
             }
         }, this.pingDelay);
@@ -1448,9 +1466,9 @@ class LichatClient{
     }
 
     process(update){
-        if(!cl.typep(update, "PING") && !cl.typep(update, "PONG"))
+        if(!cl.typep(update, "ping") && !cl.typep(update, "pong"))
             console.debug("Update",update);
-        if(cl.typep(update, "UPDATE-FAILURE"))
+        if(cl.typep(update, "update-failure"))
             this.processCallbacks(update["update-id"], update);
         else
             this.processCallbacks(update.id, update);
@@ -1589,6 +1607,7 @@ class LichatClient{
     }
 
     isPermitted(update){
+        if(!this.isConnected) return false;
         return this.primaryChannel.isPermitted(update);
     }
 }
@@ -1833,33 +1852,33 @@ class LichatUI{
             },
             methods: {
                 whisper: function(){
-                    this.user.client.s("CREATE", {})
-                        .then((e)=>this.user.client.s("PULL", {
+                    this.user.client.s("create", {})
+                        .then((e)=>this.user.client.s("pull", {
                             target: this.user.name,
                             channel: e.channel
                         })).catch((e)=>this.user.client.showStatus("Error: "+e.text));
                     this.$emit('close');
                 },
                 block: function(){
-                    this.user.client.s("BLOCK", {target: this.message.from})
+                    this.user.client.s("block", {target: this.message.from})
                         .then((e)=>this.user.client.showStatus(this.user.name+" has been blocked."))
                         .catch((e)=>this.user.client.showStatus("Error: "+e.text));
                     this.$emit('close');
                 },
                 unblock: function(){
-                    this.user.client.s("UNBLOCK", {target: this.user.name})
+                    this.user.client.s("unblock", {target: this.user.name})
                         .then((e)=>this.user.client.showStatus(this.user.name+" has been unblocked."))
                         .catch((e)=>this.user.client.showStatus("Error: "+e.text));
                     this.$emit('close');
                 },
                 ban: function(){
-                    this.user.client.s("BAN", {target: this.user.name})
+                    this.user.client.s("ban", {target: this.user.name})
                         .then((e)=>this.user.client.showStatus(this.user.name+" has been banned."))
                         .catch((e)=>this.user.client.showStatus("Error: "+e.text));
                     this.$emit('close');
                 },
                 unban: function(){
-                    this.user.client.s("UNBAN", {target: this.user.name})
+                    this.user.client.s("unban", {target: this.user.name})
                         .then((e)=>this.user.client.showStatus(this.user.name+" has been unbanned."))
                         .catch((e)=>this.user.client.showStatus("Error: "+e.text));
                     this.$emit('close');
@@ -1899,18 +1918,18 @@ class LichatUI{
                     this.$emit('close');
                 },
                 kick: function(){
-                    this.message.channel.s("KICK", {target: this.message.from})
+                    this.message.channel.s("kick", {target: this.message.from})
                         .catch((e)=>this.message.channel.showStatus("Error: "+e.text));
                     this.$emit('close');
                 },
                 quiet: function(){
-                    this.message.channel.s("QUIET", {target: this.message.from})
+                    this.message.channel.s("quiet", {target: this.message.from})
                         .catch((e)=>this.message.channel.showStatus("Error: "+e.text))
                         .then((e)=>this.message.channel.showStatus(this.message.from+" has been quieted."));
                     this.$emit('close');
                 },
                 unquiet: function(){
-                    this.message.channel.s("UNQUIET", {target: this.message.from})
+                    this.message.channel.s("unquiet", {target: this.message.from})
                         .catch((e)=>this.message.channel.showStatus("Error: "+e.text))
                         .then((e)=>this.message.channel.showStatus(this.message.from+" has been quieted."));
                     this.$emit('close');
@@ -1949,14 +1968,13 @@ class LichatUI{
                     Object.assign(this.options, this.client);
                     this.options.aliases = this.client.aliases.join("  ");
                     if(this.client.isConnected){
-                        if(this.client.isPermitted('BAN')){
-                            console.log("W???");
-                            this.client.s("BLACKLIST", {})
+                        if(this.client.isPermitted('ban')){
+                            this.client.s("blacklist", {})
                                 .then((ev)=>this.bans = ev.target)
                                 .catch((ev)=>this.errorMessage = ev.text);
                         }
-                        if(this.client.isPermitted('IP-BAN'))
-                            this.client.s("IP-BLACKLIST", {})
+                        if(this.client.isPermitted('ip-ban'))
+                            this.client.s("ip-blacklist", {})
                                 .then((ev)=>this.ipBans = ev.target)
                                 .catch((ev)=>this.errorMessage = ev.text);
                     }
@@ -1992,12 +2010,12 @@ class LichatUI{
                     this.$emit('close');
                 },
                 deleteBan: function(ev){
-                    this.client.s("UNBAN", {target: ev.target.closest("a").getAttribute("name")})
+                    this.client.s("unban", {target: ev.target.closest("a").getAttribute("name")})
                         .then((ev)=>this.bans = this.bans.filter((name)=>name !== ev.target))
                         .catch((ev)=>this.errorMessage = ev.text);
                 },
                 addBan: function(ev){
-                    this.client.s("BAN", {target: this.$refs.name.value})
+                    this.client.s("ban", {target: this.$refs.name.value})
                         .then((ev)=>{
                             this.bans.push(ev.target);
                             this.$refs.name.value = '';
@@ -2005,29 +2023,29 @@ class LichatUI{
                         .catch((ev)=>this.errorMessage = ev.text);
                 },
                 deleteIpBan: function(ev){
-                    this.client.s("IP-UNBAN", {ip: ev.target.closest("a").getAttribute("ip"),
+                    this.client.s("ip-unban", {ip: ev.target.closest("a").getAttribute("ip"),
                                                mask: ev.target.closest("a").getAttribute("mask")})
-                        .then((ev)=>this.client.s("IP-BLACKLIST"))
+                        .then((ev)=>this.client.s("ip-blacklist"))
                         .then((ev)=>this.ipBans = ev.target)
                         .catch((ev)=>this.errorMessage = ev.text);
                 },
                 addIpUnban: function(ev){
-                    this.client.s("IP-UNBAN", {ip: this.$refs.ip.value, mask: this.$refs.mask.value})
+                    this.client.s("ip-unban", {ip: this.$refs.ip.value, mask: this.$refs.mask.value})
                         .then((ev)=>{
                             this.$refs.ip.value = '';
                             this.$refs.mask.value = '';
-                            return this.client.s("IP-BLACKLIST");
+                            return this.client.s("ip-blacklist");
                         })
                         .then((ev)=>this.ipBans = ev.target)
                         .catch((ev)=>this.errorMessage = ev.text);
                     this.$refs.name.value = '';
                 },
                 addIpBan: function(ev){
-                    this.client.s("IP-BAN", {ip: this.$refs.ip.value, mask: this.$refs.mask.value})
+                    this.client.s("ip-ban", {ip: this.$refs.ip.value, mask: this.$refs.mask.value})
                         .then((ev)=>{
                             this.$refs.ip.value = '';
                             this.$refs.mask.value = '';
-                            return this.client.s("IP-BLACKLIST");
+                            return this.client.s("ip-blacklist");
                         })
                         .then((ev)=>this.ipBans = ev.target)
                         .catch((ev)=>this.errorMessage = ev.text);
@@ -2105,7 +2123,7 @@ class LichatUI{
             },
             methods: {
                 create: function(){
-                    this.client.s("CREATE", {channel: (this.anonymous)?null:this.name})
+                    this.client.s("create", {channel: (this.anonymous)?null:this.name})
                         .then(()=>this.$emit('close'))
                         .catch((e)=>this.errorMessage = e.text);
                 }
@@ -2169,27 +2187,20 @@ class LichatUI{
             }
         });
 
-        Vue.component("channel-configure", {
-            template: "#channel-configure",
-            props: {channel: LichatChannel},
+        let configureWidget = {
             data: ()=>{
                 return {
                     tab: 'info',
                     errorMessage: null,
-                    info: {},
-                    emotes: []
+                    info: {}
                 };
             },
             created: function(){
-                Object.assign(this.info, this.channel.info);
-                for(let name in this.channel.emotes){
-                    this.emotes.push([name, this.channel.emotes[name]]);
-                }
-                this.emotes.sort((a,b)=>(a[0]<b[0])?-1:+1);
+                Object.assign(this.info, this.object.info);
             },
             methods: {
                 isImage: function(key){
-                    return key === ':ICON';
+                    return key === ':icon';
                 },
                 toURL: function(value){
                     if(!value) return EmptyIcon;
@@ -2218,16 +2229,105 @@ class LichatUI{
                 saveInfo: function(){
                     for(let key in this.info){
                         let value = this.info[key];
-                        if(value !== this.channel.info[key]){
-                            this.channel.s("SET-CHANNEL-INFO", {key: LichatReader.fromString(key), text: value})
-                                .then((e)=>this.channel.info[key] = e.text)
+                        if(value !== this.object.info[key]){
+                            this.object.s(this.setInfoUpdate, {key: LichatReader.fromString(key), text: value})
+                                .then((e)=>this.object.info[key] = e.text)
                                 .catch((e)=>this.errorMessage = e.text);
                         }
                     }
                 },
+            }
+        };
+
+        Vue.component("user-configure", {
+            template: "#user-configure",
+            mixins: [configureWidget],
+            props: {user: LichatUser},
+            data: ()=>{
+                return {
+                    registered: false,
+                    connections: 0,
+                    channels: [],
+                    registeredOn: [],
+                    connectionInfo: []
+                };
+            },
+            computed: {
+                object: function(){return this.user;},
+                setInfoUpdate: ()=>"set-user-info"
+            },
+            created: function(){
+                for(let channel of this.user.client.channelList){
+                    if(channel.hasUser(this.user))
+                        this.channels.push(channel.name);
+                }
+                if(this.user.client.isPermitted('user-info'))
+                    this.user.s('user-info')
+                    .then((ev)=>{
+                        this.registered = ev.registered;
+                        this.connections = ev.connections;
+                        Object.assign(this.info, this.user.info);
+                    })
+                    .catch((ev)=>this.errorMessage = ev.text);
+                if(this.user.client.isPermitted('server-info'))
+                    this.user.s('server-info')
+                    .then((ev)=>{
+                        for(let entry of ev.attributes){
+                            if(entry[0] == cl.intern("channels", "lichat")){
+                                this.channels = entry[1];
+                            }else if(entry[0] == cl.intern("registered-on", "lichat")){
+                                this.registeredOn = cl.universalToUnix(entry[1]);
+                            }
+                        }
+                        this.connectionInfo = [];
+                        for(let connection of ev.connections){
+                            let info = {};
+                            for(let entry of connection){
+                                if(entry[0] == cl.intern("connected-on", "lichat")){
+                                    info.connectedOn = cl.universalToUnix(entry[1]);
+                                }else if(entry[0] == cl.intern("ip", "shirakumo")){
+                                    info.ip = entry[1];
+                                }else if(entry[0] == cl.intern("ssl", "shirakumo")){
+                                    info.ssl = entry[1];
+                                }
+                            }
+                            this.connectionInfo.push(info);
+                        }
+                    })
+                    .catch((ev)=>this.errorMessage = ev.text);
+            },
+            methods: {
+                kill: function(){
+                    this.user.s("kill")
+                        .then(()=>this.$emit('close'))
+                        .catch((ev)=>this.errorMessage = ev.text);
+                }
+            }
+        });
+
+        Vue.component("channel-configure", {
+            template: "#channel-configure",
+            mixins: [configureWidget],
+            props: {channel: LichatChannel},
+            data: ()=>{
+                return {
+                    emotes: []
+                };
+            },
+            created: function(){
+                for(let name in this.channel.emotes){
+                    this.emotes.push([name, this.channel.emotes[name]]);
+                }
+                this.emotes.sort((a,b)=>(a[0]<b[0])?-1:+1);
+            },
+            computed: {
+                object: function(){return this.channel;},
+                setInfoUpdate: ()=>"set-channel-info"
+            },
+            methods: {
                 deleteEmote: function(ev){
                     let name = ev.target.closest("a").getAttribute("name");
-                    this.channel.s("EMOTE", {"content-type": "image/png", name: name, payload: ""})
+                    this.channel.s("emote", {"content-type": "image/png", name: name, payload: ""})
                         .then((e)=>this.emotes = this.emotes.filter((o)=>o[0] !== e.name))
                         .catch((e)=>this.errorMessage = e.text);
                 },
@@ -2245,7 +2345,7 @@ class LichatUI{
                     var reader = new FileReader();
                     reader.onload = ()=>{
                         let parts = reader.result.match(/data:(.*?)(;base64)?,(.*)/);
-                        this.channel.s("EMOTE", {
+                        this.channel.s("emote", {
                             name: name,
                             "content-type": parts[1],
                             payload: parts[3]
@@ -2258,11 +2358,11 @@ class LichatUI{
                     reader.readAsDataURL(file);
                 },
                 toggleSlowMode: function(){
-                    this.channel.s("PAUSE", {by: Integer.parseInt(this.$refs.pause.value)})
+                    this.channel.s("pause", {by: Integer.parseInt(this.$refs.pause.value)})
                         .catch((ev)=>this.errorMessage = ev.text);
                 },
                 destroy: function(ev){
-                    this.channel.s("DESTROY")
+                    this.channel.s("destroy")
                         .then(()=>this.$emit('close'))
                         .catch((ev)=>this.errorMessage = ev.text);
                 }
@@ -2284,7 +2384,7 @@ class LichatUI{
                 react: function(emote){
                     this.emotePicker = false;
                     if(emote)
-                        this.message.channel.s("REACT", {
+                        this.message.channel.s("react", {
                             target: this.message.from,
                             "update-id": this.message.id,
                             emote: emote
@@ -2292,7 +2392,7 @@ class LichatUI{
                 },
                 edit: function(){
                     this.editText = this.editText.trimEnd();
-                    this.message.channel.s("EDIT", {
+                    this.message.channel.s("edit", {
                         from: this.message.from,
                         id: this.message.id,
                         text: this.editText
@@ -2354,7 +2454,7 @@ class LichatUI{
                         if(this.options.transmitTyping && this.currentChannel.client.isAvailable("shirakumo-typing")
                            && this.lastTypingUpdate+4 < cl.getUniversalTime() && this.currentChannel.isPermitted('TYPING')){
                             this.lastTypingUpdate = cl.getUniversalTime();
-                            this.currentChannel.s("TYPING", {}, true);
+                            this.currentChannel.s("typing", {}, true);
                         }
                     }
                 },
@@ -2366,7 +2466,7 @@ class LichatUI{
                         if(message.text.startsWith("/")){
                             this.processCommand(message.text, channel);
                         }else{
-                            channel.s("MESSAGE", {
+                            channel.s("message", {
                                 "text": message.text,
                                 "reply-to": (message.replyTo)? [message.replyTo.author.name, message.replyTo.id]: null
                             }).catch((e)=>channel.showStatus("Error: "+e.text));
@@ -2396,7 +2496,7 @@ class LichatUI{
                         return new Promise((ok, fail)=>{
                             reader.onload = ()=>{
                                 let parts = reader.result.match(/data:(.*?)(;base64)?,(.*)/);
-                                this.currentChannel.s("DATA", {
+                                this.currentChannel.s("data", {
                                     filename: ev.name,
                                     "content-type": parts[1],
                                     payload: parts[3]
@@ -2416,7 +2516,7 @@ class LichatUI{
                     let channel = this.currentChannel;
                     let query = this.search;
                     this.search = null;
-                    this.currentChannel.s("SEARCH", {query: query})
+                    this.currentChannel.s("search", {query: query})
                         .then((ev)=>this.showSearchResults(channel, ev.results, query))
                         .catch((e)=>channel.showStatus("Error: "+e.text));
                 },
@@ -2472,7 +2572,7 @@ class LichatUI{
             if(channel.client.hasChannel(name) && channel.client.getChannel(name).isPresent){
                 this.app.switchChannel(channel.client.getChannel(name));
             }else{
-                channel.client.s("JOIN", {channel: name})
+                channel.client.s("join", {channel: name})
                     .then(()=>{this.currentChannel = channel.client.getChannel(name);})
                     .catch((e)=>channel.showStatus("Error: "+e.text));
             }
@@ -2480,42 +2580,46 @@ class LichatUI{
 
         this.addCommand("leave", (channel, ...name)=>{
             name = (0 < name.length)? name.join(" ") : channel.name;
-            channel.client.s("LEAVE", {channel: name})
+            channel.client.s("leave", {channel: name})
                 .then(()=>channel.client.removeFromChannelList(channel))
                 .catch((e)=>channel.showStatus("Error: "+e.text));
         }, "Leave a channel. If no channel is specified, leaves the current channel.");
 
         this.addCommand("create", (channel, ...name)=>{
             name = (0 < name.length)? name.join(" ") : null;
-            channel.client.s("CREATE", {channel: name})
+            channel.client.s("create", {channel: name})
                 .then(()=>{this.currentChannel = channel.client.getChannel(name);})
                 .catch((e)=>channel.showStatus("Error: "+e.text));
         }, "Creates a new channel. If no name is specified, creates an anonymous channel.");
 
         this.addCommand("kick", (channel, ...name)=>{
-            channel.s("KICK", {target: name.join(" ")})
+            channel.s("kick", {target: name.join(" ")})
                 .catch((e)=>channel.showStatus("Error: "+e.text));
         }, "Kick a user fromde the channel.");
         
         this.addCommand("pull", (channel, ...name)=>{
-            channel.s("PULL", {target: name.join(" ")})
+            channel.s("pull", {target: name.join(" ")})
                 .catch((e)=>channel.showStatus("Error: "+e.text));
         }, "Pull a user into the channel.");
 
         this.addCommand("register", (channel, ...password)=>{
-            channel.client.s("REGISTER", {password: password.join(" ")})
-                .then(()=>channel.showStatus("Registration complete."))
+            password = password.join(" ");
+            channel.client.s("register", {password: password})
+                .then(()=>{
+                    channel.client.password = password;
+                    channel.showStatus("Registration complete.");
+                })
                 .catch((e)=>channel.showStatus("Error: "+e.text));
         }, "Try to register your current username with a password.");
 
         this.addCommand("grant", (channel, type, ...user)=>{
-            channel.s("GRANT", {update: LichatReader.fromString(type), target: user.join(" ")})
+            channel.s("grant", {update: LichatReader.fromString(type), target: user.join(" ")})
                 .then(()=>channel.showStatus("Permission granted."))
                 .catch((e)=>channel.showStatus("Error: "+e.text));
         }, "Grant permission for an update type to another user in the channel.");
 
         this.addCommand("deny", (channel, type, ...user)=>{
-            channel.s("DENY", {update: LichatReader.fromString(type), target: user.join(" ")})
+            channel.s("deny", {update: LichatReader.fromString(type), target: user.join(" ")})
                 .then(()=>channel.showStatus("Permission denied."))
                 .catch((e)=>channel.showStatus("Error: "+e.text));
         }, "Deny permission for an update type to another user in the channel.");
@@ -2571,16 +2675,16 @@ class LichatUI{
         };
 
         client.disconnectHandler = (ev)=>{
-            this.currentChannel.showStatus("Disconnected: "+(ev.reason || "connection lost"));
+            this.currentChannel.showStatus("Disconnected: "+(ev.reason || ev.text || "connection lost"));
         };
 
-        client.addHandler("CONNECT", (ev)=>{
+        client.addHandler("connect", (ev)=>{
             if(0 < client.channelList.length){
                 client.getEmergencyChannel().showStatus("Connected");
             }
         });
 
-        client.addHandler("JOIN", (ev)=>{
+        client.addHandler("join", (ev)=>{
             ev.text = " ** Joined " + ev.channel;
             let channel = client.getChannel(ev.channel);
             channel.record(ev);
@@ -2592,7 +2696,7 @@ class LichatUI{
             }
         });
         
-        client.addHandler("LEAVE", (ev)=>{
+        client.addHandler("leave", (ev)=>{
             ev.text = " ** Left " + ev.channel;
             client.getChannel(ev.channel).record(ev);
         });

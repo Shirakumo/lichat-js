@@ -2,7 +2,7 @@ var LichatReader = function(){
     var self = this;
 
     self.whitespace = "\u0009\u000A\u000B\u000C\u000D\u0020\u0085\u00A0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2008\u2009\u200A\u2028\u2029\u202F\u205F\u3000\u180E\u200B\u200C\u200D\u2060\uFEFF";
-    self.invalidSymbol = cl.makeSymbol("INVALID-SYMBOL");
+    self.invalidSymbol = cl.intern("INVALID-SYMBOL");
 
     self.isWhitespace = (character)=>{
         return self.whitespace.indexOf(character) >= 0;
@@ -12,17 +12,6 @@ var LichatReader = function(){
         while(self.isWhitespace(stream.readChar()));
         stream.unreadChar();
         return stream;
-    };
-
-    self.isProtocolSymbol = (name)=>{
-        return self.protocolSymbols.indexOf(name) >= 0;
-    };
-
-    self.safeFindSymbol = (name, pkg)=>{
-        if(pkg === null){
-            return cl.makeSymbol(name);
-        }
-        return cl.intern(name, pkg);
     };
 
     self.readSexprList = (stream)=>{
@@ -51,7 +40,7 @@ var LichatReader = function(){
     };
 
     self.readSexprKeyword = (stream)=>{
-        return cl.intern(self.readSexprToken(stream), "KEYWORD");
+        return cl.intern(self.readSexprToken(stream), "keyword");
     };
 
     self.readSexprNumber = (stream)=>{
@@ -113,13 +102,9 @@ var LichatReader = function(){
         var token = self.readSexprToken(stream);
         if(stream.peekChar(false) === ":"){
             stream.readChar();
-            if(token === "#"){
-                return self.safeFindSymbol(self.readSexprToken(stream), null);
-            }else{
-                return self.safeFindSymbol(self.readSexprToken(stream), token);
-            }
+            return cl.intern(self.readSexprToken(stream), token);
         }else{
-            var symbol = self.safeFindSymbol(token, "LICHAT-PROTOCOL");
+            var symbol = cl.intern(token, "LICHAT");
             if(symbol == cl.NIL) return null;
             if(symbol == cl.T) return true;
             return symbol;
@@ -155,7 +140,7 @@ var LichatReader = function(){
             for(var i=0; i<sexpr.length; i+=2){
                 var key = sexpr[i];
                 var val = sexpr[i+1];
-                if(!cl.symbolp(key) || key.pkg !== "KEYWORD"){
+                if(!cl.symbolp(key) || key.pkg !== "keyword"){
                     throw new Error(key+" is not of type Keyword.");
                 }
                 initargs[key.name.toLowerCase()] = val;

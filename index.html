@@ -36,7 +36,7 @@
         </a>
         <a class="disconnect"
            v-on:click="client.closeConnection()"
-           v-if="client.isConnected">
+           v-if="client.isConnected || client.isConnecting">
           <i class="fas fa-fw fa-handshake-slash"></i> Disconnect
         </a>
         <a class="connect"
@@ -144,6 +144,10 @@
              v-on:click="ban">
             <i class="fas fa-fw fa-user-alt-slash"></i> Ban
           </a>
+          <user-configure
+              v-bind:user="user"
+              v-if="showInfo"
+              v-on:close="showInfo = false;$emit('close')"></user-configure>
           <a class="info"
              v-on:click="showInfo = true">
             <i class="fas fa-fw fa-info-circle"></i> View Info
@@ -484,6 +488,90 @@
               <input class="confirm" type="button" value="Destroy Channel"
                      v-if="channel.isPermitted('DESTROY')"
                      v-on:click="destroy">
+            </section>
+          </div>
+        </div>
+      </transition>
+    </script>
+    <script type="text/x-template" id="user-configure">
+      <transition name="modal">
+        <div class="popup-container" v-on:click.self.stop="$emit('close')">
+          <div class="popup">
+            <header>
+              <h2>{{user.name}}</h2>
+              <div class="error-message" v-if="errorMessage">{{errorMessage}}</div>
+              <nav class="tabbar">
+                <a v-on:click="tab = 'info'" v-bind:class="{active: tab == 'info'}">
+                  <i class="fas fa-info-circle"></i> Info
+                </a>
+                <a v-on:click="tab = 'fields'" v-bind:class="{active: tab == 'fields'}">
+                  <i class="fas fa-tasks"></i> Fields
+                </a>
+                <a v-on:click="tab = 'settings'" v-bind:class="{active: tab == 'settings'}">
+                  <i class="fas fa-cogs"></i> Settings
+                </a>
+              </nav>
+            </header>
+            <section class="info" v-show="tab == 'info'">
+              <div class="row">
+                <label>Name:</label>
+                <span class="name">{{user.name}}</span>
+              </div>
+              <div class="row">
+                <label>Registered:</label>
+                <span class="registered">{{registered?"yes":"no"}}</span>
+              </div>
+              <div class="row">
+                <label>Channels:</label>
+                <span class="name">{{channels.join(", ")}}</span>
+              </div>
+              <div class="row" v-if="registered">
+                <label>Registered On:</label>
+                <span class="name">{{new Date(1000*registeredOn)}}</span>
+              </div>
+              <div class="row">
+                <label>No. Connections:</label>
+                <span class="name">{{connections}}</span>
+              </div>
+              <div class="row">
+                <label>Connection Info:</label>
+                <ul>
+                  <li v-for="connection in connectionInfo">
+                    <span class="ip" v-if="connection.ip">
+                      {{connection.ip}}
+                    </span>
+                    <span class="ssl" v-if="connection.ssl !== undefined">
+                      {{connection.ssl?'ssl':'plain'}}
+                    </span>
+                    <span class="connectedOn" v-if="connection.connectedOn">
+                      {{new Date(1000*connection.connectedOn)}}
+                    </span>
+                  </li>
+                </ul>
+              </div>
+            </section>
+            <section class="fields" v-show="tab == 'fields'">
+              <div class="row" v-for="(v, k) in info">
+                <label>{{k}}</label>
+                <template v-if="user.isSelf">
+                  <img v-if="isImage(k)" v-bind:name="k" v-bind:src="toURL(v)" v-on:click="setImage">
+                  <input type="text" v-bind:name="k" v-model="info[k]" v-else>
+                </template>
+                <template v-else>
+                  <img v-if="isImage(k)" v-bind:src="toURL(v)">
+                  <span v-else-if="v">{{v}}</span>
+                  <span v-else class="unset">no value</span>
+                </template>
+              </div>
+              <input type="file" ref="file" accept=".png,.jpg,.jpeg,.gif" style="display:none">
+              <input type="button" value="Save" 
+                     v-if="user.isSelf"
+                     v-on:click="saveInfo">
+            </section>
+            <section class="settings" v-show="tab == 'settings'">
+              <input class="confirm" type="button" value="Kill User"
+                     v-if="user.client.isPermitted('KILL') && !user.isServer"
+                     v-on:click="kill">
             </section>
           </div>
         </div>

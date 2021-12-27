@@ -58,14 +58,10 @@ var LichatPrinter = function(){
 
     self.printSexprSymbol = (symbol, stream)=>{
         switch(symbol.pkg){
-        case null:
-            stream.writeChar("#");
+        case "keyword":
             stream.writeChar(":");
             break;
-        case "KEYWORD":
-            stream.writeChar(":");
-            break;
-        case "LICHAT-PROTOCOL":
+        case "lichat":
             break;
         default:
             self.printSexprToken(symbol.pkg, stream);
@@ -86,10 +82,10 @@ var LichatPrinter = function(){
     };
 
     self.toWire = (wireable, stream)=>{
-        if(cl.typep(wireable, "WIRE-OBJECT")){
-            var list = [cl.findSymbol(wireable.type, "LICHAT-PROTOCOL")];
+        if(cl.typep(wireable, "wire-object")){
+            var list = [cl.findSymbol(wireable.type, "lichat")];
             for(var key of wireable.fields){
-                list.push(cl.findSymbol(key.toUpperCase(), "KEYWORD"));
+                list.push(cl.findSymbol(key, "keyword"));
                 list.push(wireable[key]);
             }
             self.printSexpr(list, stream);
