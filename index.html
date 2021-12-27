@@ -482,7 +482,7 @@
                 <input type="button" v-bind:value="(0 < $refs.pause.value)?'Activate':'Deactivate'"
                        v-on:click="toggleSlowMode">
               </div>
-              <input class="confirm" type="button" value="Destroy"
+              <input class="confirm" type="button" value="Destroy Channel"
                      v-if="channel.isPermitted('DESTROY')"
                      v-on:click="destroy">
             </section>
