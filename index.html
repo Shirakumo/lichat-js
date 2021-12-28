@@ -111,6 +111,15 @@
            v-on:click.stop="showUserList = true">
           <i class="fas fa-fw fa-users"></i> List Users
         </a>
+        <a class="rules"
+           v-if="channel.info[':rules']"
+           v-on:click="rules">
+          <i class="fas fa-fw fa-gavel"></i> Rules
+        </a>
+        <a class="leave"
+           v-on:click="leave">
+          <i class="fas fa-fw fa-sign-out-alt"></i> Leave
+        </a>
         <channel-configure
             v-bind:channel="channel"
             v-if="showInfo"

@@ -269,7 +269,7 @@ class LichatChannel{
     get capabilities(){
         if(this._capabilities == null){
             this._capabilities = [];
-            this.s("capabilities");
+            this.s("capabilities", {}, true);
         }
         return this._capabilities;
     }
@@ -473,8 +473,6 @@ class LichatClient{
                     }
                 }
                 channel.s("users", {}, true);
-                //if(this.isAvailable("shirakumo-backfill") && !channel.isPrimary)
-                //    channel.s("BACKFILL", true);
                 if(this.isAvailable("shirakumo-channel-info"))
                     channel.s("channel-info", {}, true);
                 if(this.isAvailable("shirakumo-emotes"))
@@ -507,27 +505,27 @@ class LichatClient{
             }
         });
 
-        this.addHandler("message", (ev)=>{
+        this.addInternalHandler("message", (ev)=>{
             this.getChannel(ev.channel).record(ev);
         });
 
-        this.addHandler("edit", (ev)=>{
+        this.addInternalHandler("edit", (ev)=>{
             let message = this.getChannel(ev.channel).getMessage(ev.from, ev.id);
             if(message) message.text = ev.text;
             else console.warn("Received react with no message", ev.target, ev["update-id"]);
         });
 
-        this.addHandler("react", (ev)=>{
+        this.addInternalHandler("react", (ev)=>{
             let message = this.getChannel(ev.channel).getMessage(ev.target, ev["update-id"]);
             if(message) message.addReaction(ev);
             else console.warn("Received react with no message", ev.target, ev["update-id"]);
         });
 
-        this.addHandler("capabilities", (ev)=>{
+        this.addInternalHandler("capabilities", (ev)=>{
             this.getChannel(ev.channel).capabilities = ev.permitted;
         });
 
-        this.addHandler("users", (ev)=>{
+        this.addInternalHandler("users", (ev)=>{
             for(let name of ev.users){
                 this.getChannel(ev.channel).users[name.toLowerCase()] = this.getUser(name);
             }

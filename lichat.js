@@ -417,7 +417,9 @@ cl.defclass("server-info", ["target-update"], {
     attributes: [],
     connections: []
 });
-cl.defclass("backfill", ["channel-update"]);
+cl.defclass("backfill", ["channel-update"], {
+    since: null
+});
 cl.defclass("data", ["channel-update"], {
     "content-type": cl.requiredArg("content-type"),
     filename: null,
@@ -1048,7 +1050,7 @@ class LichatChannel{
     get capabilities(){
         if(this._capabilities == null){
             this._capabilities = [];
-            this.s("capabilities");
+            this.s("capabilities", {}, true);
         }
         return this._capabilities;
     }
@@ -1252,8 +1254,6 @@ class LichatClient{
                     }
                 }
                 channel.s("users", {}, true);
-                //if(this.isAvailable("shirakumo-backfill") && !channel.isPrimary)
-                //    channel.s("BACKFILL", true);
                 if(this.isAvailable("shirakumo-channel-info"))
                     channel.s("channel-info", {}, true);
                 if(this.isAvailable("shirakumo-emotes"))
@@ -1286,27 +1286,27 @@ class LichatClient{
             }
         });
 
-        this.addHandler("message", (ev)=>{
+        this.addInternalHandler("message", (ev)=>{
             this.getChannel(ev.channel).record(ev);
         });
 
-        this.addHandler("edit", (ev)=>{
+        this.addInternalHandler("edit", (ev)=>{
             let message = this.getChannel(ev.channel).getMessage(ev.from, ev.id);
             if(message) message.text = ev.text;
             else console.warn("Received react with no message", ev.target, ev["update-id"]);
         });
 
-        this.addHandler("react", (ev)=>{
+        this.addInternalHandler("react", (ev)=>{
             let message = this.getChannel(ev.channel).getMessage(ev.target, ev["update-id"]);
             if(message) message.addReaction(ev);
             else console.warn("Received react with no message", ev.target, ev["update-id"]);
         });
 
-        this.addHandler("capabilities", (ev)=>{
+        this.addInternalHandler("capabilities", (ev)=>{
             this.getChannel(ev.channel).capabilities = ev.permitted;
         });
 
-        this.addHandler("users", (ev)=>{
+        this.addInternalHandler("users", (ev)=>{
             for(let name of ev.users){
                 this.getChannel(ev.channel).users[name.toLowerCase()] = this.getUser(name);
             }
@@ -1668,6 +1668,20 @@ class LichatUI{
             this.setupDatabase();
         };
 
+        let mouseX = 0, mouseY = 0;
+        document.addEventListener("mousemove", (ev)=>{
+            mouseX = ev.clientX;
+            mouseY = ev.clientY;
+        });
+
+        document.addEventListener("visibilitychange", ()=>{
+            if(!document.hidden){
+                this.currentChannel.unread = 0;
+                this.currentChannel.alerted = false;
+                this.updateTitle();
+            }
+        });
+
         let supersede = (object, field, newfun)=>{
             let original = object.prototype[field];
             object.prototype[field] = function(...args){
@@ -1736,20 +1750,12 @@ class LichatUI{
             lichat.updateTitle();
         };
 
-        document.addEventListener("visibilitychange", ()=>{
-            if(!document.hidden){
-                this.currentChannel.unread = 0;
-                this.currentChannel.alerted = false;
-                this.updateTitle();
-            }
-        });
-
         LichatMessage.prototype.markupText = function(text){
             return LichatUI.formatUserText(text, this.channel);
         };
 
         LichatMessage.prototype.highlight = function(){
-            lichat.currentChannel = this.channel;
+            lichat.app.switchChannel(this.channel);
             Vue.nextTick(() => {
                 let element = document.getElementById(this.gid);
                 element.classList.add('highlight');
@@ -1780,7 +1786,7 @@ class LichatUI{
             if(channel == lichat.currentChannel){
                 if(this.channelList.length <= index)
                     index = this.channelList.length-1;
-                lichat.currentChannel = this.channelList[index];
+                lichat.app.switchChannel(this.channelList[index]);
             }
         };
 
@@ -1815,13 +1821,32 @@ class LichatUI{
                 document.addEventListener('click', (ev)=>{
                     this.$emit('close');
                 });
-                this.$nextTick(function(){
-                    let rect = this.$el.getBoundingClientRect();
-                    if(rect.left < 0) this.$el.style.left = "10px";
-                    if(rect.top < 0) this.$el.style.top = "10px";
-                    if(window.innerWidth < rect.right) this.$el.style.right = "10px";
-                    if(window.innerHeight < rect.bottom) this.$el.style.bottom = "10px";
+                this.$el.style.left = mouseX+"px";
+                this.$el.style.top = mouseY+"px";
+                this.$nextTick(()=>{
+                    this.fitInView();
                 });
+            },
+            methods: {
+                fitInView: function(){
+                    let rect = this.$el.getBoundingClientRect();
+                    if(rect.left < 0){
+                        this.$el.style.right = "";
+                        this.$el.style.left = "10px";
+                    }
+                    if(rect.top < 0){
+                        this.$el.style.bottom = "";
+                        this.$el.style.top = "10px";
+                    }
+                    if(window.innerWidth < rect.right){
+                        this.$el.style.left = "";
+                        this.$el.style.right = "10px";
+                    }
+                    if(window.innerHeight < rect.bottom){
+                        this.$el.style.top = "";
+                        this.$el.style.bottom = "10px";
+                    }
+                }
             }
         };
 
@@ -1923,6 +1948,11 @@ class LichatUI{
                     if(user)
                         this.channel.s("pull", {target: user});
                     this.showInvite = false;
+                    this.$emit('close');
+                },
+                leave: function(){
+                    this.channel.s("leave")
+                        .then(()=>this.channel.client.removeFromChannelList(this.channel));
                     this.$emit('close');
                 }
             }
@@ -2610,7 +2640,7 @@ class LichatUI{
                 this.app.switchChannel(channel.client.getChannel(name));
             }else{
                 channel.client.s("join", {channel: name})
-                    .then(()=>{this.currentChannel = channel.client.getChannel(name);})
+                    .then(()=>this.app.switchChannel(channel.client.getChannel(name)))
                     .catch((e)=>channel.showStatus("Error: "+e.text));
             }
         }, "Join a new channel.");
@@ -2625,7 +2655,7 @@ class LichatUI{
         this.addCommand("create", (channel, ...name)=>{
             name = (0 < name.length)? name.join(" ") : null;
             channel.client.s("create", {channel: name})
-                .then(()=>{this.currentChannel = channel.client.getChannel(name);})
+                .then(()=>this.app.switchChannel(channel.client.getChannel(name)))
                 .catch((e)=>channel.showStatus("Error: "+e.text));
         }, "Creates a new channel. If no name is specified, creates an anonymous channel.");
 
@@ -2703,11 +2733,10 @@ class LichatUI{
                 return this.currentChannel;
             }else if(0 < client.channelList.length){
                 return client.channelList[0];
+            }else if(client.servername){
+                return client.getChannel(client.servername);
             }else{
-                let channel = client.getChannel(client.servername || client.name);
-                client.addToChannelList(channel);
-                this.app.switchChannel(channel);
-                return channel;
+                return {showStatus: ()=>{}};
             }
         };
 
@@ -2727,6 +2756,15 @@ class LichatUI{
             channel.record(ev);
             if(client.getUser(ev.from.toLowerCase()).isSelf){
                 client.addToChannelList(channel);
+
+                if(channel.isPrimary){
+                    this.loadMessages(client);
+                }else if(client.isAvailable("shirakumo-backfill")){
+                    let since = null;
+                    if(0 < channel.messageList.length)
+                        since = cl.unixToUniversal(channel.messageList[channel.messageList.length-1].timestamp);
+                    channel.s("BACKFILL", {since: since}, true);
+                }
             }
             if(!this.currentChannel){
                 this.app.switchChannel(channel);
@@ -2750,6 +2788,7 @@ class LichatUI{
             this.clients.splice(index, 1);
             this.saveSetup();
         }
+        // FIXME: delete saved messages
     }
 
     addCommand(command, fun, help){
@@ -2816,7 +2855,6 @@ class LichatUI{
             for(let options of ev.target.result){
                 let client = new LichatClient(options);
                 this.addClient(client)
-                    .then(()=>this.loadMessages(client))
                     .catch((ev)=>client.getEmergencyChannel().showStatus("Connection failed "+(ev.reason || "")));
             }
         };

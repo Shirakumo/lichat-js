@@ -73,7 +73,9 @@ cl.defclass("server-info", ["target-update"], {
     attributes: [],
     connections: []
 });
-cl.defclass("backfill", ["channel-update"]);
+cl.defclass("backfill", ["channel-update"], {
+    since: null
+});
 cl.defclass("data", ["channel-update"], {
     "content-type": cl.requiredArg("content-type"),
     filename: null,
