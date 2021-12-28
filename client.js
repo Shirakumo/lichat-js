@@ -422,7 +422,7 @@ class LichatClient{
         this.password = options.password || null;
         this.hostname = options.hostname || "localhost";
         this.port = options.port || (options.ssl? LichatDefaultSSLPort: LichatDefaultPort);
-        this.ssl = options.ssl;
+        this.ssl = options.ssl || (options.port == LichatDefaultSSLPort);
         this.disconnectHandler = ()=>{};
         this.servername = null;
         this.pingDelay = 15000;

@@ -65,19 +65,22 @@
           <i class="fas fa-fw fa-clipboard"></i> Copy
         </a>
         <a class="kick"
+           v-if="message.channel.isPermitted('KICK')"
            v-on:click="kick">
           <i class="fas fa-fw fa-sign-out-alt"></i> Kick
         </a>
-        <a class="unquiet"
-           v-if="message.author.isQuieted(message.channel)"
-           v-on:click="unquiet">
-          <i class="fas fa-fw fa-user"></i> Unquiet
-        </a>
-        <a class="quiet"
-           v-else
-           v-on:click="quiet">
-          <i class="fas fa-fw fa-user-slash"></i> Quiet
-        </a>
+        <template v-if="message.channel.isPermitted('QUIET')">
+          <a class="unquiet"
+             v-if="message.author.isQuieted(message.channel)"
+             v-on:click="unquiet">
+            <i class="fas fa-fw fa-user"></i> Unquiet
+          </a>
+          <a class="quiet"
+             v-else
+             v-on:click="quiet">
+            <i class="fas fa-fw fa-user-slash"></i> Quiet
+          </a>
+        </template>
       </nav>
     </script>
     <script type="text/x-template" id="channel-menu">
@@ -141,26 +144,30 @@
              v-on:click.stop="showInvite = true">
             <i class="fas fa-fw fa-user-plus"></i> Invite
           </a>
-          <a class="unblock"
-             v-if="user.isBlocked"
-             v-on:click="unblock">
-            <i class="fas fa-fw fa-user-check"></i> Unblock
-          </a>
-          <a class="block"
-             v-else
-             v-on:click="block">
-            <i class="fas fa-fw fa-user-times"></i> Block
-          </a>
-          <a class="unban"
-             v-if="user.isBanned"
-             v-on:click="unban">
-            <i class="fas fa-fw fa-user-alt"></i> Unban
-          </a>
-          <a class="ban"
-             v-else
-             v-on:click="ban">
-            <i class="fas fa-fw fa-user-alt-slash"></i> Ban
-          </a>
+          <template v-if="user.client.isPermitted('BLOCK')">
+            <a class="unblock"
+               v-if="user.isBlocked"
+               v-on:click="unblock">
+              <i class="fas fa-fw fa-user-check"></i> Unblock
+            </a>
+            <a class="block"
+               v-else
+               v-on:click="block">
+              <i class="fas fa-fw fa-user-times"></i> Block
+            </a>
+          </template>
+          <template v-if="user.client.isPermitted('BAN')">
+            <a class="unban"
+               v-if="user.isBanned"
+               v-on:click="unban">
+              <i class="fas fa-fw fa-user-alt"></i> Unban
+            </a>
+            <a class="ban"
+               v-else
+               v-on:click="ban">
+              <i class="fas fa-fw fa-user-alt-slash"></i> Ban
+            </a>
+          </template>
           <user-configure
               v-bind:user="user"
               v-if="showInfo"
@@ -694,7 +701,9 @@
   </head>
   <body>
     <div class="client">
-      <div class="side" v-bind:style="{width: options.sidebarWidth, minWidth: options.sidebarWidth, maxWidth: options.sidebarWidth}">
+      <div class="side"
+           v-show="!embedded"
+           v-bind:style="{width: options.sidebarWidth, minWidth: options.sidebarWidth, maxWidth: options.sidebarWidth}">
         <nav v-show="0 < clients.length">
           <section class="server" v-for="client in clients" v-bind:class="{connected: client._socket && client._reconnectAttempts == 0}">
             <header>
@@ -748,7 +757,7 @@
           </nav>
         </footer>
       </div>
-      <divider></divider>
+      <divider v-show="!embedded"></divider>
       <main v-if="currentChannel" v-on:drop.capture="uploadFile">
         <header>
           <img class="icon" v-bind:src="currentChannel.icon">
@@ -817,6 +826,17 @@
       <main v-else>
       </main>
     </div>
-    <script>var lichat = new LichatUI();</script>
+    <script>
+      const urlParams = new URLSearchParams(window.location.search);
+      var lichat = new LichatUI(null, {
+          embedded: urlParams.get('channel') !== null,
+          channel: urlParams.get('channel'),
+          connection: urlParams.get('hostname')?{
+              username: urlParams.get('username'),
+              hostname: urlParams.get('hostname'),
+              port: urlParams.get('port')
+          }: null
+      });
+    </script>
   </body>
 </html>

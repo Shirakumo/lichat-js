@@ -1,5 +1,6 @@
 class LichatUI{
-    constructor(el){
+    constructor(el, config){
+        console.log("Setting up Lichat", config);
         let lichat = this;
         this.commands = {};
         this.clients = [];
@@ -11,12 +12,13 @@ class LichatUI{
         this.showSelfMenu = false;
         this.showSettings = false;
         this.errorMessage = null;
+        this.embedded = config.embedded;
         this.db = null;
         this.lastTypingUpdate = 0;
 
         this.options = {
-            transmitTyping: true,
-            showNotifications: true,
+            transmitTyping: !this.embedded,
+            showNotifications: !this.embedded,
             playSound: false,
             notificationLevel: 'mention',
             font: 'sans-serif',
@@ -29,22 +31,33 @@ class LichatUI{
             prefix: null,
             pretext: null
         };
-        
-        let DBOpenRequest = window.indexedDB.open("lichatjs", 5);
-        DBOpenRequest.onerror = e=>{
-            console.error(e);
-            this.initialSetup();
-        };
-        DBOpenRequest.onsuccess = e=>{
-            this.db = e.target.result;
-            // FIXME: this does not work as expected.
-            //document.addEventListener('beforeunload', this.saveSetup());
-            this.loadSetup();
-        };
-        DBOpenRequest.onupgradeneeded = e=>{
-            this.db = e.target.result;
-            this.setupDatabase();
-        };
+
+        if(!this.embedded){
+            let DBOpenRequest = window.indexedDB.open("lichatjs", 5);
+            DBOpenRequest.onerror = e=>{
+                console.error(e);
+                this.initialSetup();
+            };
+            DBOpenRequest.onsuccess = e=>{
+                this.db = e.target.result;
+                // FIXME: this does not work as expected.
+                //document.addEventListener('beforeunload', this.saveSetup());
+                this.loadSetup();
+            };
+            DBOpenRequest.onupgradeneeded = e=>{
+                this.db = e.target.result;
+                this.setupDatabase();
+            };
+        }else if(config.connection){
+            this.initialSetup(config.connection)
+                .then((client)=>{
+                    if(config.channel)
+                        client.s("join", {channel: config.channel})
+                        .then((e)=>this.app.switchChannel(client.getChannel(e.channel)));
+                });
+        }else{
+            this.showClientMenu = true;
+        }
 
         let mouseX = 0, mouseY = 0;
         document.addEventListener("mousemove", (ev)=>{
@@ -53,7 +66,7 @@ class LichatUI{
         });
 
         document.addEventListener("visibilitychange", ()=>{
-            if(!document.hidden){
+            if(!document.hidden && this.currentChannel){
                 this.currentChannel.unread = 0;
                 this.currentChannel.alerted = false;
                 this.updateTitle();
@@ -332,6 +345,9 @@ class LichatUI{
                     this.channel.s("leave")
                         .then(()=>this.channel.client.removeFromChannelList(this.channel));
                     this.$emit('close');
+                },
+                rules: function(){
+                    
                 }
             }
         });
@@ -1137,7 +1153,7 @@ class LichatUI{
 
                 if(channel.isPrimary){
                     this.loadMessages(client);
-                }else if(client.isAvailable("shirakumo-backfill")){
+                }else if(client.isAvailable("shirakumo-backfill") && !this.embedded){
                     let since = null;
                     if(0 < channel.messageList.length)
                         since = cl.unixToUniversal(channel.messageList[channel.messageList.length-1].timestamp);
@@ -1208,8 +1224,8 @@ class LichatUI{
         document.title = title;
     }
 
-    initialSetup(){
-        this.addClient(new LichatClient(this.defaultClient))
+    initialSetup(client){
+        return this.addClient(new LichatClient(client || this.defaultClient))
             .catch((ev)=>client.getEmergencyChannel().showStatus("Connection failed "+(ev.reason || "")));
     }
 
@@ -1243,6 +1259,7 @@ class LichatUI{
     }
 
     saveMessage(client, message){
+        if(!this.db) return;
         if(message.isSystem) return;
         if(message.channel.isPrimary) return;
         let tx = this.db.transaction(["messages"], "readwrite");
@@ -1263,6 +1280,7 @@ class LichatUI{
     }
 
     loadMessages(client){
+        if(!this.db) return;
         console.log("Loading messages for", client);
         let tx = this.db.transaction(["messages"]);
         tx.onerror = (ev)=>console.error(ev);
