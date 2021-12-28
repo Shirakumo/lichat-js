@@ -143,7 +143,30 @@
      :min-height 1em
      :min-width 1em
      :max-height 10em
-     :max-width 100%))))
+     :max-width 100%))
+   (>section.permissions
+    :min-height 0
+    :overflow-y auto
+    (.row
+     :display flex
+     :align-items center
+     (>.update
+      :min-width 7em)
+     (>.type)
+     (>.users
+      :flex-grow 1
+      :list-style none
+      :margin 0 :padding 0
+      (li :padding 0.2em 0.5em
+          :display inline-block
+          :margin 0.2em 0.2em
+          :background (hex 303030)
+          :cursor pointer)
+      (li.none
+       :background (hex 202020)
+       :font-style italic))
+     (>.new
+      :max-width 5em)))))
  (nav.tabbar
   :padding 0.2em 0.2em 0 0.2em
   :display flex

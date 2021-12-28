@@ -470,10 +470,6 @@
                 <span class="name">{{channel.name}}</span>
               </div>
               <div class="row">
-                <label>Creator:</label>
-                <span class="creator"></span>
-              </div>
-              <div class="row">
                 <label>No. Users:</label>
                 <span class="users">{{Object.keys(channel.users).length}}</span>
               </div>
@@ -514,6 +510,28 @@
                 <input type="text" ref="name">
                 <input type="button" value="submit" v-on:click="uploadEmote">
               </div>
+            </section>
+            <section class="permissions" v-show="tab == 'permissions'">
+              <div class="row" v-for="rule in permissions">
+                <span class="update">{{rule.update}}</span>
+                <select class="type" v-model="rule.type">
+                  <option value="+">allow to</option>
+                  <option value="-">deny to</option>
+                </select>
+                <ul class="users">
+                  <li v-for="user in rule.users" v-on:click="rule.users = rule.users.filter((e)=>e !== user)">
+                    {{user}}
+                  </li>
+                  <li class="none" v-if="rule.users.length === 0">none</li>
+                </ul>
+                <input type="text" class="new" list="users" placeholder="Add..."
+                       v-on:keyup.enter="addUser($event, rule)">
+              </div>
+              <datalist id="users">
+                <option v-for="user in channel.users" v-bind:value="user.name"></option>
+              </datalist>
+              <input type="button" value="Save"
+                     v-on:click="savePermissions">
             </section>
             <section class="settings" v-show="tab == 'settings'">
               <div class="row">

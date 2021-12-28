@@ -772,7 +772,8 @@ class LichatUI{
             props: {channel: LichatChannel},
             data: ()=>{
                 return {
-                    emotes: []
+                    emotes: [],
+                    permissions: []
                 };
             },
             created: function(){
@@ -780,6 +781,27 @@ class LichatUI{
                     this.emotes.push([name, this.channel.emotes[name]]);
                 }
                 this.emotes.sort((a,b)=>(a[0]<b[0])?-1:+1);
+                if(this.channel.isPermitted("permissions"))
+                    this.channel.s("permissions")
+                    .then((e)=>{
+                        for(let expr of e.permissions){
+                            let rule = {
+                                update: LichatPrinter.toString(expr[0]),
+                                type: '',
+                                users: [],
+                            };
+                            if(expr[1] === true)
+                                rule.type = '-';
+                            else if(expr[1] === null)
+                                rule.type = '+';
+                            else{
+                                rule.type = expr[1][0].name;
+                                rule.users = expr[1].slice(1);
+                            }
+                            this.permissions.push(rule);
+                        }
+                    })
+                    .catch((e)=>this.errorMessage = e.text);
             },
             computed: {
                 object: function(){return this.channel;},
@@ -817,6 +839,20 @@ class LichatUI{
                             .catch((e)=>this.errorMessage = e.text);
                     };
                     reader.readAsDataURL(file);
+                },
+                addUser: function(ev, rule){
+                    if(ev.target.value !== '')
+                        cl.pushnew(ev.target.value, rule.users);
+                    ev.target.value='';
+                },
+                savePermissions: function(){
+                    let expr = [];
+                    for(let rule of this.permissions){
+                        expr.push([LichatReader.fromString(rule.update),
+                                   [cl.intern(rule.type, "lichat"), ...rule.users]]);
+                    }
+                    this.channel.s("permissions", {permissions: expr})
+                        .catch((e)=>this.errorMessage = e.text);
                 },
                 toggleSlowMode: function(){
                     this.channel.s("pause", {by: Integer.parseInt(this.$refs.pause.value)})
