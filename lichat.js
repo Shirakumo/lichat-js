@@ -209,6 +209,10 @@ var CL = function(){
         return universal-self.universalUnixOffset;
     };
 
+    self.unixToUniversal = (unix)=>{
+        return unix+self.universalUnixOffset;
+    };
+
     self.push = (el, arr)=>{
         arr.unshift(el);
         return arr;
@@ -803,13 +807,13 @@ class LichatMessage{
         options = options || {};
         this.id = update.id;
         this.from = update.from;
-        this.author = channel.getUser(update.bridge || update.from);
+        this.author = channel.client.getUser(update.bridge || update.from);
         this.channel = channel;
         this.reactions = [];
         this.text = update.text || "";
         this.html = (options.html)? this.text: this.markupText(this.text);
         this.isSystem = options.system;
-        this.gid = this.channel.name+"/"+update.id+"@"+this.author.name.toLowerCase();
+        this.gid = options.gid || LichatMessage.makeGid(channel, update.from, update.id);
         this.url = document.location.href.match(/(^[^#]*)/)[0]+"#"+this.gid;
         this.timestamp = cl.universalToUnix(update.clock);
         this.clock = new Date(this.timestamp*1000);
@@ -879,6 +883,10 @@ class LichatMessage{
 
     markupText(text){
         return text;
+    }
+
+    static makeGid(channel, author, id){
+        return channel.client.servername+"  "+channel.name+"  "+author.toLowerCase()+"  "+id;
     }
 }
 
@@ -1102,8 +1110,9 @@ class LichatChannel{
         return this._client.s(type, args, noPromise);
     }
 
-    record(ev){
-        let message = new LichatMessage(ev, this);
+    record(message){
+        if(!(message instanceof LichatMessage))
+            message = new LichatMessage(message, this);
         let existing = this.messages[message.gid];
         this.messages[message.gid] = message;
         if(existing){
@@ -1138,7 +1147,7 @@ class LichatChannel{
     }
 
     getMessage(from, id){
-        let gid = this.name+"/"+id+"@"+from.toLowerCase();
+        let gid = LichatMessage.makeGid(this, from, id);
         return this.messages[gid];
     }
 
@@ -1607,7 +1616,7 @@ class LichatClient{
     }
 
     isPermitted(update){
-        if(!this.isConnected) return false;
+        if(!this.primaryChannel) return false;
         return this.primaryChannel.isPermitted(update);
     }
 }
@@ -1643,7 +1652,7 @@ class LichatUI{
             pretext: null
         };
         
-        let DBOpenRequest = window.indexedDB.open("lichatjs", 4);
+        let DBOpenRequest = window.indexedDB.open("lichatjs", 5);
         DBOpenRequest.onerror = e=>{
             console.error(e);
             this.initialSetup();
@@ -1668,8 +1677,12 @@ class LichatUI{
             };
         };
 
-        supersede(LichatChannel, 'record', function(nextMethod, update){
+        supersede(LichatChannel, 'record', function(nextMethod, update, ignore){
             const [message, inserted] = nextMethod(update);
+            if(ignore) return [message, inserted];
+
+            lichat.saveMessage(this.client, message);
+
             let notify = inserted && !this.isPrimary;
             if(lichat.currentChannel == message.channel){
                 let output = lichat.app.$refs.output;
@@ -1684,6 +1697,7 @@ class LichatUI{
                 }
             }
             if(notify) this.notify(message);
+            return [message, inserted];
         });
 
         LichatChannel.prototype.notify = function(message){
@@ -1812,6 +1826,11 @@ class LichatUI{
         };
 
         let inputPopup = {
+            data: function(){
+                return {
+                    errorMessage: ""
+                };
+            },
             mounted: function(){
                 Vue.nextTick(() => {
                     if(this.$refs.input){
@@ -1898,6 +1917,14 @@ class LichatUI{
                     showChannelList: false,
                     showUserList: false
                 };
+            },
+            methods: {
+                invite: function(user){
+                    if(user)
+                        this.channel.s("pull", {target: user});
+                    this.showInvite = false;
+                    this.$emit('close');
+                }
             }
         });
 
@@ -1955,7 +1982,6 @@ class LichatUI{
             props: {client: Object},
             data: ()=>{
                 return {
-                    errorMessage: null,
                     options: this.defaultClient,
                     tab: 'settings',
                     aliases: "",
@@ -2079,7 +2105,6 @@ class LichatUI{
                 fonts.unshift('sans-serif');
                 
                 return {
-                    errorMessage: null,
                     havePermission: Notification.permission === 'granted',
                     fonts: fonts
                 };
@@ -2103,6 +2128,20 @@ class LichatUI{
             }
         });
 
+        Vue.component("select-user", {
+            template: "#select-user",
+            mixins: [inputPopup],
+            props: {client: LichatClient},
+            data: function(){
+                return {
+                    users: [],
+                };
+            },
+            created: function(){
+                this.users = Object.keys(this.client.users);
+            }
+        });
+
         Vue.component("create-channel", {
             template: "#create-channel",
             mixins: [inputPopup],
@@ -2110,8 +2149,7 @@ class LichatUI{
             data: function(){
                 return {
                     name: "",
-                    anonymous: false,
-                    errorMessage: null
+                    anonymous: false
                 };
             },
             created: function(){
@@ -2137,8 +2175,7 @@ class LichatUI{
             data: ()=>{
                 return {
                     userList: [],
-                    userMenu: null,
-                    errorMessage: null
+                    userMenu: null
                 };
             },
             created: function(){
@@ -2761,11 +2798,15 @@ class LichatUI{
 
     setupDatabase(){
         let ensureStore = (name, options)=>{
-            if(!this.db.objectStoreNames.contains(name))
-                this.db.createObjectStore(name, options);
+            if(!this.db.objectStoreNames.contains(name)){
+                return this.db.createObjectStore(name, options);
+            }else{
+                return {createIndex: ()=>{}};
+            }
         };
         ensureStore("clients", {keyPath: "name"});
         ensureStore("options", {keyPath: "name"});
+        ensureStore("messages", {keyPath: "gid"}).createIndex("server", "server");
     }
 
     loadSetup(){
@@ -2775,6 +2816,7 @@ class LichatUI{
             for(let options of ev.target.result){
                 let client = new LichatClient(options);
                 this.addClient(client)
+                    .then(()=>this.loadMessages(client))
                     .catch((ev)=>client.getEmergencyChannel().showStatus("Connection failed "+(ev.reason || "")));
             }
         };
@@ -2782,6 +2824,43 @@ class LichatUI{
             if(ev.target.result)
                 this.options = ev.target.result;
         };
+    }
+
+    saveMessage(client, message){
+        if(message.isSystem) return;
+        if(message.channel.isPrimary) return;
+        let tx = this.db.transaction(["messages"], "readwrite");
+        tx.onerror = (ev)=>console.error(ev);
+        tx.objectStore("messages")
+            .put({
+                gid: message.gid,
+                id: message.id,
+                from: message.from,
+                bridge: message.author.name,
+                channel: message.channel.name,
+                text: message.text,
+                clock: cl.unixToUniversal(message.timestamp),
+                type: message.type,
+                link: message.contentType,
+                server: client.servername
+            });
+    }
+
+    loadMessages(client){
+        console.log("Loading messages for", client);
+        let tx = this.db.transaction(["messages"]);
+        tx.onerror = (ev)=>console.error(ev);
+        tx.objectStore("messages")
+            .index("server")
+            .openCursor(IDBKeyRange.only(client.servername))
+            .onsuccess = (ev)=>{
+                let cursor = event.target.result;
+                if(!cursor) return;
+                let data = cursor.value;
+                let channel = client.getChannel(data.channel);
+                channel.record(data, true);
+                cursor.continue();
+            };
     }
 
     saveSetup(){

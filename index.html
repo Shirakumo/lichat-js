@@ -82,8 +82,12 @@
     </script>
     <script type="text/x-template" id="channel-menu">
       <nav class="submenu" v-on:click.stop="">
+        <select-user
+            v-bind:client="channel.client"
+            v-if="showInvite"
+            v-on:close="invite">Invite</select-user>
         <a class="invite"
-           v-on:click.stop="showInvite = true">
+             v-on:click.stop="showInvite = true">
           <i class="fas fa-fw fa-user-plus"></i> Invite
         </a>
         <create-channel
@@ -338,6 +342,28 @@
         </div>
       </transition>
     </script>
+    <script type="text/x-template" id="select-user">
+      <transition name="modal">
+        <div class="popup-container" v-on:click.self.stop="$emit('close')">
+          <div class="popup">
+            <header>
+              <h2><slot>Select User</slot></h2>
+              <div class="error-message" v-if="errorMessage">{{errorMessage}}</div>
+            </header>
+            <section>
+              <div class="row">
+                <label for="name">Username</label>
+                <input type="text" id="user" list="users" ref="input">
+                <datalist id="users">
+                  <option v-for="user in users" v-bind:value="user"></option>
+                </datalist>
+              </div>
+              <input type="button" value="Select" v-on:click="$emit('close', $refs.input.value)">
+            </section>
+          </div>
+        </div>
+      </transition>
+    </script>
     <script type="text/x-template" id="create-channel">
       <transition name="modal">
         <div class="popup-container" v-on:click.self.stop="$emit('close')">
@@ -359,11 +385,10 @@
                        v-model="anonymous">
               </div>
               <input type="button" value="Create" v-on:click="create">
-              <input type="button" value="Cancel" v-on:click="$emit('close')">
             </section>
           </div>
         </div>
-      </transition>  
+      </transition>
     </script>
     <script type="text/x-template" id="list-users">
       <transition name="modal">

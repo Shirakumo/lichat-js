@@ -209,6 +209,10 @@ var CL = function(){
         return universal-self.universalUnixOffset;
     };
 
+    self.unixToUniversal = (unix)=>{
+        return unix+self.universalUnixOffset;
+    };
+
     self.push = (el, arr)=>{
         arr.unshift(el);
         return arr;

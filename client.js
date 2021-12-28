@@ -28,13 +28,13 @@ class LichatMessage{
         options = options || {};
         this.id = update.id;
         this.from = update.from;
-        this.author = channel.getUser(update.bridge || update.from);
+        this.author = channel.client.getUser(update.bridge || update.from);
         this.channel = channel;
         this.reactions = [];
         this.text = update.text || "";
         this.html = (options.html)? this.text: this.markupText(this.text);
         this.isSystem = options.system;
-        this.gid = this.channel.name+"/"+update.id+"@"+this.author.name.toLowerCase();
+        this.gid = options.gid || LichatMessage.makeGid(channel, update.from, update.id);
         this.url = document.location.href.match(/(^[^#]*)/)[0]+"#"+this.gid;
         this.timestamp = cl.universalToUnix(update.clock);
         this.clock = new Date(this.timestamp*1000);
@@ -104,6 +104,10 @@ class LichatMessage{
 
     markupText(text){
         return text;
+    }
+
+    static makeGid(channel, author, id){
+        return channel.client.servername+"  "+channel.name+"  "+author.toLowerCase()+"  "+id;
     }
 }
 
@@ -327,8 +331,9 @@ class LichatChannel{
         return this._client.s(type, args, noPromise);
     }
 
-    record(ev){
-        let message = new LichatMessage(ev, this);
+    record(message){
+        if(!(message instanceof LichatMessage))
+            message = new LichatMessage(message, this);
         let existing = this.messages[message.gid];
         this.messages[message.gid] = message;
         if(existing){
@@ -363,7 +368,7 @@ class LichatChannel{
     }
 
     getMessage(from, id){
-        let gid = this.name+"/"+id+"@"+from.toLowerCase();
+        let gid = LichatMessage.makeGid(this, from, id);
         return this.messages[gid];
     }
 
@@ -832,7 +837,7 @@ class LichatClient{
     }
 
     isPermitted(update){
-        if(!this.isConnected) return false;
+        if(!this.primaryChannel) return false;
         return this.primaryChannel.isPermitted(update);
     }
 }
