@@ -1,5 +1,14 @@
 var LichatDefaultPort = 1113;
 var LichatDefaultSSLPort = 1114;
+var LichatDefaultClient = {
+    name: "TyNET",
+    username: "",
+    password: "",
+    aliases: [],
+    hostname: "chat.tymoon.eu",
+    port: LichatDefaultSSLPort,
+    ssl: true
+};
 var EmptyIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=";
 
 class LichatReaction{

@@ -781,6 +781,15 @@ LichatReader.fromString = (string)=>{
 };
 var LichatDefaultPort = 1113;
 var LichatDefaultSSLPort = 1114;
+var LichatDefaultClient = {
+    name: "TyNET",
+    username: "",
+    password: "",
+    aliases: [],
+    hostname: "chat.tymoon.eu",
+    port: LichatDefaultSSLPort,
+    ssl: true
+};
 var EmptyIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=";
 
 class LichatReaction{
@@ -1635,8 +1644,10 @@ class LichatUI{
         this.showSettings = false;
         this.errorMessage = null;
         this.embedded = config.embedded;
+        this.showSideBar = !config.embedded;
         this.db = null;
         this.lastTypingUpdate = 0;
+        this.defaultClientConfig = {...LichatDefaultClient};
 
         this.options = {
             transmitTyping: !this.embedded,
@@ -1654,6 +1665,12 @@ class LichatUI{
             pretext: null
         };
 
+        if(config.connection){
+            Object.assign(this.defaultClientConfig, config.connection);
+            if(!config.connection.ssl)
+                this.defaultClientConfig.ssl = (config.connection.port == LichatDefaultSSLPort);
+        }
+
         if(!this.embedded){
             let DBOpenRequest = window.indexedDB.open("lichatjs", 5);
             DBOpenRequest.onerror = e=>{
@@ -1670,14 +1687,8 @@ class LichatUI{
                 this.db = e.target.result;
                 this.setupDatabase();
             };
-        }else if(config.connection){
-            this.initialSetup(config.connection)
-                .then((client)=>{
-                    if(config.channel)
-                        client.s("join", {channel: config.channel})
-                        .then((e)=>this.app.switchChannel(client.getChannel(e.channel)));
-                });
         }else{
+            this.defaultClientConfig.embedded = true;
             this.showClientMenu = true;
         }
 
@@ -1871,9 +1882,10 @@ class LichatUI{
             },
             mounted: function(){
                 Vue.nextTick(() => {
-                    if(this.$refs.input){
-                        this.$refs.input.value = "";
-                        this.$refs.input.focus();
+                    let input = this.$el.querySelector("input");
+                    if(input){
+                        input.value = "";
+                        input.focus();
                     }
                 });
             }
@@ -2051,24 +2063,52 @@ class LichatUI{
                                 .catch((ev)=>this.errorMessage = ev.text);
                     }
                 }
+                if(this.options.autoconnect){
+                    this.create();
+                }
             },
             methods: {
                 remove: function(){
                     lichat.removeClient(this.client);
                     this.close();
                 },
+                submit: function(){
+                    if(this.client instanceof LichatClient)
+                        this.save();
+                    else
+                        this.create();
+                },
                 create: function(){
                     let client = new LichatClient(this.options);
                     lichat.addClient(client)
                         .then(()=>{
+                            if(this.options.channel){
+                                client.s("join", {channel: this.options.channel})
+                                    .then((e)=>lichat.app.switchChannel(client.getChannel(e.channel)));
+                            }
                             lichat.saveSetup();
                             this.$emit('close');
                         })
                         .catch((e)=>{
-                            console.log(e);
                             lichat.removeClient(client);
                             this.errorMessage = e.reason || e.text || "Failed to connect";
+                            let focus = (el)=>{
+                                Vue.nextTick(()=>{
+                                    el.classList.add("flash");
+                                    el.focus();
+                                });
+                            };
+                            if(cl.typep(e.update, 'invalid-password') || cl.typep(e, 'no-such-profile'))
+                                focus(this.$refs.password);
+                            if(cl.typep(e.update, 'username-taken'))
+                                focus(this.$refs.username);
+                            if(cl.typep(e.update, 'bad-name'))
+                                focus(this.$refs.username);
                         });
+                },
+                close: function(){
+                    if(!this.options.embedded)
+                        this.$emit('close');
                 },
                 save: function(){
                     this.client.name = this.options.name;
@@ -2748,15 +2788,7 @@ class LichatUI{
 
     get defaultClient(){
         if(this.clients.length == 0){
-            return {
-                name: "TyNET",
-                username: "",
-                password: "",
-                aliases: [],
-                hostname: "chat.tymoon.eu",
-                port: LichatDefaultSSLPort,
-                ssl: true
-            };
+            return {...this.defaultClientConfig};
         }else{
             let template = this.clients[0];
             return {
