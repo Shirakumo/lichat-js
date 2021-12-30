@@ -2843,10 +2843,7 @@ class LichatUI{
             if(client.getUser(ev.from.toLowerCase()).isSelf){
                 client.addToChannelList(channel);
 
-                if(channel.isPrimary){
-                    this.loadUsers(client);
-                    this.loadChannels(client);
-                }else{
+                if(!channel.isPrimary){
                     let promise = this.loadMessages(channel);
                     if(client.isAvailable("shirakumo-backfill") && !this.embedded){
                         promise.then(()=>{
@@ -2942,10 +2939,10 @@ class LichatUI{
         ensureStore("users", {keyPath: "gid"}).createIndex("server", "server");
     }
     
-    _mapIndexed(tx, store, index, fn){
-        if(!tx && !this.db) return Promise.resolve(null);
-        if(!tx) tx = this.db.transaction([store]);
+    _mapIndexed(store, index, fn){
+        if(!this.db) return Promise.resolve(null);
         return new Promise((ok, fail)=>{
+            let tx = this.db.transaction([store]);
             tx.onerror = (ev)=>{console.error(ev); fail(ev);};
             tx.objectStore(store)
                 .index("server")
@@ -2983,8 +2980,8 @@ class LichatUI{
         return tx;
     }
 
-    loadMessages(channel, tx){
-        return this._mapIndexed(tx, "messages", channel.gid, (data)=>{
+    loadMessages(channel){
+        return this._mapIndexed("messages", channel.gid, (data)=>{
             channel.record(data, true);
         });
     }
@@ -3004,8 +3001,8 @@ class LichatUI{
         return tx;
     }
 
-    loadUsers(client, tx){
-        return this._mapIndexed(tx, "users", client.servername, (data)=>{
+    loadUsers(client){
+        return this._mapIndexed("users", client.servername, (data)=>{
             let user = client.getUser(data.name);
             user.nickname = data.nickname;
             Object.assign(user.info, data.info);
@@ -3027,8 +3024,8 @@ class LichatUI{
         return tx;
     }
 
-    loadChannels(client, tx){
-        return this._mapIndexed(tx, "channels", client.servername, (data)=>{
+    loadChannels(client){
+        return this._mapIndexed("channels", client.servername, (data)=>{
             let channel = client.getChannel(data.name);
             Object.assign(channel.emotes, data.emotes);
             Object.assign(channel.info, data.info);
@@ -3045,13 +3042,14 @@ class LichatUI{
                 username: client.username,
                 password: client.password,
                 hostname: client.hostname,
+                server: client.servername,
                 port: client.port,
                 ssl: client.ssl,
                 aliases: client.aliases,
                 channels: client.channelList.map(channel => {
                     return {
                         name: channel.name,
-                        joined: channel.wasJoined,
+                        wasJoined: channel.wasJoined,
                         notificationLevel: channel.notificationLevel
                     };
                 })
@@ -3061,16 +3059,15 @@ class LichatUI{
 
     loadClients(tx){
         if(!tx && !this.db) return null;
-        if(!tx) tx = this.db.transaction(["clients", "users", "channels"]);
+        if(!tx) tx = this.db.transaction(["clients"]);
         tx.onerror = (ev)=>console.error(ev);
         tx.objectStore("clients").getAll().onsuccess = (ev)=>{
             for(let options of ev.target.result){
                 let client = new LichatClient(options);
-                this.addClient(client)
-                    .then((client)=>{
-                        this.loadUsers(client, tx);
-                        this.loadChannels(client, tx);
-                    })
+                client.servername = options.server;
+                this.loadUsers(client)
+                    .then(()=>this.loadChannels(client))
+                    .then(()=>this.addClient(client))
                     .catch((ev)=>client.getEmergencyChannel().showStatus("Connection failed "+(ev.reason || "")));
             }
         };
@@ -3128,6 +3125,16 @@ class LichatUI{
         for(let store of stores)
             tx.objectStore(store).clear();
         return tx;
+    }
+
+    readSetup(stores){
+        stores = stores || ["options", "clients", "channels", "users"];
+        let tx = this.db.transaction(stores, "readwrite");
+        for(let store of stores){
+            tx.objectStore(store).getAll().onsuccess = (ev)=>{
+                console.log(store, ev.target.result);
+            };
+        }
     }
 
     autoCompleteInput(text){
