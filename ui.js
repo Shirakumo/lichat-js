@@ -41,7 +41,7 @@ class LichatUI{
         }
 
         if(!this.embedded){
-            let DBOpenRequest = window.indexedDB.open("lichatjs", 5);
+            let DBOpenRequest = window.indexedDB.open("lichatjs", 7);
             DBOpenRequest.onerror = e=>{
                 console.error(e);
                 this.initialSetup();
@@ -88,7 +88,8 @@ class LichatUI{
             const [message, inserted] = nextMethod(update);
             if(ignore) return [message, inserted];
 
-            lichat.saveMessage(this.client, message);
+            if(!message.isSystem && !message.channel.isPrimary)
+                lichat.saveMessage(message);
 
             let notify = inserted && !this.isPrimary;
             if(lichat.currentChannel == message.channel){
@@ -166,7 +167,7 @@ class LichatUI{
                         break;
                 }
                 this.channelList.splice(i, 0, channel);
-                lichat.saveSetup();
+                lichat.saveClient(this);
             }
         };
 
@@ -174,7 +175,7 @@ class LichatUI{
             let index = this.channelList.indexOf(channel);
             if(0 <= index){
                 this.channelList.splice(index, 1);
-                lichat.saveSetup();
+                lichat.saveClient(this);
             }
             if(channel == lichat.currentChannel){
                 if(this.channelList.length <= index)
@@ -455,7 +456,7 @@ class LichatUI{
                                 client.s("join", {channel: this.options.channel})
                                     .then((e)=>lichat.app.switchChannel(client.getChannel(e.channel)));
                             }
-                            lichat.saveSetup();
+                            lichat.saveClient(client);
                             this.$emit('close');
                         })
                         .catch((e)=>{
@@ -487,7 +488,7 @@ class LichatUI{
                     this.client.hostname = this.options.hostname;
                     this.client.port = this.options.port;
                     this.client.ssl = this.options.ssl;
-                    lichat.saveSetup();
+                    lichat.saveClient(this.client);
                     this.$emit('close');
                 },
                 deleteBan: function(ev){
@@ -577,7 +578,7 @@ class LichatUI{
                             }});
                 },
                 close: function(){
-                    lichat.saveSetup();
+                    lichat.saveOptions();
                     this.$emit('close');
                 }
             }
@@ -1194,7 +1195,7 @@ class LichatUI{
         };
 
         client.disconnectHandler = (ev)=>{
-            this.currentChannel.showStatus("Disconnected: "+(ev.reason || ev.text || "connection lost"));
+            client.getEmergencyChannel().showStatus("Disconnected: "+(ev.reason || ev.text || "connection lost"));
         };
 
         client.addHandler("connect", (ev)=>{
@@ -1211,6 +1212,9 @@ class LichatUI{
                 client.addToChannelList(channel);
 
                 if(channel.isPrimary){
+                    this.loadUsers(client);
+                    this.loadChannels(client);
+                    // FIXME: do this for each channel...
                     this.loadMessages(client);
                 }else if(client.isAvailable("shirakumo-backfill") && !this.embedded){
                     let since = null;
@@ -1299,29 +1303,30 @@ class LichatUI{
         ensureStore("clients", {keyPath: "name"});
         ensureStore("options", {keyPath: "name"});
         ensureStore("messages", {keyPath: "gid"}).createIndex("server", "server");
+        ensureStore("channels", {keyPath: "gid"}).createIndex("server", "server");
+        ensureStore("users", {keyPath: "gid"}).createIndex("server", "server");
     }
-
-    loadSetup(){
-        let tx = this.db.transaction(["clients","options"]);
+    
+    _mapIndexed(tx, store, index, fn){
+        if(!tx && !this.db) return null;
+        if(!tx) tx = this.db.transaction([store]);
         tx.onerror = (ev)=>console.error(ev);
-        tx.objectStore("clients").getAll().onsuccess = (ev)=>{
-            for(let options of ev.target.result){
-                let client = new LichatClient(options);
-                this.addClient(client)
-                    .catch((ev)=>client.getEmergencyChannel().showStatus("Connection failed "+(ev.reason || "")));
-            }
-        };
-        tx.objectStore("options").get("general").onsuccess = (ev)=>{
-            if(ev.target.result)
-                this.options = ev.target.result;
-        };
+        tx.objectStore(store)
+            .index("server")
+            .openCursor(IDBKeyRange.only(index))
+            .onsuccess = (ev)=>{
+                let cursor = event.target.result;
+                if(!cursor) return;
+                let data = cursor.value;
+                fn(data);
+                cursor.continue();
+            };
+        return tx;
     }
 
-    saveMessage(client, message){
-        if(!this.db) return;
-        if(message.isSystem) return;
-        if(message.channel.isPrimary) return;
-        let tx = this.db.transaction(["messages"], "readwrite");
+    saveMessage(message, tx){
+        if(!tx && !this.db) return null;
+        if(!tx) tx = this.db.transaction(["messages"], "readwrite");
         tx.onerror = (ev)=>console.error(ev);
         tx.objectStore("messages")
             .put({
@@ -1334,37 +1339,70 @@ class LichatUI{
                 clock: cl.unixToUniversal(message.timestamp),
                 type: message.type,
                 link: message.contentType,
-                server: client.servername
+                server: message.channel.client.servername
             });
+        return tx;
     }
 
-    loadMessages(client){
-        if(!this.db) return;
-        console.log("Loading messages for", client);
-        let tx = this.db.transaction(["messages"]);
-        tx.onerror = (ev)=>console.error(ev);
-        tx.objectStore("messages")
-            .index("server")
-            .openCursor(IDBKeyRange.only(client.servername))
-            .onsuccess = (ev)=>{
-                let cursor = event.target.result;
-                if(!cursor) return;
-                let data = cursor.value;
+    loadMessages(client, tx){
+        return this._mapIndexed(tx, "messages", client.servername, (data)=>{
                 let channel = client.getChannel(data.channel);
                 channel.record(data, true);
-                cursor.continue();
-            };
+        });
     }
 
-    saveSetup(){
-        if(!this.db) return;
-        console.log("Saving...");
-        let tx = this.db.transaction(["clients","options"], "readwrite");
+    saveUser(user, tx){
+        if(!tx && !this.db) return null;
+        if(!tx) this.db.transaction(["users"], "readwrite");
         tx.onerror = (ev)=>console.error(ev);
-        let store = tx.objectStore("clients");
-        store.clear();
-        for(let client of this.clients){
-            store.put({
+        tx.objectStore("users")
+            .put({
+                gid: user.gid,
+                name: user.name,
+                info: {...user.info},
+                nickname: user.nickname,
+                server: user.client.servername
+            });
+        return tx;
+    }
+
+    loadUsers(client, tx){
+        return this._mapIndexed(tx, "users", client.servername, (data)=>{
+            let user = client.getUser(data.name);
+            user.nickname = data.nickname;
+            Object.assign(user.info, data.info);
+        });
+    }
+
+    saveChannel(channel, tx){
+        if(!tx && !this.db) return null;
+        if(!tx) tx = this.db.transaction(["channels"], "readwrite");
+        tx.onerror = (ev)=>console.error(ev);
+        tx.objectStore("channels")
+            .put({
+                gid: channel.gid,
+                name: channel.name,
+                info: {...channel.info},
+                emotes: {...channel.emotes},
+                server: channel.client.servername
+            });
+        return tx;
+    }
+
+    loadChannels(client, tx){
+        return this._mapIndexed(tx, "channels", client.servername, (data)=>{
+            let channel = client.getChannel(data.name);
+            Object.assign(channel.emotes, data.emotes);
+            Object.assign(channel.info, data.info);
+        });
+    }
+
+    saveClient(client, tx){
+        if(!tx && !this.db) return null;
+        if(!tx) tx = this.db.transaction(["clients"], "readwrite");
+        tx.onerror = (ev)=>console.error(ev);
+        tx.objectStore("clients")
+            .put({
                 name: client.name,
                 username: client.username,
                 password: client.password,
@@ -1372,22 +1410,86 @@ class LichatUI{
                 port: client.port,
                 ssl: client.ssl,
                 aliases: client.aliases,
-                channels: client.channelList.map(c => c.encode())
+                channels: client.channelList.map(channel => {
+                    return {
+                        name: channel.name,
+                        joined: channel.wasJoined,
+                        notificationLevel: channel.notificationLevel
+                    };
+                })
             });
-        }
+        return tx;
+    }
+
+    loadClients(tx){
+        if(!tx && !this.db) return null;
+        if(!tx) tx = this.db.transaction(["clients", "users", "channels"]);
+        tx.onerror = (ev)=>console.error(ev);
+        tx.objectStore("clients").getAll().onsuccess = (ev)=>{
+            for(let options of ev.target.result){
+                let client = new LichatClient(options);
+                this.addClient(client)
+                    .then((client)=>{
+                        this.loadUsers(client, tx);
+                        this.loadChannels(client, tx);
+                    })
+                    .catch((ev)=>client.getEmergencyChannel().showStatus("Connection failed "+(ev.reason || "")));
+            }
+        };
+        return tx;
+    }
+
+    saveOptions(tx){
+        if(!tx && !this.db) return null;
+        if(!tx) tx = this.db.transaction(["options"], "readwrite");
         tx.objectStore("options").put({
             name: "general",
             ...this.options
         });
-        tx.commit();
+        return tx;
+    }
+
+    loadOptions(tx){
+        if(!tx && !this.db) return null;
+        if(!tx) tx = this.db.transaction(["options"]);
+        tx.onerror = (ev)=>console.error(ev);
+        tx.objectStore("options").get("general").onsuccess = (ev)=>{
+            if(ev.target.result)
+                this.options = ev.target.result;
+        };
+        return tx;
+    }
+
+    saveSetup(){
+        if(!this.db) return;
+        this.clearSetup().oncomplete = ()=>{
+            let tx = this.db.transaction(["options", "clients", "channels", "users"], "readwrite");
+            this.saveOptions(tx);
+            for(let client of this.clients){
+                this.saveClient(client, tx);
+                for(let name in client.users)
+                    this.saveUser(client.users[name], tx);
+                for(let name in client.channels)
+                    this.saveChannel(client.channels[name], tx);
+            }
+        };
+    }
+
+    loadSetup(){
+        if(!this.db) return;
+        let tx = this.db.transaction(["options", "clients", "channels", "users"]);
+        this.loadOptions(tx);
+        this.loadClients(tx);
     }
 
     clearSetup(){
-        if(!this.db) return;
-        let tx = this.db.transaction("clients", "readwrite");
-        let store = tx.objectStore("clients");
-        store.clear();
+        if(!this.db) return null;
+        let stores = ["options", "clients", "channels", "users", "messages"];
+        let tx = this.db.transaction(stores, "readwrite");
         tx.onerror = (ev)=>console.error(ev);
+        for(let store of stores)
+            tx.objectStore(store).clear();
+        return tx;
     }
 
     autoCompleteInput(text){
@@ -1480,7 +1582,7 @@ class LichatUI{
     }
 
     static markSelf(text, channel){
-        let names = [...channel.client.aliases];
+        let names = channel.client.aliases.filter((alias)=>alias !== '');
         if(channel.client.username)
             names.push(channel.client.username);
         let stream = new LichatStream();

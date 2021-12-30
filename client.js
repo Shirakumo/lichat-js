@@ -121,18 +121,26 @@ class LichatMessage{
 }
 
 class LichatUser{
-    constructor(name, client){
-        this._name = name;
+    constructor(data, client){
+        if(typeof data === 'string')
+            data = {name: data};
+        
+        this._name = data.name;
         this._client = client;
-        this.info = {};
-        this.info[":birthday"] = "";
-        this.info[":contact"] = "";
-        this.info[":location"] = "";
-        this.info[":public-key"] = "";
-        this.info[":real-name"] = "";
-        this.info[":status"] = "";
-        if(client.isAvailable('shirakumo-icon'))
-            this.info[":icon"] = "";
+        this.nickname = data.nickname || data.name;
+        this.info = data.info || {
+            ":birthday": "",
+            ":contact": "",
+            ":location": "",
+            ":public-key": "",
+            ":real-name": "",
+            ":status": "",
+            ":icon": ""
+        };
+    }
+
+    get gid(){
+        return this._client.servername+"  "+this._name;
     }
 
     get name(){
@@ -172,11 +180,6 @@ class LichatUser{
         return false;
     }
 
-    get isAway(){
-        // FIXME: implement
-        return false;
-    }
-
     get color(){
         var hash = cl.sxhash(this._name);
         var encoded = hash % 0xFFF;
@@ -207,35 +210,42 @@ class LichatUser{
 }
 
 class LichatChannel{
-    constructor(name, client){
-        this._name = name;
+    constructor(data, client){
+        if(typeof data === 'string')
+            data = {name: data};
+        
+        this._name = data.name;
         this._client = client;
-        this.wasJoined = false;
+        this.wasJoined = data.wasJoined || false;
         this.users = {};
-        this.emotes = {};
-        this.info = {};
+        this.emotes = data.emotes || {};
+        this.info = data.info || {
+            ":news": "",
+            ":topic": "",
+            ":rules": "",
+            ":contact": "",
+            ":icon": ""
+        };
         this.messages = {};
+        this.messageList = [];
         this._capabilities = null;
         // KLUDGE: need this to stop Vue from being Weird As Fuck.
         Object.defineProperty(this.emotes, 'nested', { configurable: false });
         Object.defineProperty(this.messages, 'nested', { configurable: false });
-        this.messageList = [];
+        // KLUDGE: spillage from ui
         this.currentMessage = {text: "", replyTo: null};
         this.currentMessage.clear = ()=>{
             this.currentMessage.text = "";
             this.currentMessage.replyTo = null;
         };
-        this.info[":news"] = "";
-        this.info[":topic"] = "";
-        this.info[":rules"] = "";
-        this.info[":contact"] = "";;
-        if(client.isAvailable('shirakumo-icon'))
-            this.info[":icon"] = "";
-        // KLUDGE: spillage from ui
         this.unread = 0;
         this.alerted = false;
-        this.lastRead = null;
-        this.notificationLevel = this.isPrimary? 'none' : 'inherit';
+        this.lastRead = data.lastRead || null;
+        this.notificationLevel = data.notificationLevel || this.isPrimary? 'none' : 'inherit';
+    }
+    
+    get gid(){
+        return this._client.servername+"  "+this._name;
     }
 
     get name(){
@@ -406,21 +416,6 @@ class LichatChannel{
             update = cl.intern(update, "lichat");
         return this.capabilities.includes(update);
     }
-
-    encode(){
-        return {
-            name: this.name,
-            emotes: {...this.emotes},
-            joined: this.wasJoined,
-            notificationLevel: this.notificationLevel,
-        };
-    }
-
-    decode(data){
-        this.emotes = data.emotes;
-        this.wasJoined = data.joined;
-        this.notificationLevel = data.notificationLevel;
-    }
 }
 
 class LichatClient{
@@ -454,7 +449,13 @@ class LichatClient{
         this._reconnectAttempts = 0;
 
         for(let data of options.channels || []){
-            this.getChannel(data.name).decode(data);
+            let channel = new LichatChannel(data, this);
+            this.channels[channel.name.toLowerCase()] = channel;
+        }
+        
+        for(let data of options.users || []){
+            let user = new LichatUser(data, this);
+            this.users[user.name.toLowerCase()] = user;
         }
 
         this.addInternalHandler("connect", (ev)=>{
