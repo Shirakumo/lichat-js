@@ -2846,13 +2846,16 @@ class LichatUI{
                 if(channel.isPrimary){
                     this.loadUsers(client);
                     this.loadChannels(client);
-                    // FIXME: do this for each channel...
-                    this.loadMessages(client);
-                }else if(client.isAvailable("shirakumo-backfill") && !this.embedded){
-                    let since = null;
-                    if(0 < channel.messageList.length)
-                        since = cl.unixToUniversal(channel.messageList[channel.messageList.length-1].timestamp);
-                    channel.s("BACKFILL", {since: since}, true);
+                }else{
+                    let promise = this.loadMessages(channel);
+                    if(client.isAvailable("shirakumo-backfill") && !this.embedded){
+                        promise.then(()=>{
+                            let since = null;
+                            if(0 < channel.messageList.length)
+                                since = cl.unixToUniversal(channel.messageList[channel.messageList.length-1].timestamp);
+                            channel.s("BACKFILL", {since: since}, true);
+                        });
+                    }
                 }
             }
             if(!this.currentChannel){
@@ -2940,20 +2943,24 @@ class LichatUI{
     }
     
     _mapIndexed(tx, store, index, fn){
-        if(!tx && !this.db) return null;
+        if(!tx && !this.db) return Promise.resolve(null);
         if(!tx) tx = this.db.transaction([store]);
-        tx.onerror = (ev)=>console.error(ev);
-        tx.objectStore(store)
-            .index("server")
-            .openCursor(IDBKeyRange.only(index))
-            .onsuccess = (ev)=>{
-                let cursor = event.target.result;
-                if(!cursor) return;
-                let data = cursor.value;
-                fn(data);
-                cursor.continue();
-            };
-        return tx;
+        return new Promise((ok, fail)=>{
+            tx.onerror = (ev)=>{console.error(ev); fail(ev);};
+            tx.objectStore(store)
+                .index("server")
+                .openCursor(IDBKeyRange.only(index))
+                .onsuccess = (ev)=>{
+                    let cursor = event.target.result;
+                    if(!cursor){
+                        ok();
+                        return;
+                    }
+                    let data = cursor.value;
+                    fn(data);
+                    cursor.continue();
+                };
+        });
     }
 
     saveMessage(message, tx){
@@ -2971,15 +2978,14 @@ class LichatUI{
                 clock: cl.unixToUniversal(message.timestamp),
                 type: message.type,
                 link: message.contentType,
-                server: message.channel.client.servername
+                server: message.channel.gid
             });
         return tx;
     }
 
-    loadMessages(client, tx){
-        return this._mapIndexed(tx, "messages", client.servername, (data)=>{
-                let channel = client.getChannel(data.channel);
-                channel.record(data, true);
+    loadMessages(channel, tx){
+        return this._mapIndexed(tx, "messages", channel.gid, (data)=>{
+            channel.record(data, true);
         });
     }
 
