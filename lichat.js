@@ -2865,6 +2865,14 @@ class LichatUI{
             client.getChannel(ev.channel).record(ev);
         });
 
+        client.addHandler("user-info", (ev)=>{
+            this.saveUser(client.getUser(ev.target));
+        });
+
+        client.addHandler("set-channel-info", (ev)=>{
+            this.saveChannel(client.getChannel(ev.channel));
+        });
+
         this.clients.push(client);
         
         return client.openConnection();
@@ -2988,7 +2996,7 @@ class LichatUI{
 
     saveUser(user, tx){
         if(!tx && !this.db) return null;
-        if(!tx) this.db.transaction(["users"], "readwrite");
+        if(!tx) tx = this.db.transaction(["users"], "readwrite");
         tx.onerror = (ev)=>console.error(ev);
         tx.objectStore("users")
             .put({
