@@ -261,6 +261,12 @@ class LichatUI{
             }
         };
 
+        Vue.component("popup", {
+            template: "#popup",
+            mixins: [popup, inputPopup],
+            props: ['prompt']
+        });
+
         Vue.component("self-menu", {
             template: "#self-menu",
             mixins: [popup],
@@ -276,6 +282,14 @@ class LichatUI{
                 document.addEventListener('click', (ev)=>{
                     this.$emit('close');
                 });
+            },
+            methods: {
+                setStatus: function(status){
+                    if(status !== undefined){
+                        this.client.s("set-user-info", {key: cl.kw('status'), value: status})
+                            .then(()=>this.$emit('close'));
+                    }
+                }
             }
         });
 
@@ -335,7 +349,8 @@ class LichatUI{
                     showInfo: false,
                     showChannelCreate: false,
                     showChannelList: false,
-                    showUserList: false
+                    showUserList: false,
+                    showRules: false
                 };
             },
             methods: {
@@ -349,9 +364,6 @@ class LichatUI{
                     this.channel.s("leave")
                         .then(()=>this.channel.client.removeFromChannelList(this.channel));
                     this.$emit('close');
-                },
-                rules: function(){
-                    
                 }
             }
         });
@@ -1001,6 +1013,8 @@ class LichatUI{
                             }).catch((e)=>channel.showStatus("Error: "+e.text));
                         }
                         message.clear();
+                    }else{
+                        message.text += '\n';
                     }
                 },
                 uploadFile: (ev)=>{

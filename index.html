@@ -10,13 +10,14 @@
     <script src="lichat.js"></script>
     <script type="text/x-template" id="self-menu">
       <nav class="submenu" v-on:click.stop="">
+        <popup v-if="showStatus"
+               v-bind:prompt="client.user.info[':status']"
+               v-on:close="setStatus">
+          <template v-slot:header>Set Status</template>
+        </popup>
         <a class="status"
            v-on:click.stop="showStatus = true">
           <i class="fas fa-fw fa-comment-dots"></i> Set Status
-        </a>
-        <a class="identity"
-           v-on:click.stop="showIdentitySwitcher = true">
-          <i class="fas fa-fw fa-sign-out-alt"></i> Change Identity
         </a>
         <user-configure
             v-bind:user="client.user"
@@ -114,9 +115,14 @@
            v-on:click.stop="showUserList = true">
           <i class="fas fa-fw fa-users"></i> List Users
         </a>
+        <popup v-if="showRules"
+               v-on:close="showRules = false">
+          <template v-slot:header>Rules for {{channel.name}}</template>
+          <template v-slot:content><p>{{channel.info[':rules']}}</p></template>
+        </popup>
         <a class="rules"
            v-if="channel.info[':rules']"
-           v-on:click="rules">
+           v-on:click="showRules = true">
           <i class="fas fa-fw fa-gavel"></i> Rules
         </a>
         <a class="leave"
@@ -207,6 +213,21 @@
         <input type="text" placeholder="Filter..." ref="input"
                v-on:input="filter">
       </div>
+    </script>
+    <script type="text/x-template" id="popup">
+      <transition name="modal">
+        <div class="popup-container" v-on:click.self.stop="close">
+          <form class="popup" v-on:submit="$emit('close', $refs.prompt.value)">
+            <header>
+              <h2><slot name="title">Info</slot></h2>
+              <div class="error-message" v-if="errorMessage">{{errorMessage}}</div>
+            </header>
+            <slot name="content"></slot>
+            <input type="text" ref="prompt" v-if="prompt">
+            <input type="submit" value="Ok">
+          </div>
+        </form>
+      </transition>
     </script>
     <script type="text/x-template" id="client-configure">
       <transition name="modal">
@@ -818,6 +839,12 @@
                       v-on:input="$event.target.style.minHeight = $event.target.scrollHeight+'px';"
                       v-on:keydown="handleKeypress"
                       v-on:keydown.enter.prevent.stop="submit"></textarea>
+            <div class="typing" v-show="currentChannel.hasTypers">
+              {{currentChannel.typingUsers.map(user=>user.name).join(", ")}}
+              <template v-if="1 == currentChannel.typingUsers.length">is typing</template>
+              <template v-else>are typing</template>
+              <div></div><div></div><div></div>
+            </div>
           </div>
           <nav>
             <emote-picker

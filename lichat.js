@@ -1009,6 +1009,9 @@ class LichatChannel{
         };
         this.messages = {};
         this.messageList = [];
+        this.hasTypers = false;
+        this._typingTimeout = null;
+        this._typingUsers = new Map();
         this._capabilities = null;
         // KLUDGE: need this to stop Vue from being Weird As Fuck.
         Object.defineProperty(this.emotes, 'nested', { configurable: false });
@@ -1078,6 +1081,19 @@ class LichatChannel{
         this._capabilities = value.sort();
     }
 
+    get typingUsers(){
+        let currentClock = cl.getUniversalTime();
+        let users = [];
+        for(const [user, clock] of this._typingUsers){
+            if(currentClock - clock < 5)
+                users.push(user);
+            else
+                delete this._typingUsers.delete(user);
+        }
+        this.hasTypers = 0 < users.length;
+        return users;
+    }
+
     getEmote(name){
         let own = this.emotes[name.toLowerCase().replace(/^:|:$/g,"")];
         if(own) return own;
@@ -1123,6 +1139,19 @@ class LichatChannel{
 
     clearUsers(){
         this.users = {};
+    }
+
+    setTyping(user, clock){
+        if(user.isSelf) return;
+        this.hasTypers = true;
+        this._typingUsers.set(user, clock);
+        
+        if(this._typingTimeout !== null)
+            clearTimeout(this._typingTimeout);
+        this._typingTimeout = setTimeout(()=>{
+            this._typingTimeout = null;
+            console.log(this.typingUsers);
+        }, 5000);
     }
 
     s(type, args, noPromise){
@@ -1320,6 +1349,10 @@ class LichatClient{
             for(let name of ev.users){
                 this.getChannel(ev.channel).users[name.toLowerCase()] = this.getUser(name);
             }
+        });
+
+        this.addInternalHandler("typing", (ev)=>{
+            this.getChannel(ev.channel).setTyping(this.getUser(ev.from), ev.clock);
         });
     }
 
@@ -1893,6 +1926,12 @@ class LichatUI{
             }
         };
 
+        Vue.component("popup", {
+            template: "#popup",
+            mixins: [popup, inputPopup],
+            props: ['prompt']
+        });
+
         Vue.component("self-menu", {
             template: "#self-menu",
             mixins: [popup],
@@ -1908,6 +1947,14 @@ class LichatUI{
                 document.addEventListener('click', (ev)=>{
                     this.$emit('close');
                 });
+            },
+            methods: {
+                setStatus: function(status){
+                    if(status !== undefined){
+                        this.client.s("set-user-info", {key: cl.kw('status'), value: status})
+                            .then(()=>this.$emit('close'));
+                    }
+                }
             }
         });
 
@@ -1967,7 +2014,8 @@ class LichatUI{
                     showInfo: false,
                     showChannelCreate: false,
                     showChannelList: false,
-                    showUserList: false
+                    showUserList: false,
+                    showRules: false
                 };
             },
             methods: {
@@ -1981,9 +2029,6 @@ class LichatUI{
                     this.channel.s("leave")
                         .then(()=>this.channel.client.removeFromChannelList(this.channel));
                     this.$emit('close');
-                },
-                rules: function(){
-                    
                 }
             }
         });
@@ -2633,6 +2678,8 @@ class LichatUI{
                             }).catch((e)=>channel.showStatus("Error: "+e.text));
                         }
                         message.clear();
+                    }else{
+                        message.text += '\n';
                     }
                 },
                 uploadFile: (ev)=>{
