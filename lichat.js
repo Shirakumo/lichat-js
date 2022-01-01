@@ -939,6 +939,18 @@ class LichatUser{
         return this._client;
     }
 
+    get color(){
+        var hash = cl.sxhash(this._name);
+        var encoded = hash % 0xFFF;
+        var r = 16*(1+(encoded&0xF00)>>8)-1;
+        var g = 16*(1+(encoded&0x0F0)>>4)-1;
+        var b = 16*(1+(encoded&0x00F)>>0)-1;
+        
+        return "rgb("+Math.min(200, Math.max(50, r))+
+            ","+Math.min(180, Math.max(80, g))+
+            ","+Math.min(180, Math.max(80, b))+")";
+    }
+
     get isPresent(){
         return this.isInChannel(this._client.servername);
     }
@@ -959,18 +971,6 @@ class LichatUser{
     get isBanned(){
         // FIXME: implement
         return false;
-    }
-
-    get color(){
-        var hash = cl.sxhash(this._name);
-        var encoded = hash % 0xFFF;
-        var r = 16*(1+(encoded&0xF00)>>8)-1;
-        var g = 16*(1+(encoded&0x0F0)>>4)-1;
-        var b = 16*(1+(encoded&0x00F)>>0)-1;
-        
-        return "rgb("+Math.min(200, Math.max(50, r))+
-            ","+Math.min(180, Math.max(80, g))+
-            ","+Math.min(180, Math.max(80, b))+")";
     }
 
     isQuieted(channel){
@@ -1026,6 +1026,12 @@ class LichatChannel{
         this.alerted = false;
         this.lastRead = data.lastRead || null;
         this.notificationLevel = data.notificationLevel || this.isPrimary? 'none' : 'inherit';
+
+        let lastSlash = this._name.lastIndexOf('/');
+        if(lastSlash === -1)
+            this._parentChannelName = null;
+        else
+            this._parentChannelName = this._name.slice(0, lastSlash);
     }
     
     get gid(){
@@ -1049,13 +1055,15 @@ class LichatChannel{
     }
 
     get isAnonymous(){
-        // FIXME: this is broken
-        return false;
+        return this._name[0] === '@';
     }
 
     get parentChannel(){
-        // FIXME: handle channel trees
-        return this._client.primaryChannel;
+        let name = this._parentChannelName;
+        if(name === null)
+            return this._client.primaryChannel;
+        else
+            return this._client.getChannel(name);
     }
 
     get icon(){
@@ -1166,14 +1174,7 @@ class LichatChannel{
         let existing = this.messages[message.gid];
         this.messages[message.gid] = message;
         if(existing){
-            // Update object in-place
-            for(let i in this.messageList){
-                if(this.messageList[i].gid == message.gid){
-                    // FIXME: Vue cannot detect this change.
-                    this.messageList[i] = message;
-                    break;
-                }
-            }
+            Object.assign(existing, message);
         }else if(this.messageList.length == 0 || this.messageList[this.messageList.length-1].timestamp <= message.timestamp){
             this.messageList.push(message);
         }else{
@@ -2956,7 +2957,14 @@ class LichatUI{
     }
 
     showSearchResults(channel, results, query){
-        
+        let tempChannel = {...channel};
+        tempChannel.isVirtual = true;
+        tempChannel.messages = {};
+        Object.defineProperty(tempChannel.messages, 'nested', { configurable: false });
+        tempChannel.messageList = [];
+        for(let message of results)
+            tempChannel.record(message, true);
+        this.currentChannel = tempChannel;
     }
 
     updateTitle(){

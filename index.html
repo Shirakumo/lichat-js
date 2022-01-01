@@ -806,12 +806,19 @@
                v-on:click="toggleSearch">
               <i class="fas fa-search"></i>
             </a>
+            <a class="close"
+               v-if="currentChannel.isVirtual"
+               v-on:click="currentChannel = currentChannel.previous">
+              <i class="fas fa-times-circle"></i>
+            </a>
+            <a class="settings"
+               v-else
+               v-on:click.stop="showChannelMenu = true">
+              <i class="fas fa-ellipsis-h"></i>
+            </a>
             <channel-menu v-if="showChannelMenu"
                           v-on:close="showChannelMenu = false"
                           v-bind:channel="currentChannel"></channel-menu>
-            <a class="settings" v-on:click.stop="showChannelMenu = true">
-              <i class="fas fa-ellipsis-h"></i>
-            </a>
           </nav>
         </header>
         <section class="output" ref="output"

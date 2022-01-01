@@ -1291,7 +1291,14 @@ class LichatUI{
     }
 
     showSearchResults(channel, results, query){
-        
+        let tempChannel = {...channel};
+        tempChannel.isVirtual = true;
+        tempChannel.messages = {};
+        Object.defineProperty(tempChannel.messages, 'nested', { configurable: false });
+        tempChannel.messageList = [];
+        for(let message of results)
+            tempChannel.record(message, true);
+        this.currentChannel = tempChannel;
     }
 
     updateTitle(){
