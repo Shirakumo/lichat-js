@@ -120,8 +120,18 @@
      :background (hex FF3030)
      :color (hex FFFFFF)
      :padding 0.5em 1em)
-    (h2
-     :margin 0 :padding 0.2em 0.5em))
+    (>img
+     :width 5em
+     :height 5em
+     :margin 0.5em
+     :border-radius 1em
+     :vertical-align middle)
+    (>h2
+     :display inline-block
+     :margin 0
+     :padding 0.2em 0.5em)
+    (>nav
+     :display block))
    (>section
     :margin 1em
     :display flex

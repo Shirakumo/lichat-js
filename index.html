@@ -519,6 +519,7 @@
         <div class="popup-container" v-on:click.self.stop="$emit('close')">
           <div class="popup">
             <header>
+              <img class="channel" v-bind:src="channel.icon">
               <h2>{{channel.name}}</h2>
               <div class="error-message" v-if="errorMessage">{{errorMessage}}</div>
               <nav class="tabbar">
@@ -636,6 +637,7 @@
         <div class="popup-container" v-on:click.self.stop="$emit('close')">
           <div class="popup">
             <header>
+              <img class="icon" v-bind:src="user.icon">
               <h2>{{user.name}}</h2>
               <div class="error-message" v-if="errorMessage">{{errorMessage}}</div>
               <nav class="tabbar">
