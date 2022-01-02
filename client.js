@@ -566,7 +566,7 @@ class LichatClient{
         });
 
         this.addInternalHandler("user-info", (ev)=>{
-            let user = this.getUser(ev.target);
+            let user = this.getUser(ev.target || this.username);
             for(let entry of ev.info){
                 user.info[LichatPrinter.toString(entry[0])] = entry[1];
             }

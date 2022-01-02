@@ -1326,7 +1326,7 @@ class LichatUI{
         });
 
         client.addHandler("user-info", (ev)=>{
-            this.saveUser(client.getUser(ev.target));
+            this.saveUser(client.getUser(ev.target || client.username));
         });
 
         client.addHandler("set-channel-info", (ev)=>{
