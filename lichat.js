@@ -3290,6 +3290,8 @@ class LichatUI{
         if(!tx) tx = this.db.transaction(["clients"]);
         tx.onerror = (ev)=>console.error(ev);
         tx.objectStore("clients").getAll().onsuccess = (ev)=>{
+            if(ev.target.result.length == 0)
+                this.showClientMenu = true;
             for(let options of ev.target.result){
                 let client = new LichatClient(options);
                 client.servername = options.server;
