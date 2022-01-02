@@ -1149,28 +1149,31 @@ class LichatUI{
 
         this.addCommand("join", (channel, ...name)=>{
             name = name.join(" ");
+            let perform = ()=>this.app.switchChannel(channel.client.getChannel(name));
             if(channel.client.hasChannel(name) && channel.client.getChannel(name).isPresent){
-                this.app.switchChannel(channel.client.getChannel(name));
+                perform();
             }else{
                 channel.client.s("join", {channel: name})
-                    .then(()=>this.app.switchChannel(channel.client.getChannel(name)))
+                    .then(perform)
                     .catch((e)=>{
-                        if(cl.typep(e, "already-in-channel"))
-                            lichat.app.switchChannel(channel.client.getChannel(name));
-                        else
-                            channel.showStatus("Error: "+e.text);
+                        if(cl.typep(e, "already-in-channel")) perform();
+                        else channel.showStatus("Error: "+e.text);
                     });
             }
         }, "Join a new channel.");
 
         this.addCommand("leave", (channel, ...name)=>{
             name = (0 < name.length)? name.join(" ") : channel.name;
+            let perform = ()=>channel.client.removeFromChannelList(channel.client.getChannel(name));
             if(channel.client.hasChannel(name) && !chanel.client.getChannel(name).isPresent){
-                channel.client.removeFromChannelList(channel.client.getChannel(name));
+                perform();
             }else{
                 channel.client.s("leave", {channel: name})
-                    .then(()=>channel.client.removeFromChannelList(channel))
-                    .catch((e)=>channel.showStatus("Error: "+e.text));
+                    .then(perform)
+                    .catch((e)=>{
+                        if(cl.typep(e, "not-in-channel")) perform();
+                        else channel.showStatus("Error: "+e.text);
+                    });
             }
         }, "Leave a channel. If no channel is specified, leaves the current channel.");
 
