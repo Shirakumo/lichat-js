@@ -450,6 +450,20 @@ class LichatChannel{
         return message;
     }
 
+    showError(error, prefix){
+        console.error(error);
+        let message = prefix || 'Error';
+        if(cl.typep(error, 'failure'))
+            message += ": "+error.text;
+        else if(error instanceof Error)
+            message += ": "+error.message;
+        else if(error instanceof DOMException)
+            message += ": "+error.message;
+        else if(typeof error === 'string')
+            message += ": "+error;
+        return this.showStatus(message);
+    }
+
     isPermitted(update){
         if(typeof update === 'string' || update instanceof String)
             update = cl.intern(update, "lichat");

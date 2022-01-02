@@ -1243,6 +1243,20 @@ class LichatChannel{
         return message;
     }
 
+    showError(error, prefix){
+        console.error(error);
+        let message = prefix || 'Error';
+        if(cl.typep(error, 'failure'))
+            message += ": "+error.text;
+        else if(error instanceof Error)
+            message += ": "+error.message;
+        else if(error instanceof DOMException)
+            message += ": "+error.message;
+        else if(typeof error === 'string')
+            message += ": "+error;
+        return this.showStatus(message);
+    }
+
     isPermitted(update){
         if(typeof update === 'string' || update instanceof String)
             update = cl.intern(update, "lichat");
@@ -2082,31 +2096,31 @@ class LichatUI{
                         .then((e)=>this.user.client.s("pull", {
                             target: this.user.name,
                             channel: e.channel
-                        })).catch((e)=>this.user.client.showStatus("Error: "+e.text));
+                        })).catch((e)=>this.user.client.showError(e));
                     this.$emit('close');
                 },
                 block: function(){
                     this.user.client.s("block", {target: this.message.from})
                         .then((e)=>this.user.client.showStatus(this.user.name+" has been blocked."))
-                        .catch((e)=>this.user.client.showStatus("Error: "+e.text));
+                        .catch((e)=>this.user.client.showError(e));
                     this.$emit('close');
                 },
                 unblock: function(){
                     this.user.client.s("unblock", {target: this.user.name})
                         .then((e)=>this.user.client.showStatus(this.user.name+" has been unblocked."))
-                        .catch((e)=>this.user.client.showStatus("Error: "+e.text));
+                        .catch((e)=>this.user.client.showError(e));
                     this.$emit('close');
                 },
                 ban: function(){
                     this.user.client.s("ban", {target: this.user.name})
                         .then((e)=>this.user.client.showStatus(this.user.name+" has been banned."))
-                        .catch((e)=>this.user.client.showStatus("Error: "+e.text));
+                        .catch((e)=>this.user.client.showError(e));
                     this.$emit('close');
                 },
                 unban: function(){
                     this.user.client.s("unban", {target: this.user.name})
                         .then((e)=>this.user.client.showStatus(this.user.name+" has been unbanned."))
-                        .catch((e)=>this.user.client.showStatus("Error: "+e.text));
+                        .catch((e)=>this.user.client.showError(e));
                     this.$emit('close');
                 }
             }
@@ -2159,19 +2173,19 @@ class LichatUI{
                 },
                 kick: function(){
                     this.message.channel.s("kick", {target: this.message.from})
-                        .catch((e)=>this.message.channel.showStatus("Error: "+e.text));
+                        .catch((e)=>this.message.channel.showError(e));
                     this.$emit('close');
                 },
                 quiet: function(){
                     this.message.channel.s("quiet", {target: this.message.from})
-                        .catch((e)=>this.message.channel.showStatus("Error: "+e.text))
-                        .then((e)=>this.message.channel.showStatus(this.message.from+" has been quieted."));
+                        .then((e)=>this.message.channel.showStatus(this.message.from+" has been quieted."))
+                        .catch((e)=>this.message.channel.showError(e));
                     this.$emit('close');
                 },
                 unquiet: function(){
                     this.message.channel.s("unquiet", {target: this.message.from})
-                        .catch((e)=>this.message.channel.showStatus("Error: "+e.text))
-                        .then((e)=>this.message.channel.showStatus(this.message.from+" has been quieted."));
+                        .then((e)=>this.message.channel.showStatus(this.message.from+" has been quieted."))
+                        .catch((e)=>this.message.channel.showError(e));
                     this.$emit('close');
                 }
             }
@@ -2834,7 +2848,7 @@ class LichatUI{
                             channel.s("message", {
                                 "text": message.text,
                                 "reply-to": (message.replyTo)? [message.replyTo.author.name, message.replyTo.id]: null
-                            }).catch((e)=>channel.showStatus("Error: "+e.text));
+                            }).catch((e)=>channel.showError(e));
                         }
                         message.clear();
                     }else{
@@ -2868,9 +2882,9 @@ class LichatUI{
                                     "content-type": parts[1],
                                     payload: parts[3]
                                 }).then(()=>ok())
-                                    .catch((ev)=>{
-                                        channel.showStatus("Upload failed: "+ev.text);
-                                        fail(ev);
+                                    .catch((e)=>{
+                                        channel.showError(e);
+                                        fail(e);
                                     })
                                     .finally(()=>channel.deleteMessage(message));
                             };
@@ -2885,7 +2899,7 @@ class LichatUI{
                     this.search = null;
                     this.currentChannel.s("search", {query: query})
                         .then((ev)=>this.showSearchResults(channel, ev.results, query))
-                        .catch((e)=>channel.showStatus("Error: "+(e.text||e)));
+                        .catch((e)=>channel.showError(e));
                 },
                 addEmote: (emote)=>{
                     this.showEmotePicker = false;
@@ -2947,7 +2961,7 @@ class LichatUI{
                     .then(perform)
                     .catch((e)=>{
                         if(cl.typep(e, "already-in-channel")) perform();
-                        else channel.showStatus("Error: "+e.text);
+                        else channel.showError(e);
                     });
             }
         }, "Join a new channel.");
@@ -2962,7 +2976,7 @@ class LichatUI{
                     .then(perform)
                     .catch((e)=>{
                         if(cl.typep(e, "not-in-channel")) perform();
-                        else channel.showStatus("Error: "+e.text);
+                        else channel.showError(e);
                     });
             }
         }, "Leave a channel. If no channel is specified, leaves the current channel.");
@@ -2971,17 +2985,17 @@ class LichatUI{
             name = (0 < name.length)? name.join(" ") : null;
             channel.client.s("create", {channel: name})
                 .then(()=>this.app.switchChannel(channel.client.getChannel(name)))
-                .catch((e)=>channel.showStatus("Error: "+e.text));
+                .catch((e)=>channel.showError(e));
         }, "Creates a new channel. If no name is specified, creates an anonymous channel.");
 
         this.addCommand("kick", (channel, ...name)=>{
             channel.s("kick", {target: name.join(" ")})
-                .catch((e)=>channel.showStatus("Error: "+e.text));
+                .catch((e)=>channel.showError(e));
         }, "Kick a user fromde the channel.");
         
         this.addCommand("pull", (channel, ...name)=>{
             channel.s("pull", {target: name.join(" ")})
-                .catch((e)=>channel.showStatus("Error: "+e.text));
+                .catch((e)=>channel.showError(e));
         }, "Pull a user into the channel.");
 
         this.addCommand("register", (channel, ...password)=>{
@@ -2991,19 +3005,19 @@ class LichatUI{
                     channel.client.password = password;
                     channel.showStatus("Registration complete.");
                 })
-                .catch((e)=>channel.showStatus("Error: "+e.text));
+                .catch((e)=>channel.showError(e));
         }, "Try to register your current username with a password.");
 
         this.addCommand("grant", (channel, type, ...user)=>{
             channel.s("grant", {update: LichatReader.fromString(type), target: user.join(" ")})
                 .then(()=>channel.showStatus("Permission granted."))
-                .catch((e)=>channel.showStatus("Error: "+e.text));
+                .catch((e)=>channel.showError(e));
         }, "Grant permission for an update type to another user in the channel.");
 
         this.addCommand("deny", (channel, type, ...user)=>{
             channel.s("deny", {update: LichatReader.fromString(type), target: user.join(" ")})
                 .then(()=>channel.showStatus("Permission denied."))
-                .catch((e)=>channel.showStatus("Error: "+e.text));
+                .catch((e)=>channel.showError(e));
         }, "Deny permission for an update type to another user in the channel.");
 
         // FIXME: missing commands from extensions, and also this is very repetitious...
@@ -3070,13 +3084,15 @@ class LichatUI{
             }else if(client.servername){
                 return client.getChannel(client.servername);
             }else{
-                return {showStatus: ()=>{}, client: client};
+                return {
+                    showStatus: ()=>{},
+                    showError: ()=>{},
+                    client: client
+                };
             }
         };
 
-        client.disconnectHandler = (ev)=>{
-            client.getEmergencyChannel().showStatus("Disconnected: "+(ev.reason || ev.text || "connection lost"));
-        };
+        client.disconnectHandler = (e)=>client.getEmergencyChannel().showError(e, "Disconnected");
 
         client.addHandler("connect", (ev)=>{
             if(0 < client.channelList.length){
@@ -3156,7 +3172,7 @@ class LichatUI{
             this.invokeCommand(channel, command, args);
         }catch(e){
             console.error(e);
-            channel.showStatus("Error: "+e);
+            channel.showError(e);
         }
     }
 
@@ -3189,7 +3205,7 @@ class LichatUI{
 
     initialSetup(client){
         return this.addClient(new LichatClient(client || this.defaultClient))
-            .catch((ev)=>client.getEmergencyChannel().showStatus("Connection failed "+(ev.reason || "")));
+            .catch((e)=>client.getEmergencyChannel().showError(e, "Connection failed"));
     }
 
     setupDatabase(){
@@ -3341,10 +3357,9 @@ class LichatUI{
                         chain = chain.then(()=>this.loadUsers(client))
                             .then(()=>this.loadChannels(client))
                             .then(()=>this.addClient(client))
-                            .catch((ev)=>{
-                                console.log(ev);
-                                fail(ev);
-                                client.getEmergencyChannel().showStatus("Connection failed "+(ev.reason || ""));
+                            .catch((e)=>{
+                                client.getEmergencyChannel().showError(e, "Connection failed");
+                                fail(e);
                             });
                     }
                     chain.then(ok);
