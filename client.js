@@ -488,6 +488,9 @@ class LichatClient{
         this._pingTimer = null;
         this._reconnectAttempts = 0;
 
+        this.supportedExtensions = this.supportedExtensions.filter((extension)=>
+            !(options.disabledExtensions || []).includes(extension));
+
         for(let data of options.channels || []){
             let channel = new LichatChannel(data, this);
             this.channels[channel.name.toLowerCase()] = channel;
@@ -499,7 +502,7 @@ class LichatClient{
         }
 
         this.addInternalHandler("connect", (ev)=>{
-            this.availableExtensions = ev.extensions;
+            this.availableExtensions = ev.extensions.filter((extension)=>this.supportedExtensions.includes(extension));
         });
 
         this.addInternalHandler("ping", (ev)=>{

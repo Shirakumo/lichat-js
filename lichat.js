@@ -1280,6 +1280,9 @@ class LichatClient{
         this._pingTimer = null;
         this._reconnectAttempts = 0;
 
+        this.supportedExtensions = this.supportedExtensions.filter((extension)=>
+            !(options.disabledExtensions || []).includes(extension));
+
         for(let data of options.channels || []){
             let channel = new LichatChannel(data, this);
             this.channels[channel.name.toLowerCase()] = channel;
@@ -1291,7 +1294,7 @@ class LichatClient{
         }
 
         this.addInternalHandler("connect", (ev)=>{
-            this.availableExtensions = ev.extensions;
+            this.availableExtensions = ev.extensions.filter((extension)=>this.supportedExtensions.includes(extension));
         });
 
         this.addInternalHandler("ping", (ev)=>{
@@ -2988,7 +2991,12 @@ class LichatUI{
 
     init(){
         return new Promise((ok, fail)=>{
-            if(!this.embedded){
+            if(this.embedded){
+                this._init = ok;
+                this.defaultClientConfig.embedded = true;
+                this.defaultClientConfig.disabledExtensions = ["shirakumo-channel-info"];
+                this.showClientMenu = true;
+            }else{
                 let DBOpenRequest = window.indexedDB.open("lichatjs", 7);
                 DBOpenRequest.onerror = e=>{
                     console.error(e);
@@ -3004,10 +3012,6 @@ class LichatUI{
                     this.db = e.target.result;
                     this.setupDatabase();
                 };
-            }else{
-                this._init = ok;
-                this.defaultClientConfig.embedded = true;
-                this.showClientMenu = true;
             }
         });
     }

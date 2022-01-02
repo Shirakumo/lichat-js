@@ -1202,7 +1202,12 @@ class LichatUI{
 
     init(){
         return new Promise((ok, fail)=>{
-            if(!this.embedded){
+            if(this.embedded){
+                this._init = ok;
+                this.defaultClientConfig.embedded = true;
+                this.defaultClientConfig.disabledExtensions = ["shirakumo-channel-info"];
+                this.showClientMenu = true;
+            }else{
                 let DBOpenRequest = window.indexedDB.open("lichatjs", 7);
                 DBOpenRequest.onerror = e=>{
                     console.error(e);
@@ -1218,10 +1223,6 @@ class LichatUI{
                     this.db = e.target.result;
                     this.setupDatabase();
                 };
-            }else{
-                this._init = ok;
-                this.defaultClientConfig.embedded = true;
-                this.showClientMenu = true;
             }
         });
     }

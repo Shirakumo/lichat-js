@@ -942,7 +942,7 @@
           embedded: embedded,
           connection: {
               username: urlParams.get('username') || window.localStorage.getItem("username"),
-              password: window.localStorage.getItem("password") || window.sessionStorage.getItem("password"),
+              password: window.sessionStorage.getItem("password"),
               hostname: urlParams.get('hostname'),
               port: urlParams.get('port'),
               autoconnect: urlParams.get('autoconnect')
@@ -950,6 +950,7 @@
       });
       lichat.init()
             .then((client)=>{
+                console.log("Embedded setup complete", client);
                 if(embedded){
                     window.localStorage.setItem("username", client.username);
                     window.sessionStorage.setItem("password", client.password);
