@@ -955,8 +955,7 @@
                     window.localStorage.setItem("username", client.username);
                     window.sessionStorage.setItem("password", client.password);
                     if(channel)
-                        client.s("join", {channel: channel})
-                              .then((e)=>lichat.app.switchChannel(client.getChannel(e.channel)));
+                        lichat.invokeCommand(client.getEmergencyChannel(), "/join", [channel]);
                 }
             });
     </script>

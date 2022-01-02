@@ -519,6 +519,7 @@ cl.defclass("no-such-user-info", ["update-failure"], {
 });
 cl.defclass("malformed-user-info", ["update-failure"]);
 cl.defclass("clock-skewed", ["update-failure"]);
+cl.defclass("registration-rejected", ["update-failure"]);
 var LichatPrinter = function(){
     var self = this;
 
@@ -2474,7 +2475,12 @@ class LichatUI{
                             lichat.app.switchChannel(channel);
                             this.$emit('close');
                         })
-                        .catch((e)=>this.errorMessage = e.text);
+                        .catch((e)=>{
+                            if(cl.typep(e, "already-in-channel"))
+                                lichat.app.switchChannel(channel);
+                            else
+                                this.errorMessage = e.text;
+                        });
                 }
             }
         });
@@ -2821,7 +2827,7 @@ class LichatUI{
                     if(!ev.getModifierState("Control") && !ev.getModifierState("Shift")){
                         message.text = message.text.trimEnd();
                         if(message.text.startsWith("/")){
-                            this.processCommand(message.text, channel);
+                            this.processCommand(channel, message.text);
                         }else{
                             channel.s("message", {
                                 "text": message.text,
@@ -2936,7 +2942,12 @@ class LichatUI{
             }else{
                 channel.client.s("join", {channel: name})
                     .then(()=>this.app.switchChannel(channel.client.getChannel(name)))
-                    .catch((e)=>channel.showStatus("Error: "+e.text));
+                    .catch((e)=>{
+                        if(cl.typep(e, "already-in-channel"))
+                            lichat.app.switchChannel(channel.client.getChannel(name));
+                        else
+                            channel.showStatus("Error: "+e.text);
+                    });
             }
         }, "Join a new channel.");
 
@@ -3050,7 +3061,7 @@ class LichatUI{
             }else if(client.servername){
                 return client.getChannel(client.servername);
             }else{
-                return {showStatus: ()=>{}};
+                return {showStatus: ()=>{}, client: client};
             }
         };
 
@@ -3123,13 +3134,17 @@ class LichatUI{
         };
     }
 
-    processCommand(cmdname, channel){
+    invokeCommand(channel, commandname, args){
+        let command = this.commands[commandname];
+        if(!command) throw "No command named "+commandname;
+        command.handler.apply(this, [channel, ...args]);
+    }
+
+    processCommand(channel, commandstring){
         try{
-            let args = cmdname.split(" ");
-            let command = this.commands[args[0]];
-            if(!command) throw "No command named "+args[0];
-            args[0] = channel;
-            command.handler.apply(this, args);
+            let args = commandstring.split(" ");
+            let command = args.shift();
+            this.invokeCommand(channel, command, args);
         }catch(e){
             console.error(e);
             channel.showStatus("Error: "+e);

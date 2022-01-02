@@ -175,3 +175,4 @@ cl.defclass("no-such-user-info", ["update-failure"], {
 });
 cl.defclass("malformed-user-info", ["update-failure"]);
 cl.defclass("clock-skewed", ["update-failure"]);
+cl.defclass("registration-rejected", ["update-failure"]);
