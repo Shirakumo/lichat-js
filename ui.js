@@ -1165,9 +1165,13 @@ class LichatUI{
 
         this.addCommand("leave", (channel, ...name)=>{
             name = (0 < name.length)? name.join(" ") : channel.name;
-            channel.client.s("leave", {channel: name})
-                .then(()=>channel.client.removeFromChannelList(channel))
-                .catch((e)=>channel.showStatus("Error: "+e.text));
+            if(channel.client.hasChannel(name) && !chanel.client.getChannel(name).isPresent){
+                channel.client.removeFromChannelList(channel.client.getChannel(name));
+            }else{
+                channel.client.s("leave", {channel: name})
+                    .then(()=>channel.client.removeFromChannelList(channel))
+                    .catch((e)=>channel.showStatus("Error: "+e.text));
+            }
         }, "Leave a channel. If no channel is specified, leaves the current channel.");
 
         this.addCommand("create", (channel, ...name)=>{
