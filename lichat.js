@@ -2378,6 +2378,10 @@ class LichatUI{
                 close: function(){
                     lichat.saveOptions();
                     this.$emit('close');
+                },
+                clear: function(){
+                    lichat.clearSetup();
+                    this.$emit('close');
                 }
             }
         });
@@ -3353,6 +3357,9 @@ class LichatUI{
         tx.onerror = (ev)=>console.error(ev);
         for(let store of stores)
             tx.objectStore(store).clear();
+        for(let client of this.clients)
+            this.removeClient(client);
+        this.showClientMenu = true;
         return tx;
     }
 
