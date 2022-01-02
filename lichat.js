@@ -753,7 +753,7 @@ var LichatReader = function(){
         }
     };
 
-    self.parseUpdate = (list)=>{
+    self.parseUpdate = (sexpr)=>{
         var type = sexpr.shift();
         if(!cl.symbolp(type))
             throw new Error("First item in list is not a symbol: "+sexpr);
@@ -2821,7 +2821,7 @@ class LichatUI{
                     this.search = null;
                     this.currentChannel.s("search", {query: query})
                         .then((ev)=>this.showSearchResults(channel, ev.results, query))
-                        .catch((e)=>channel.showStatus("Error: "+e.text));
+                        .catch((e)=>channel.showStatus("Error: "+(e.text||e)));
                 },
                 addEmote: (emote)=>{
                     this.showEmotePicker = false;
@@ -3051,8 +3051,9 @@ class LichatUI{
     }
 
     showSearchResults(channel, results, query){
-        let tempChannel = {...channel};
+        let tempChannel = Object.assign(Object.create(Object.getPrototypeOf(channel)), channel);
         tempChannel.isVirtual = true;
+        tempChannel.previous = channel;
         tempChannel.messages = {};
         Object.defineProperty(tempChannel.messages, 'nested', { configurable: false });
         tempChannel.messageList = [];

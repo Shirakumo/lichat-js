@@ -129,7 +129,7 @@ var LichatReader = function(){
         }
     };
 
-    self.parseUpdate = (list)=>{
+    self.parseUpdate = (sexpr)=>{
         var type = sexpr.shift();
         if(!cl.symbolp(type))
             throw new Error("First item in list is not a symbol: "+sexpr);
