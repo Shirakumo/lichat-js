@@ -881,7 +881,7 @@
                    v-bind:key="message.gid"></message>
         </section>
         <footer v-if="currentChannel.isPresent">
-          <div class="user me">
+          <div v-if="!embedded" class="user me">
             <self-menu v-bind:client="currentChannel.client"
                        v-if="showSelfMenu"
                        v-on:close="showSelfMenu = false"></self-menu>
