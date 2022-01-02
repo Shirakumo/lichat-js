@@ -1396,7 +1396,8 @@ class LichatClient{
     reconnect(){
         try{
             this.clearReconnect();
-            this.openConnection();
+            this.openConnection()
+                .catch(()=>this.scheduleReconnect());
         }catch(e){
             this.scheduleReconnect();
         }
