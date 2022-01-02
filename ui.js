@@ -92,9 +92,9 @@ class LichatUI{
         });
 
         LichatChannel.prototype.notify = function(message){
-            this.unread++;
             let notify = false;
             let level = this.notificationLevel;
+            if(message.author.isSelf) return;
             if(level == 'inherit' || !level)
                 level = lichat.options.notificationLevel;
             if(level == 'all')
@@ -124,6 +124,7 @@ class LichatUI{
             if(notify && lichat.options.playSound){
                 LichatUI.sound.play();
             }
+            this.unread++;
             lichat.updateTitle();
         };
 
