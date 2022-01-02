@@ -132,6 +132,12 @@ cl.defclass("react", ["channel-update"], {
     emote: cl.requiredArg("emote")
 });
 cl.defclass("typing", ["channel-update"]);
+cl.defclass("search", ["channel-update"], {
+    results: null,
+    offset: null,
+    query: null
+});
+
 cl.defclass("failure", ["text-update"]);
 cl.defclass("malformed-update", ["failure"]);
 cl.defclass("update-too-long", ["failure"]);

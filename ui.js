@@ -1056,8 +1056,8 @@ class LichatUI{
                     return null;
                 },
                 performSearch: (ev)=>{
-                    let channel = this.currentChannel;
-                    let query = this.search;
+                    let [query, channel] = LichatClient.parseQuery(this.search);
+                    channel = (channel === null)? this.currentChannel : this.currentChannel.client.getChannel(channel);
                     this.search = null;
                     this.currentChannel.s("search", {query: query})
                         .then((ev)=>this.showSearchResults(channel, ev.results, query))
@@ -1296,8 +1296,8 @@ class LichatUI{
         tempChannel.messages = {};
         Object.defineProperty(tempChannel.messages, 'nested', { configurable: false });
         tempChannel.messageList = [];
-        for(let message of results)
-            tempChannel.record(message, true);
+        for(let list of results)
+            tempChannel.record(channel.client._reader.parseUpdate(list), true);
         this.currentChannel = tempChannel;
     }
 

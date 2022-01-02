@@ -129,27 +129,31 @@ var LichatReader = function(){
         }
     };
 
+    self.parseUpdate = (list)=>{
+        var type = sexpr.shift();
+        if(!cl.symbolp(type))
+            throw new Error("First item in list is not a symbol: "+sexpr);
+        
+        var initargs = {};
+        for(var i=0; i<sexpr.length; i+=2){
+            var key = sexpr[i];
+            var val = sexpr[i+1];
+            if(!cl.symbolp(key) || key.pkg !== "keyword"){
+                throw new Error(key+" is not of type Keyword.");
+            }
+            initargs[key.name.toLowerCase()] = val;
+        }
+        if(initargs.id === undefined)
+            throw new Error("MISSING-ID");
+        if(initargs.clock === undefined)
+            throw new Error("MISSING-CLOCK");
+        return cl.makeInstance(type, initargs);
+    };
+
     self.fromWire = (stream)=>{
         var sexpr = self.readSexpr(stream);
         if(sexpr instanceof Array){
-            var type = sexpr.shift();
-            if(!cl.symbolp(type))
-                throw new Error("First item in list is not a symbol: "+sexpr);
-            
-            var initargs = {};
-            for(var i=0; i<sexpr.length; i+=2){
-                var key = sexpr[i];
-                var val = sexpr[i+1];
-                if(!cl.symbolp(key) || key.pkg !== "keyword"){
-                    throw new Error(key+" is not of type Keyword.");
-                }
-                initargs[key.name.toLowerCase()] = val;
-            }
-            if(initargs.id === undefined)
-                throw new Error("MISSING-ID");
-            if(initargs.clock === undefined)
-                throw new Error("MISSING-CLOCK");
-            return cl.makeInstance(type, initargs);
+            return self.parseUpdate(sexpr);
         }else{
             return sexpr;
         }

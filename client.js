@@ -467,7 +467,8 @@ class LichatClient{
                                     "shirakumo-channel-info", "shirakumo-quiet", "shirakumo-pause",
                                     "shirakumo-server-management", "shirakumo-ip", "shirakumo-user-info",
                                     "shirakumo-icon", "shirakumo-bridge", "shirakumo-block",
-                                    "shirakumo-reactions", "shirakumo-link", "shirakumo-typing"];
+                                    "shirakumo-reactions", "shirakumo-link", "shirakumo-typing",
+                                    "shirakmuo-history"];
         this.availableExtensions = ["shirakumo-icon"];
         this._socket = null;
         this._handlers = {};
@@ -883,3 +884,86 @@ class LichatClient{
         return this.primaryChannel.isPermitted(update);
     }
 }
+
+LichatClient.parseQuery = (query)=>{
+    let parseWord = (i)=>{
+        let start = i;
+        for(; i<query.length; ++i){
+            let char = query[i];
+            if(char == ':' || char == ' ' || char == '"')
+                break;
+        }
+        if(start === i) return null;
+        return [i, query.slice(start, i)];
+    };
+
+    let parseString = (i)=>{
+        if(query[i] == '"'){
+            ++i;
+            for(let start=i; i<query.length; ++i){
+                if(query[i] == '"' && query[i-1] != '!')
+                    return [i+1, query.slice(start, i)];
+            }
+        }
+        return null;
+    };
+
+    let parseToken = (i)=>{
+        return parseString(i) || parseWord(i);
+    };
+
+    let parseField = (i)=>{
+        let word = parseWord(i);
+        if(word && query[word[0]] == ':'){
+            i = word[0];
+            let token = null;
+            for(; !token; ++i) token = parseToken(i);
+            return [token[0], word[1], token[1]];
+        }
+        return null;
+    };
+
+    let parseDate = (i)=>{
+        // FIXME: do
+        return cl.T;
+    };
+    
+    let i = 0;
+    let parts = {
+        after: [],
+        before: [],
+            in: [],
+        from: [],
+        text: []
+    };
+    for(; i<query.length;){
+        let field = parseField(i);
+        if(field){
+            i = field[0];
+            parts[field[1].toLowerCase()].push(field[2]);
+            continue;
+        }
+        let token = parseToken(i);
+        if(token){
+            i = token[0];
+            parts['text'].push(token[1]);
+            continue;
+        }
+        ++i;
+    }
+
+    query = [];
+    if(parts.after.length || parts.before.length){
+        query.push(cl.kw('clock'));
+        query.push([parseDate(parts.after), parseDate(parts.before)]);
+    }
+    if(parts.from.length){
+        query.push(cl.kw('from'));
+        query.push(parts.from);
+    }
+    if(parts.text.length){
+        query.push(cl.kw('text'));
+        query.push(parts.text);
+    }
+    return [query, (parts.in.length)? parts.in[0] : null];
+};
