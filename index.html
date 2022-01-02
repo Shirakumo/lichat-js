@@ -848,7 +848,7 @@
         <header>
           <img class="icon" v-bind:src="currentChannel.icon">
           <span class="name">{{currentChannel.name}}</span>
-          <span class="topic">{{currentChannel.topic}}</span>
+          <span class="topic" v-html="formatUserText(currentChannel.topic, currentChannel)"></span>
           <nav>
             <input type="text" placeholder="from:user something" ref="search"
                    v-model="search"

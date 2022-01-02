@@ -2883,6 +2883,9 @@ class LichatUI{
                         this.currentChannel.currentMessage.text += emote;
                         this.app.$refs.input.focus();
                     }
+                },
+                formatUserText: (text, channel)=>{
+                    return LichatUI.formatUserText(text, channel);
                 }
             }
         });
