@@ -55,6 +55,10 @@ class LichatMessage{
             this.replyTo = null;
     }
 
+    get client(){
+        return this.channel.client;
+    }
+
     get time(){
         let pad = (x)=>(x<10?"0":"")+x;
         return pad(this.clock.getHours())+":"+pad(this.clock.getMinutes());

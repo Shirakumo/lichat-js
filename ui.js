@@ -411,6 +411,7 @@ class LichatUI{
             data: ()=>{
                 return {
                     showConfigure: false,
+                    showChannelList: false,
                     showChannelCreate: false
                 };
             }
@@ -658,7 +659,50 @@ class LichatUI{
                         if(user.name.includes(filter))
                             list.push(user);
                     }
-                    this.userList = list.sort();;
+                    this.userList = list.sort();
+                }
+            }
+        });
+
+        Vue.component("list-channels", {
+            template: "#list-channels",
+            mixins: [inputPopup],
+            props: {channel: LichatChannel},
+            data: ()=>{
+                return {
+                    channelList: [],
+                    channelMenu: null,
+                    channels: []
+                };
+            },
+            created: function(){
+                let target = this.channel.isPrimary? this.channel.client : this.channel;
+                target.s("channels")
+                    .then((e)=>{
+                        for(let name of e.channels)
+                            this.channels.push(this.channel.client.getChannel(name));
+                        this.filter();
+                    })
+                    .catch((e)=>this.errorMessage = e.text);
+            },
+            methods: {
+                filter: function(){
+                    let filter = (this.$refs.input)? this.$refs.input.value : "";
+                    filter = filter.toLowerCase();
+                    let list = [];
+                    for(let channel of this.channels){
+                        if(channel.name.includes(filter))
+                            list.push(channel);
+                    }
+                    this.channelList = list.sort();
+                },
+                join: function(channel){
+                    this.channel.client.s("join", {channel: channel.name})
+                        .then(()=>{
+                            lichat.app.switchChannel(channel);
+                            this.$emit('close');
+                        })
+                        .catch((e)=>this.errorMessage = e.text);
                 }
             }
         });

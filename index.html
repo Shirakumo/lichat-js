@@ -31,13 +31,21 @@
     </script>
     <script type="text/x-template" id="client-menu">
       <nav class="submenu" v-on:click.stop="">
-        <client-configure
+        <list-channels
+            v-bind:channel="client.primaryChannel"
+            v-if="showChannelList"
+            v-on:close="showChannelList = false;$emit('close')"></list-channels>
+        <a class="join"
+           v-on:click="showChannelList = true">
+          <i class="fas fa-fw fa-sign-in-alt"></i> Join Channel
+        </a>
+        <create-channel
             v-bind:client="client"
-            v-if="showConfigure"
-            v-on:close="showConfigure = false;$emit('close')"></client-configure>
-        <a class="config"
-           v-on:click="showConfigure = true">
-          <i class="fas fa-fw fa-cogs"></i> Settings
+            v-if="showChannelCreate"
+            v-on:close="showChannelCreate = false;$emit('close')"></create-channel>
+        <a class="create"
+           v-on:click="showChannelCreate = true">
+          <i class="fas fa-fw fa-plus-circle"></i> New Channel
         </a>
         <a class="disconnect"
            v-on:click="client.closeConnection()"
@@ -49,13 +57,13 @@
            v-else>
           <i class="fas fa-fw fa-handshake"></i> Connect
         </a>
-        <create-channel
+        <client-configure
             v-bind:client="client"
-            v-if="showChannelCreate"
-            v-on:close="showChannelCreate = false;$emit('close')"></create-channel>
-        <a class="create"
-           v-on:click="showChannelCreate = true">
-          <i class="fas fa-fw fa-plus-circle"></i> New Channel
+            v-if="showConfigure"
+            v-on:close="showConfigure = false;$emit('close')"></client-configure>
+        <a class="config"
+           v-on:click="showConfigure = true">
+          <i class="fas fa-fw fa-cogs"></i> Settings
         </a>
       </nav>
     </script>
@@ -103,6 +111,10 @@
            v-on:click.stop="showChannelCreate = true">
           <i class="fas fa-fw fa-plus-circle"></i> Create Subchannel
         </a>
+        <list-channels
+            v-bind:channel="channel"
+            v-if="showChannelList"
+            v-on:close="showChannelList = false;$emit('close')"></list-channels>
         <a class="channels"
            v-on:click.stop="showChannelList = true">
           <i class="fas fa-fw fa-list"></i> List Subchannels
@@ -450,6 +462,45 @@
                     <a class="settings"
                        v-on:click.stop="userMenu = user">
                       <i class="fas fa-ellipsis-h"></i>
+                    </a>
+                  </nav>
+                </li>
+              </ul>
+              <input type="text" placeholder="Filter..." v-on:input="filter" ref="input">
+              <input type="button" value="Close" v-on:click="$emit('close')">
+            </section>
+          </div>
+        </div>
+      </transition>
+    </script>
+    <script type="text/x-template" id="list-channels">
+      <transition name="modal">
+        <div class="popup-container" v-on:click.self.stop="$emit('close')">
+          <div class="popup">
+            <header>
+              <h2>Channel List</h2>
+              <div class="error-message" v-if="errorMessage">{{errorMessage}}</div>
+            </header>
+            <section>
+              <ul class="channellist">
+                <li v-for="channel in channelList">
+                  <img class="icon" v-bind:src="channel.icon">
+                  <span class="name"
+                        v-bind:title="channel.name">{{channel.name}}</span>
+                  <nav>
+                    <channel-menu v-if="channelMenu == channel"
+                                  v-on:close="channelMenu = null"
+                                  v-bind:channel="channel"></channel-menu>
+                    <a class="settings"
+                       v-if="channel.isPresent"
+                       v-on:click.stop="channelMenu = channel">
+                      <i class="fas fa-ellipsis-h"></i>
+                    </a>
+                    <a class="join"
+                       v-else
+                       v-on:click.stop="join(channel)">
+                      <i class="fas fa-sign-in-alt"></i>
+                    </a>
                     </a>
                   </nav>
                 </li>
