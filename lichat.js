@@ -863,8 +863,8 @@ class LichatMessage{
     get isAudio(){ return this.contentType.includes("audio"); }
 
     get isAlert(){
-        // FIXME: todo
-        return false;
+        let pattern = this.client.username.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        return new RegExp(pattern, "gi").test(this.text);
     }
 
     get isVirtual(){
@@ -984,8 +984,8 @@ class LichatUser{
     }
 
     isQuieted(channel){
-        // FIXME: implement
-        return false;
+        if(typeof(channel) === "string") channel = this._client.getChannel(channel);
+        return channel.isQuieted(this);
     }
 
     isInChannel(channel){
@@ -1023,6 +1023,7 @@ class LichatChannel{
         this._typingTimeout = null;
         this._typingUsers = new Map();
         this._capabilities = null;
+        this._quieted = new WeakSet();
         // KLUDGE: need this to stop Vue from being Weird As Fuck.
         Object.defineProperty(this.emotes, 'nested', { configurable: false });
         Object.defineProperty(this.messages, 'nested', { configurable: false });
@@ -1157,6 +1158,10 @@ class LichatChannel{
 
     clearUsers(){
         this.users = {};
+    }
+
+    isQuieted(user){
+        return this._quieted.has(user);
     }
 
     setTyping(user, clock){
@@ -1365,6 +1370,21 @@ class LichatClient{
 
         this.addInternalHandler("typing", (ev)=>{
             this.getChannel(ev.channel).setTyping(this.getUser(ev.from), ev.clock);
+        });
+
+        this.addInternalHandler("quiet", (ev)=>{
+            this.getChannel(ev.channel)._quieted.add(this.getUser(ev.target));
+        });
+        
+        this.addInternalHandler("unquiet", (ev)=>{
+            this.getChannel(ev.channel)._quieted.delete(this.getUser(ev.target));
+        });
+        
+        this.addInternalHandler("quieted", (ev)=>{
+            let set = new WeakSet();
+            for(let username in ev.target)
+                set.add(this.getUser(username));
+            this.getChannel(ev.channel)._quieted = set;
         });
     }
 
