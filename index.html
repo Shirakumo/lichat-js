@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="stylesheet.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script src="https://twemoji.maxcdn.com/v/latest/twemoji.min.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
     <script src="lichat.js"></script>
     <script type="text/x-template" id="self-menu">
       <nav class="submenu" v-on:click.stop="">
@@ -936,16 +936,28 @@
     </div>
     <script>
       const urlParams = new URLSearchParams(window.location.search);
+      const embedded = urlParams.get('channel') !== null;
+      const channel = urlParams.get('channel');
       var lichat = new LichatUI(null, {
-          embedded: urlParams.get('channel') !== null,
-          connection: urlParams.get('hostname')?{
-              username: urlParams.get('username'),
+          embedded: embedded,
+          connection: {
+              username: urlParams.get('username') || window.localStorage.getItem("username"),
+              password: window.localStorage.getItem("password") || window.sessionStorage.getItem("password"),
               hostname: urlParams.get('hostname'),
               port: urlParams.get('port'),
-              channel: urlParams.get('channel'),
               autoconnect: urlParams.get('autoconnect')
-          }: null
+          }
       });
+      lichat.init()
+            .then((client)=>{
+                if(embedded){
+                    window.localStorage.setItem("username", client.username);
+                    window.sessionStorage.setItem("password", client.password);
+                    if(channel)
+                        client.s("join", {channel: channel})
+                              .then((e)=>lichat.app.switchChannel(client.getChannel(e.channel)));
+                }
+            });
     </script>
   </body>
 </html>
