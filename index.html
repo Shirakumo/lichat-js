@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8">
     <title>Lichat</title>
+    <meta name="viewport" content="width=device-width">
     <link rel="stylesheet" href="stylesheet.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script src="https://twemoji.maxcdn.com/v/latest/twemoji.min.js" crossorigin="anonymous"></script>
@@ -794,7 +795,7 @@
   <body>
     <div class="client">
       <div class="side"
-           v-show="showSideBar"
+           v-if="showSideBar"
            v-bind:style="{width: options.sidebarWidth, minWidth: options.sidebarWidth, maxWidth: options.sidebarWidth}">
         <nav v-show="0 < clients.length">
           <section class="server" v-for="client in clients" v-bind:class="{connected: client._socket && client._reconnectAttempts == 0}">
@@ -842,7 +843,7 @@
           </nav>
         </footer>
       </div>
-      <divider v-show="showSideBar"></divider>
+      <divider v-if="showSideBar"></divider>
       <main v-if="currentChannel" v-on:drop.capture="uploadFile">
         <header>
           <img class="icon" v-bind:src="currentChannel.icon">

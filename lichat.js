@@ -3301,7 +3301,10 @@ class LichatUI{
                 this.loadUsers(client)
                     .then(()=>this.loadChannels(client))
                     .then(()=>this.addClient(client))
-                    .catch((ev)=>client.getEmergencyChannel().showStatus("Connection failed "+(ev.reason || "")));
+                    .catch((ev)=>{
+                        console.log(ev);
+                        client.getEmergencyChannel().showStatus("Connection failed "+(ev.reason || ""));
+                    });
             }
         };
         return tx;
@@ -3330,17 +3333,15 @@ class LichatUI{
 
     saveSetup(){
         if(!this.db) return;
-        this.clearSetup().oncomplete = ()=>{
-            let tx = this.db.transaction(["options", "clients", "channels", "users"], "readwrite");
-            this.saveOptions(tx);
-            for(let client of this.clients){
-                this.saveClient(client, tx);
-                for(let name in client.users)
-                    this.saveUser(client.users[name], tx);
-                for(let name in client.channels)
+        let tx = this.db.transaction(["options", "clients", "channels", "users"], "readwrite");
+        this.saveOptions(tx);
+        for(let client of this.clients){
+            this.saveClient(client, tx);
+            for(let name in client.users)
+                this.saveUser(client.users[name], tx);
+            for(let name in client.channels)
                     this.saveChannel(client.channels[name], tx);
-            }
-        };
+        }
     }
 
     loadSetup(){

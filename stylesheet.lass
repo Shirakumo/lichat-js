@@ -385,6 +385,7 @@
      :max-width 10em
      :min-width 10em
      (>time
+      :margin-right 0.5em
       :font-variant-numeric tabular-nums)
      (>.name
       :white-space nowrap
@@ -497,3 +498,51 @@
    ((:and >textarea :focus)
     :outline none !important
     :border-color (hex 0088EE)))))
+
+(:media "(max-width: 800px)"
+        (.client
+         (>main
+          (>.output
+           (>.message
+            :flex-wrap wrap
+            (>nav
+             :width 100%
+             :text-align right))))
+         (>.divider+main
+          (>.output
+           (>.message
+            (>header
+             :max-width 8em
+             :min-width 8em
+             (time :color (rgba 255 255 255 0.5))
+             (img :display none)))))))
+
+(:media "(max-width: 600px)"
+        (.client
+         (>main
+          (>.output
+           (>.message
+            (>header
+             :max-width 8em
+             :min-width 8em
+             (time :color (rgba 255 255 255 0.5))
+             (img :display none))))))
+        (>.divider+main
+          (>.output
+           (>.message
+            (>header
+             :max-width 5em
+             :min-width 5em
+             (time :display none))
+            (>nav :display none)))))
+
+(:media "(max-width: 400px)"
+        (.client
+         (>main
+          (>.output
+           (>.message
+            (>header
+             :max-width 5em
+             :min-width 5em
+             (time :display none))
+            (>nav :display none))))))
