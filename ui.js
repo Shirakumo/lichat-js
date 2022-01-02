@@ -449,6 +449,7 @@ class LichatUI{
                     lichat.addClient(client)
                         .then(()=>{
                             if(lichat._init) lichat._init(client);
+                            lichat._init = null;
                             lichat.saveClient(client);
                             this.$emit('close');
                         })
