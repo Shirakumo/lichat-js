@@ -2040,7 +2040,6 @@ class LichatUI{
                 Vue.nextTick(() => {
                     let input = this.$el.querySelector("input");
                     if(input){
-                        input.value = "";
                         input.focus();
                     }
                 });
