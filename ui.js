@@ -1,6 +1,6 @@
 class LichatUI{
     constructor(el, config){
-        console.log("Setting up Lichat", config);
+        console.log("Setting up Lichat", this, config);
         let lichat = this;
         this.commands = {};
         this.clients = [];
@@ -17,6 +17,7 @@ class LichatUI{
         this.db = null;
         this.lastTypingUpdate = 0;
         this.defaultClientConfig = {...LichatDefaultClient};
+        this._init = null;
 
         this.options = {
             transmitTyping: !this.embedded,
@@ -35,30 +36,12 @@ class LichatUI{
         };
 
         if(config.connection){
-            Object.assign(this.defaultClientConfig, config.connection);
-            if(!config.connection.ssl)
+            for(let key in config.connection){
+                let value = config.connection[key];
+                if(value !== null) this.defaultClientConfig[key] = value;
+            }
+            if(config.connection.ssl === undefined)
                 this.defaultClientConfig.ssl = (config.connection.port == LichatDefaultSSLPort);
-        }
-
-        if(!this.embedded){
-            let DBOpenRequest = window.indexedDB.open("lichatjs", 7);
-            DBOpenRequest.onerror = e=>{
-                console.error(e);
-                this.initialSetup();
-            };
-            DBOpenRequest.onsuccess = e=>{
-                this.db = e.target.result;
-                // FIXME: this does not work as expected.
-                //document.addEventListener('beforeunload', this.saveSetup());
-                this.loadSetup();
-            };
-            DBOpenRequest.onupgradeneeded = e=>{
-                this.db = e.target.result;
-                this.setupDatabase();
-            };
-        }else{
-            this.defaultClientConfig.embedded = true;
-            this.showClientMenu = true;
         }
 
         let mouseX = 0, mouseY = 0;
@@ -464,10 +447,7 @@ class LichatUI{
                     let client = new LichatClient(this.options);
                     lichat.addClient(client)
                         .then(()=>{
-                            if(this.options.channel){
-                                client.s("join", {channel: this.options.channel})
-                                    .then((e)=>lichat.app.switchChannel(client.getChannel(e.channel)));
-                            }
+                            if(lichat._init) lichat._init(client);
                             lichat.saveClient(client);
                             this.$emit('close');
                         })
@@ -1217,6 +1197,32 @@ class LichatUI{
         // FIXME: missing commands from extensions, and also this is very repetitious...
     }
 
+    init(){
+        return new Promise((ok, fail)=>{
+            if(!this.embedded){
+                let DBOpenRequest = window.indexedDB.open("lichatjs", 7);
+                DBOpenRequest.onerror = e=>{
+                    console.error(e);
+                    this.initialSetup()
+                        .then(ok,fail);
+                };
+                DBOpenRequest.onsuccess = e=>{
+                    this.db = e.target.result;
+                    this.loadSetup()
+                        .then(ok,fail);
+                };
+                DBOpenRequest.onupgradeneeded = e=>{
+                    this.db = e.target.result;
+                    this.setupDatabase();
+                };
+            }else{
+                this._init = ok;
+                this.defaultClientConfig.embedded = true;
+                this.showClientMenu = true;
+            }
+        });
+    }
+
     get defaultClient(){
         if(this.clients.length == 0){
             return {...this.defaultClientConfig};
@@ -1503,25 +1509,31 @@ class LichatUI{
     }
 
     loadClients(tx){
-        if(!tx && !this.db) return null;
-        if(!tx) tx = this.db.transaction(["clients"]);
-        tx.onerror = (ev)=>console.error(ev);
-        tx.objectStore("clients").getAll().onsuccess = (ev)=>{
-            if(ev.target.result.length == 0)
-                this.showClientMenu = true;
-            for(let options of ev.target.result){
-                let client = new LichatClient(options);
-                client.servername = options.server;
-                this.loadUsers(client)
-                    .then(()=>this.loadChannels(client))
-                    .then(()=>this.addClient(client))
-                    .catch((ev)=>{
-                        console.log(ev);
-                        client.getEmergencyChannel().showStatus("Connection failed "+(ev.reason || ""));
-                    });
-            }
-        };
-        return tx;
+        return new Promise((ok, fail)=>{
+            if(!tx && !this.db){ fail("No db"); return; }
+            if(!tx) tx = this.db.transaction(["clients"]);
+            tx.onerror = (ev)=>{console.error(ev);fail(ev);};
+            tx.objectStore("clients").getAll().onsuccess = (ev)=>{
+                if(ev.target.result.length == 0){
+                    this.showClientMenu = true;
+                }else{
+                    let chain = Promise.resolve(null);
+                    for(let options of ev.target.result){
+                        let client = new LichatClient(options);
+                        client.servername = options.server;
+                        chain = chain.then(()=>this.loadUsers(client))
+                            .then(()=>this.loadChannels(client))
+                            .then(()=>this.addClient(client))
+                            .catch((ev)=>{
+                                console.log(ev);
+                                fail(ev);
+                                client.getEmergencyChannel().showStatus("Connection failed "+(ev.reason || ""));
+                            });
+                    }
+                    chain.then(ok);
+                }
+            };
+        });
     }
 
     saveOptions(tx){
@@ -1535,14 +1547,16 @@ class LichatUI{
     }
 
     loadOptions(tx){
-        if(!tx && !this.db) return null;
-        if(!tx) tx = this.db.transaction(["options"]);
-        tx.onerror = (ev)=>console.error(ev);
-        tx.objectStore("options").get("general").onsuccess = (ev)=>{
-            if(ev.target.result)
-                this.options = ev.target.result;
-        };
-        return tx;
+        return new Promise((ok, fail)=>{
+            if(!tx && !this.db){ fail("No db"); return; }
+            if(!tx) tx = this.db.transaction(["options"]);
+            tx.onerror = (ev)=>{console.error(ev);fail(ev);};
+            tx.objectStore("options").get("general").onsuccess = (ev)=>{
+                if(ev.target.result)
+                    this.options = ev.target.result;
+                ok();
+            };
+        });
     }
 
     saveSetup(){
@@ -1559,10 +1573,8 @@ class LichatUI{
     }
 
     loadSetup(){
-        if(!this.db) return;
-        let tx = this.db.transaction(["options", "clients", "channels", "users"]);
-        this.loadOptions(tx);
-        this.loadClients(tx);
+        return this.loadOptions()
+            .then(()=>this.loadClients());
     }
 
     clearSetup(){
