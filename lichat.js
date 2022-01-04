@@ -3112,8 +3112,13 @@ class LichatUI{
                     if(client.isAvailable("shirakumo-backfill") && !this.embedded){
                         promise.then(()=>{
                             let since = null;
-                            if(0 < channel.messageList.length)
-                                since = cl.unixToUniversal(channel.messageList[channel.messageList.length-1].timestamp);
+                            for(let i=channel.messageList.length-1; 0<i; i--){
+                                let message = channel.messageList[i];
+                                if(!message.author.isSelf){
+                                    since = cl.unixToUniversal(message.timestamp);
+                                    break;
+                                }
+                            }
                             channel.s("BACKFILL", {since: since}, true);
                         });
                     }
