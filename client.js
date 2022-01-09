@@ -118,10 +118,10 @@ class LichatMessage{
     markupText(text){
         return text;
     }
+}
 
-    static makeGid(channel, author, id){
-        return channel.client.servername+"  "+channel.name+"  "+author.toLowerCase()+"  "+id;
-    }
+LichatMessage.makeGid = (channel, author, id)=>{
+    return channel.client.servername+"  "+channel.name+"  "+author.toLowerCase()+"  "+id;
 }
 
 class LichatUser{

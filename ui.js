@@ -1165,7 +1165,7 @@ class LichatUI{
         this.addCommand("leave", (channel, ...name)=>{
             name = (0 < name.length)? name.join(" ") : channel.name;
             let perform = ()=>channel.client.removeFromChannelList(channel.client.getChannel(name));
-            if(channel.client.hasChannel(name) && !chanel.client.getChannel(name).isPresent){
+            if(channel.client.hasChannel(name) && !channel.client.getChannel(name).isPresent){
                 perform();
             }else{
                 channel.client.s("leave", {channel: name})
