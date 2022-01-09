@@ -5,6 +5,7 @@ class LichatUI{
         this.commands = {};
         this.clients = [];
         this.currentChannel = null;
+        this.autoScroll = true;
         this.search = null;
         this.showEmotePicker = false;
         this.showChannelMenu = false;
@@ -79,7 +80,7 @@ class LichatUI{
                 let output = lichat.app.$refs.output;
                 if(!output)
                     notify = false;
-                else if(output.scrollTop === (output.scrollHeight - output.offsetHeight)){
+                else if(lichat.autoScroll){
                     if(!document.hidden) notify = false;
                     Vue.nextTick(() => {
                         let el = document.getElementById(message.gid);
@@ -1107,6 +1108,10 @@ class LichatUI{
                 },
                 formatUserText: (text, channel)=>{
                     return LichatUI.formatUserText(text, channel);
+                },
+                handleScroll: (ev)=>{
+                    let output = this.app.$refs.output;
+                    this.autoScroll = (output.scrollTop === (output.scrollHeight - output.offsetHeight));
                 }
             }
         });

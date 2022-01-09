@@ -877,7 +877,8 @@
           </nav>
         </header>
         <section class="output" ref="output"
-                 v-bind:style="{fontFamily: options.font, fontSize: options.fontSize+'pt'}">
+                 v-bind:style="{fontFamily: options.font, fontSize: options.fontSize+'pt'}"
+                 v-on:scroll="handleScroll">
           <message v-for="message in currentChannel.messageList"
                    v-bind:message="message"
                    v-bind:key="message.gid"></message>

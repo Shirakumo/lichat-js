@@ -911,10 +911,10 @@ class LichatMessage{
     markupText(text){
         return text;
     }
+}
 
-    static makeGid(channel, author, id){
-        return channel.client.servername+"  "+channel.name+"  "+author.toLowerCase()+"  "+id;
-    }
+LichatMessage.makeGid = (channel, author, id)=>{
+    return channel.client.servername+"  "+channel.name+"  "+author.toLowerCase()+"  "+id;
 }
 
 class LichatUser{
@@ -1809,6 +1809,7 @@ class LichatUI{
         this.commands = {};
         this.clients = [];
         this.currentChannel = null;
+        this.autoScroll = true;
         this.search = null;
         this.showEmotePicker = false;
         this.showChannelMenu = false;
@@ -1883,7 +1884,7 @@ class LichatUI{
                 let output = lichat.app.$refs.output;
                 if(!output)
                     notify = false;
-                else if(output.scrollTop === (output.scrollHeight - output.offsetHeight)){
+                else if(lichat.autoScroll){
                     if(!document.hidden) notify = false;
                     Vue.nextTick(() => {
                         let el = document.getElementById(message.gid);
@@ -2911,6 +2912,10 @@ class LichatUI{
                 },
                 formatUserText: (text, channel)=>{
                     return LichatUI.formatUserText(text, channel);
+                },
+                handleScroll: (ev)=>{
+                    let output = this.app.$refs.output;
+                    this.autoScroll = (output.scrollTop === (output.scrollHeight - output.offsetHeight));
                 }
             }
         });
@@ -2969,7 +2974,7 @@ class LichatUI{
         this.addCommand("leave", (channel, ...name)=>{
             name = (0 < name.length)? name.join(" ") : channel.name;
             let perform = ()=>channel.client.removeFromChannelList(channel.client.getChannel(name));
-            if(channel.client.hasChannel(name) && !chanel.client.getChannel(name).isPresent){
+            if(channel.client.hasChannel(name) && !channel.client.getChannel(name).isPresent){
                 perform();
             }else{
                 channel.client.s("leave", {channel: name})
