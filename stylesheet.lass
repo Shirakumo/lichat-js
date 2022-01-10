@@ -509,6 +509,15 @@
     :outline none !important
     :border-color (hex 0088EE)))))
 
+(.client.mobile
+  (>.side
+   :position fixed
+   :top 0
+   :left 0
+   :height 100%)
+  (>.divider
+   :display none))
+
 (:media "(max-width: 800px)"
         (.client
          (>main

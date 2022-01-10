@@ -13,8 +13,11 @@ class LichatUI{
         this.showSelfMenu = false;
         this.showSettings = false;
         this.errorMessage = null;
+        this.isMobile = (config.mobile !== undefined)
+            ? config.mobile
+            : (document.body.getBoundingClientRect().width < 500);
         this.embedded = config.embedded;
-        this.showSideBar = !config.embedded;
+        this.showSideBar = !(this.embedded || this.isMobile);
         this.db = null;
         this.lastTypingUpdate = 0;
         this.defaultClientConfig = {...LichatDefaultClient};
@@ -176,12 +179,12 @@ class LichatUI{
             };},
             methods: {
                 drag: function(ev){
-                    ev.preventDefault();
-                    let x = ev.clientX - this.$el.getBoundingClientRect().width;
+                    let x = (ev.clientX || event.touches[0].pageX)
+                        - this.$el.getBoundingClientRect().width;
                     lichat.options.sidebarWidth = x+"px";
                 },
                 stopDragging: function(ev){
-                    ev.preventDefault();
+                    console.log(ev);
                     document.removeEventListener('mousemove', this.drag);
                     document.removeEventListener('mouseup', this.stopDragging);
                     document.removeEventListener('touchmove', this.drag);
@@ -1006,6 +1009,7 @@ class LichatUI{
                 switchChannel: (channel)=>{
                     channel.unread = 0;
                     channel.alerted = false;
+                    if(this.isMobile) this.showSideBar = false;
                     this.currentChannel = channel;
                     this.updateTitle();
                     Vue.nextTick(() => {

@@ -795,9 +795,9 @@
     </script>
   </head>
   <body>
-    <div class="client">
+    <div class="client" v-bind:class="{mobile: isMobile}">
       <div class="side"
-           v-if="showSideBar"
+           v-show="showSideBar"
            v-bind:style="{width: options.sidebarWidth, minWidth: options.sidebarWidth, maxWidth: options.sidebarWidth}">
         <nav v-show="0 < clients.length">
           <section class="server" v-for="client in clients" v-bind:class="{connected: client._socket && client._reconnectAttempts == 0}">
@@ -845,10 +845,12 @@
           </nav>
         </footer>
       </div>
-      <divider v-if="showSideBar"></divider>
+      <divider v-show="showSideBar"></divider>
       <main v-if="currentChannel" v-on:drop.capture="uploadFile">
         <header>
-          <img class="icon" v-bind:src="currentChannel.icon">
+          <img class="icon"
+               v-bind:src="currentChannel.icon"
+               v-on:click="showSideBar = true">
           <span class="name">{{currentChannel.name}}</span>
           <span class="topic" v-html="formatUserText(currentChannel.topic, currentChannel)"></span>
           <nav>
