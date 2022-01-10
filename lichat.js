@@ -1850,10 +1850,10 @@ class LichatUI{
         }
 
         let mouseX = 0, mouseY = 0;
-        document.addEventListener("mousemove", (ev)=>{
+        ["mousemove", "mousedown", "touchmove", "touchstart"].forEach((e)=>document.addEventListener(e, (ev)=>{
             mouseX = ev.clientX;
             mouseY = ev.clientY;
-        });
+        }));
 
         document.addEventListener("visibilitychange", ()=>{
             if(!document.hidden && this.currentChannel){
@@ -1988,6 +1988,8 @@ class LichatUI{
                     ev.preventDefault();
                     document.removeEventListener('mousemove', this.drag);
                     document.removeEventListener('mouseup', this.stopDragging);
+                    document.removeEventListener('touchmove', this.drag);
+                    document.removeEventListener('touchend', this.stopDragging);
                 }
             },
             mounted: function(){
@@ -1995,6 +1997,10 @@ class LichatUI{
                 this.$el.addEventListener('mousedown', (ev)=>{
                     document.addEventListener('mousemove', this.drag);
                     document.addEventListener('mouseup', this.stopDragging);
+                });
+                this.$el.addEventListener('touchstart', (ev)=>{
+                    document.addEventListener('touchmove', this.drag);
+                    document.addEventListener('touchend', this.stopDragging);
                 });
             }
         });
