@@ -719,6 +719,8 @@ class LichatClient{
     s(type, args, noPromise){
         args = args || {};
         if(!args.from) args.from = this.username;
+        if(!args.clock) args.clock = cl.getUniversalTime();
+        if(!args.id) args.id = nextID();
         let update = cl.makeInstance(type, args);
         if(noPromise) return this.send(update);
         return new Promise((ok, fail)=>{
