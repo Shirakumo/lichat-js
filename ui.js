@@ -87,7 +87,16 @@ class LichatUI{
                     if(!document.hidden) notify = false;
                     Vue.nextTick(() => {
                         let el = document.getElementById(message.gid);
-                        if(el) el.scrollIntoView();
+                        if(el){
+                            let imgs = el.querySelectorAll("img");
+                            el.scrollIntoView();
+                            Promise.all([].map.call(imgs, (img)=>
+                                new Promise((ok)=>{
+                                    if(img.complete) ok();
+                                    else img.addEventListener('load', ok);
+                                })))
+                                .then(()=>el.scrollIntoView());
+                        }
                     });
                 }
             }
@@ -1015,7 +1024,6 @@ class LichatUI{
                     Vue.nextTick(() => {
                         this.app.$refs.output.scrollTop = this.app.$refs.output.scrollHeight;
                         this.app.$refs.input.focus();
-                        
                     });
                 },
                 toggleSearch: ()=>{
