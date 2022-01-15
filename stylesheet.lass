@@ -144,6 +144,12 @@
      (li
       :display flex
       :height 2em
+      ((:and .expand .open)
+       ((:and > :first-child)
+        :display none))
+      ((:and .expand (:not .open))
+       ((:and > :last-child)
+        :display none))
       (.name
        :flex-grow 1)))
     (label

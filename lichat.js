@@ -2507,6 +2507,19 @@ class LichatUI{
                             else
                                 this.errorMessage = e.text;
                         });
+                },
+                expand: function(channel, event){
+                    let button = event.target.closest('a.expand') || event.target;
+                    channel.s("channels")
+                        .then((e)=>{
+                            if(!button.classList.contains("open")) {
+                                for(let name of e.channels)
+                                    this.channels.push(this.channel.client.getChannel(name));
+                            }
+                            button.classList.toggle("open");
+                            this.filter();
+                        })
+                        .catch((e)=>this.errorMessage = e.text);
                 }
             }
         });

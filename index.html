@@ -486,6 +486,10 @@
             <section>
               <ul class="channellist">
                 <li v-for="channel in channelList">
+                  <a class="expand" v-on:click.stop="expand(channel, $event)">
+                    <i class="fas fa-plus-square"></i>
+                    <i class="fas fa-minus-square"></i>
+                  </a>
                   <img class="icon" v-bind:src="channel.icon">
                   <span class="name"
                         v-bind:title="channel.name">{{channel.name}}</span>
