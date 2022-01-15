@@ -1,31 +1,34 @@
+if(typeof module !== 'undefined'){
+    cl = module.require('./cl.js');
+    LichatStream = module.require('./stream.js');
+}
+
 var LichatReader = function(){
-    var self = this;
+    this.whitespace = "\u0009\u000A\u000B\u000C\u000D\u0020\u0085\u00A0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2008\u2009\u200A\u2028\u2029\u202F\u205F\u3000\u180E\u200B\u200C\u200D\u2060\uFEFF";
+    this.invalidSymbol = cl.intern("INVALID-SYMBOL");
 
-    self.whitespace = "\u0009\u000A\u000B\u000C\u000D\u0020\u0085\u00A0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2008\u2009\u200A\u2028\u2029\u202F\u205F\u3000\u180E\u200B\u200C\u200D\u2060\uFEFF";
-    self.invalidSymbol = cl.intern("INVALID-SYMBOL");
-
-    self.isWhitespace = (character)=>{
-        return self.whitespace.indexOf(character) >= 0;
+    this.isWhitespace = (character)=>{
+        return this.whitespace.indexOf(character) >= 0;
     };
 
-    self.skipWhitespace = (stream)=>{
-        while(self.isWhitespace(stream.readChar()));
+    this.skipWhitespace = (stream)=>{
+        while(this.isWhitespace(stream.readChar()));
         stream.unreadChar();
         return stream;
     };
 
-    self.readSexprList = (stream)=>{
+    this.readSexprList = (stream)=>{
         var array = [];
-        self.skipWhitespace(stream);
+        this.skipWhitespace(stream);
         while(stream.peekChar() !== ")"){
-            array.push(self.readSexpr(stream));
-            self.skipWhitespace(stream);
+            array.push(this.readSexpr(stream));
+            this.skipWhitespace(stream);
         }
         stream.readChar();
         return array;
     };
 
-    self.readSexprString = (stream)=>{
+    this.readSexprString = (stream)=>{
         var out = new LichatStream();
         loop:
         for(;;){
@@ -39,11 +42,11 @@ var LichatReader = function(){
         return out.string;
     };
 
-    self.readSexprKeyword = (stream)=>{
-        return cl.intern(self.readSexprToken(stream), "keyword");
+    this.readSexprKeyword = (stream)=>{
+        return cl.intern(this.readSexprToken(stream), "keyword");
     };
 
-    self.readSexprNumber = (stream)=>{
+    this.readSexprNumber = (stream)=>{
         var out = new LichatStream();
         var point = false;
         loop:
@@ -78,7 +81,7 @@ var LichatReader = function(){
         }
     };
 
-    self.readSexprToken = (stream)=>{
+    this.readSexprToken = (stream)=>{
         stream.peekChar();
         var out = new LichatStream();
         loop:
@@ -98,11 +101,11 @@ var LichatReader = function(){
         return out.string;
     };
 
-    self.readSexprSymbol = (stream)=>{
-        var token = self.readSexprToken(stream);
+    this.readSexprSymbol = (stream)=>{
+        var token = this.readSexprToken(stream);
         if(stream.peekChar(false) === ":"){
             stream.readChar();
-            return cl.intern(self.readSexprToken(stream), token);
+            return cl.intern(this.readSexprToken(stream), token);
         }else{
             var symbol = cl.intern(token, "LICHAT");
             if(symbol == cl.NIL) return null;
@@ -111,25 +114,25 @@ var LichatReader = function(){
         }
     };
 
-    self.readSexpr = (stream)=>{
-        self.skipWhitespace(stream);
+    this.readSexpr = (stream)=>{
+        this.skipWhitespace(stream);
         // FIXME: Catch symbol errors
         switch(stream.readChar()){
-        case "(": return self.readSexprList(stream);
+        case "(": return this.readSexprList(stream);
         case ")": throw new Error("INCOMPLETE-TOKEN");
-        case "\"": return self.readSexprString(stream);
+        case "\"": return this.readSexprString(stream);
         case "0": case "1": case "2": case "3": case "4":
         case "5": case "6": case "7": case "8": case "9": case ".":
             stream.unreadChar();
-            return self.readSexprNumber(stream);
-        case ":": return self.readSexprKeyword(stream);
+            return this.readSexprNumber(stream);
+        case ":": return this.readSexprKeyword(stream);
         default:
             stream.unreadChar();
-            return self.readSexprSymbol(stream);
+            return this.readSexprSymbol(stream);
         }
     };
 
-    self.parseUpdate = (sexpr)=>{
+    this.parseUpdate = (sexpr)=>{
         var type = sexpr.shift();
         if(!cl.symbolp(type))
             throw new Error("First item in list is not a symbol: "+sexpr);
@@ -150,18 +153,21 @@ var LichatReader = function(){
         return cl.makeInstance(type, initargs);
     };
 
-    self.fromWire = (stream)=>{
-        var sexpr = self.readSexpr(stream);
+    this.fromWire = (stream)=>{
+        var sexpr = this.readSexpr(stream);
         if(sexpr instanceof Array){
-            return self.parseUpdate(sexpr);
+            return this.parseUpdate(sexpr);
         }else{
             return sexpr;
         }
     };
 
-    return self;
+    return this;
 };
 
 LichatReader.fromString = (string)=>{
-    return new LichatReader().fromWire(new LichatStream(string));
+    return new LichatReader().readSexpr(new LichatStream(string));
 };
+
+if(typeof module !== 'undefined')
+    module.exports = LichatReader;

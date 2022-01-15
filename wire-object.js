@@ -1,178 +1,199 @@
-var LichatVersion = "2.0";
-var IDCounter = Math.floor(Math.random()*(+new Date()));
-var nextID = ()=>{
-    var ID = IDCounter;
-    IDCounter++;
-    return ID;
-};
-
-cl.defclass("wire-object", []);
-cl.defclass("update", ["wire-object"], {
-    clock: cl.getUniversalTime,
-    id: nextID,
-    from: null
+var LichatExtensions = ['shirakumo-backfill','shirakumo-data','shirakumo-emote','shirakumo-edit','shirakumo-channel-trees','shirakumo-channel-info','shirakumo-server-management','shirakumo-pause','shirakumo-quiet','shirakumo-ip','shirakumo-bridge','shirakumo-link','shirakumo-markup','shirakumo-user-info','shirakumo-shared-identity','shirakumo-sign','shirakumo-history','shirakumo-block','shirakumo-reactions','shirakumo-replies','shirakumo-last-read','shirakumo-typing'];
+(()=>{ let s = cl.intern;
+cl.defclass(s('update','lichat'), [s('object','lichat')], {
+   'id': cl.requiredArg('id'),
+   'clock': null,
+   'from': null,
+   'signature': null,
 });
-cl.defclass("ping", ["update"]);
-cl.defclass("pong", ["update"]);
-cl.defclass("connect", ["update"], {
-    password: null,
-    version: LichatVersion,
-    extensions: []
+cl.defclass(s('ping','lichat'), [s('update','lichat')]);
+cl.defclass(s('pong','lichat'), [s('update','lichat')]);
+cl.defclass(s('connect','lichat'), [s('update','lichat')], {
+   'password': null,
+   'version': cl.requiredArg('version'),
+   'extensions': cl.requiredArg('extensions'),
 });
-cl.defclass("disconnect", ["update"]);
-cl.defclass("register", ["update"], {
-    password: cl.requiredArg("password")
+cl.defclass(s('disconnect','lichat'), [s('update','lichat')]);
+cl.defclass(s('register','lichat'), [s('update','lichat')], {
+   'password': cl.requiredArg('password'),
 });
-cl.defclass("channel-update", ["update"], {
-    channel: cl.requiredArg("channel"),
-    bridge: null
+cl.defclass(s('channel-update','lichat'), [s('update','lichat')], {
+   'channel': cl.requiredArg('channel'),
+   'bridge': null,
 });
-cl.defclass("target-update", ["update"], {
-    target: cl.requiredArg("target")
+cl.defclass(s('target-update','lichat'), [s('update','lichat')], {
+   'target': cl.requiredArg('target'),
 });
-cl.defclass("text-update", ["update"], {
-    text: cl.requiredArg("text")
+cl.defclass(s('text-update','lichat'), [s('update','lichat')], {
+   'text': cl.requiredArg('text'),
+   'rich': null,
+   'markup': null,
 });
-cl.defclass("join", ["channel-update"]);
-cl.defclass("leave", ["channel-update"]);
-cl.defclass("create", ["channel-update"], {
-    channel: null
+cl.defclass(s('join','lichat'), [s('channel-update','lichat')]);
+cl.defclass(s('leave','lichat'), [s('channel-update','lichat')]);
+cl.defclass(s('message','lichat'), [s('channel-update','lichat'),s('text-update','lichat')], {
+   'link': null,
+   'reply-to': null,
 });
-cl.defclass("kick", ["channel-update", "target-update"]);
-cl.defclass("pull", ["channel-update", "target-update"]);
-cl.defclass("permissions", ["channel-update"], {
-    permissions: []
+cl.defclass(s('create','lichat'), [s('object','lichat')], {
+   'channel': null,
 });
-cl.defclass("grant", ["channel-update", "target-update"], {
-    update: cl.requiredArg("update")
+cl.defclass(s('kick','lichat'), [s('channel-update','lichat'),s('target-update','lichat')]);
+cl.defclass(s('pull','lichat'), [s('channel-update','lichat'),s('target-update','lichat')]);
+cl.defclass(s('permissions','lichat'), [s('channel-update','lichat')], {
+   'permissions': null,
 });
-cl.defclass("deny", ["channel-update", "target-update"], {
-    update: cl.requiredArg("update")
+cl.defclass(s('grant','lichat'), [s('channel-update','lichat'),s('target-update','lichat')], {
+   'update': cl.requiredArg('update'),
 });
-cl.defclass("capabilities", ["channel-update"], {
-    permitted: []
+cl.defclass(s('deny','lichat'), [s('channel-update','lichat'),s('target-update','lichat')], {
+   'update': cl.requiredArg('update'),
 });
-cl.defclass("message", ["channel-update", "text-update"], {
-    bridge: null,
-    link: null,
-    "reply-to": null
+cl.defclass(s('users','lichat'), [s('channel-update','lichat')], {
+   'users': null,
 });
-cl.defclass("edit", ["channel-update", "text-update"]);
-cl.defclass("users", ["channel-update"], {
-    users: []
+cl.defclass(s('channels','lichat'), [s('channel-update','lichat')], {
+   'channels': null,
+   'channel': null,
 });
-cl.defclass("channels", ["update"], {
-    channels: [],
-    channel: null
+cl.defclass(s('user-info','lichat'), [s('target-update','lichat')], {
+   'registered': null,
+   'connections': null,
+   'info': null,
 });
-cl.defclass("user-info", ["target-update"], {
-    registered: false,
-    connections: 1,
-    info: []
+cl.defclass(s('capabilities','lichat'), [s('channel-update','lichat')], {
+   'permitted': null,
 });
-cl.defclass("server-info", ["target-update"], {
-    attributes: [],
-    connections: []
+cl.defclass(s('server-info','lichat'), [s('target-update','lichat')], {
+   'attributes': cl.requiredArg('attributes'),
+   'connections': cl.requiredArg('connections'),
 });
-cl.defclass("backfill", ["channel-update"], {
-    since: null
+cl.defclass(s('failure','lichat'), [s('text-update','lichat')]);
+cl.defclass(s('malformed-update','lichat'), [s('failure','lichat')]);
+cl.defclass(s('update-too-long','lichat'), [s('failure','lichat')]);
+cl.defclass(s('connection-unstable','lichat'), [s('failure','lichat')]);
+cl.defclass(s('too-many-connections','lichat'), [s('failure','lichat')]);
+cl.defclass(s('update-failure','lichat'), [s('failure','lichat')], {
+   'update-id': cl.requiredArg('update-id'),
 });
-cl.defclass("data", ["channel-update"], {
-    "content-type": cl.requiredArg("content-type"),
-    filename: null,
-    payload: cl.requiredArg("payload")
+cl.defclass(s('invalid-update','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('already-connected','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('username-mismatch','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('incompatible-version','lichat'), [s('update-failure','lichat')], {
+   'compatible-versions': cl.requiredArg('compatible-versions'),
 });
-cl.defclass("emotes", ["update"], {
-    names: []
+cl.defclass(s('invalid-password','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('no-such-profile','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('username-taken','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('no-such-channel','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('registration-rejected','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('already-in-channel','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('not-in-channel','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('channelname-taken','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('too-many-channels','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('bad-name','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('insufficient-permissions','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('invalid-permissions','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('no-such-user','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('too-many-updates','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('clock-skewed','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('backfill','shirakumo'), [s('channel-update','lichat')], {
+   'since': null,
 });
-cl.defclass("emote", ["update"], {
-    "content-type": cl.requiredArg("content-type"),
-    name: cl.requiredArg("name"),
-    payload: cl.requiredArg("payload")
+cl.defclass(s('data','shirakumo'), [s('channel-update','lichat')], {
+   'content-type': cl.requiredArg('content-type'),
+   'filename': null,
+   'payload': cl.requiredArg('payload'),
 });
-cl.defclass("channel-info", ["channel-update"], {
-    keys: true
+cl.defclass(s('bad-content-type','shirakumo'), [s('update-failure','lichat')], {
+   'allowed-content-types': cl.requiredArg('allowed-content-types'),
 });
-cl.defclass("set-channel-info", ["channel-update", "text-update"], {
-    key: cl.requiredArg("key")
+cl.defclass(s('emotes','shirakumo'), [s('channel-update','lichat')], {
+   'names': null,
 });
-cl.defclass("set-user-info", ["text-update"], {
-    key: cl.requiredArg("key")
+cl.defclass(s('emote','shirakumo'), [s('channel-update','lichat')], {
+   'content-type': cl.requiredArg('content-type'),
+   'name': cl.requiredArg('name'),
+   'payload': cl.requiredArg('payload'),
 });
-cl.defclass("pause", ["channel-update"], {
-    by: cl.requiredArg("by")
+cl.defclass(s('emote-list-full','shirakumo'), [s('update-failure','lichat')]);
+cl.defclass(s('edit','shirakumo'), [s('message','lichat')]);
+cl.defclass(s('no-such-parent-channel','shirakumo'), [s('update-failure','lichat')]);
+cl.defclass(s('channel-info','shirakumo'), [s('channel-update','lichat')], {
+   'keys': cl.requiredArg('keys'),
 });
-cl.defclass("quiet", ["channel-update","target-update"]);
-cl.defclass("unquiet", ["channel-update","target-update"]);
-cl.defclass("kill", ["target-update"]);
-cl.defclass("destroy", ["channel-update"]);
-cl.defclass("ban", ["target-update"]);
-cl.defclass("unban", ["target-update"]);
-cl.defclass("blacklist", ["update"], {
-    target: null
+cl.defclass(s('set-channel-info','shirakumo'), [s('channel-update','lichat'),s('text-update','lichat')], {
+   'key': cl.requiredArg('key'),
 });
-cl.defclass("ip-ban", ["update"], {
-    ip: cl.requiredArg("ip"),
-    mask: cl.requiredArg("mask")
+cl.defclass(s('no-such-channel-info','shirakumo'), [s('update-failure','lichat')], {
+   'key': cl.requiredArg('key'),
 });
-cl.defclass("ip-unban", ["update"], {
-    ip: cl.requiredArg("ip"),
-    mask: cl.requiredArg("mask")
+cl.defclass(s('malformed-channel-info','shirakumo'), [s('update-failure','lichat')]);
+cl.defclass(s('kill','shirakumo'), [s('target-update','lichat')]);
+cl.defclass(s('destroy','shirakumo'), [s('channel-update','lichat')]);
+cl.defclass(s('ban','shirakumo'), [s('target-update','lichat')]);
+cl.defclass(s('unban','shirakumo'), [s('target-update','lichat')]);
+cl.defclass(s('blacklist','shirakumo'), [s('update','lichat')], {
+   'target': null,
 });
-cl.defclass("ip-blacklist", ["update"], {
-    target: null
+cl.defclass(s('pause','shirakumo'), [s('channel-update','lichat')], {
+   'by': cl.requiredArg('by'),
 });
-cl.defclass("block", ["target-update"]);
-cl.defclass("unblock", ["target-update"]);
-cl.defclass("blocked", ["update"], {
-    target: null
+cl.defclass(s('quiet','shirakumo'), [s('channel-update','lichat'),s('target-update','lichat')]);
+cl.defclass(s('unquiet','shirakumo'), [s('channel-update','lichat'),s('target-update','lichat')]);
+cl.defclass(s('quieted','shirakumo'), [s('channel-update','lichat')], {
+   'target': null,
 });
-cl.defclass("react", ["channel-update"], {
-    target: cl.requiredArg("target"),
-    "update-id": cl.requiredArg("update-id"),
-    emote: cl.requiredArg("emote")
+cl.defclass(s('ip-ban','shirakumo'), [s('update','lichat')], {
+   'ip': cl.requiredArg('ip'),
+   'mask': cl.requiredArg('mask'),
 });
-cl.defclass("typing", ["channel-update"]);
-cl.defclass("search", ["channel-update"], {
-    results: null,
-    offset: null,
-    query: null
+cl.defclass(s('ip-unban','shirakumo'), [s('update','lichat')], {
+   'ip': cl.requiredArg('ip'),
+   'mask': cl.requiredArg('mask'),
 });
-
-cl.defclass("failure", ["text-update"]);
-cl.defclass("malformed-update", ["failure"]);
-cl.defclass("update-too-long", ["failure"]);
-cl.defclass("connection-unstable", ["failure"]);
-cl.defclass("too-many-connections", ["failure"]);
-cl.defclass("update-failure", ["failure"], {
-    "update-id": cl.requiredArg("update-id")
+cl.defclass(s('ip-blacklist','shirakumo'), [s('update','lichat')], {
+   'target': null,
 });
-cl.defclass("invalid-update", ["update-failure"]);
-cl.defclass("username-mismatch", ["update-failure"]);
-cl.defclass("incompatible-version", ["update-failure"], {
-    "compatible-versions": cl.requiredArg("compatible-versions")
+cl.defclass(s('bad-ip-format','shirakumo'), [s('update-failure','lichat')]);
+cl.defclass(s('bridge','shirakumo'), [s('channel-update','lichat')]);
+cl.defclass(s('set-user-info','shirakumo'), [s('text-update','lichat')], {
+   'key': cl.requiredArg('key'),
 });
-cl.defclass("invalid-password", ["update-failure"]);
-cl.defclass("no-such-profile", ["update-failure"]);
-cl.defclass("username-taken", ["update-failure"]);
-cl.defclass("no-such-channel", ["update-failure"]);
-cl.defclass("already-in-channel", ["update-failure"]);
-cl.defclass("not-in-channel", ["update-failure"]);
-cl.defclass("channelname-taken", ["update-failure"]);
-cl.defclass("bad-name", ["update-failure"]);
-cl.defclass("insufficient-permissions", ["update-failure"]);
-cl.defclass("no-such-user", ["update-failure"]);
-cl.defclass("too-many-updates", ["update-failure"]);
-cl.defclass("bad-content-type", ["update-failure"], {
-    "allowed-content-types": []
+cl.defclass(s('malformed-user-info','shirakumo'), [s('update-failure','lichat')]);
+cl.defclass(s('no-such-user-info','shirakumo'), [s('update-failure','lichat')], {
+   'key': cl.requiredArg('key'),
 });
-cl.defclass("no-such-channel-info", ["update-failure"], {
-    key: cl.requiredArg("key")
+cl.defclass(s('share-identity','shirakumo'), [s('update','lichat')], {
+   'key': null,
 });
-cl.defclass("malformed-channel-info", ["update-failure"]);
-cl.defclass("no-such-user-info", ["update-failure"], {
-    key: cl.requiredArg("key")
+cl.defclass(s('unshare-identity','shirakumo'), [s('update','lichat')], {
+   'key': null,
 });
-cl.defclass("malformed-user-info", ["update-failure"]);
-cl.defclass("clock-skewed", ["update-failure"]);
-cl.defclass("registration-rejected", ["update-failure"]);
+cl.defclass(s('list-shared-identities','shirakumo'), [s('update','lichat')], {
+   'identities': null,
+});
+cl.defclass(s('assume-identity','shirakumo'), [s('target-update','lichat')], {
+   'key': cl.requiredArg('key'),
+});
+cl.defclass(s('search','shirakumo'), [s('channel-update','lichat')], {
+   'results': null,
+   'offset': null,
+   'query': null,
+});
+cl.defclass(s('block','shirakumo'), [s('target-update','lichat')]);
+cl.defclass(s('unblock','shirakumo'), [s('target-update','lichat')]);
+cl.defclass(s('blocked','shirakumo'), [s('update','lichat')], {
+   'target': null,
+});
+cl.defclass(s('react','shirakumo'), [s('channel-update','lichat')], {
+   'target': cl.requiredArg('target'),
+   'update-id': cl.requiredArg('update-id'),
+   'emote': cl.requiredArg('emote'),
+});
+cl.defclass(s('last-read','shirakumo'), [s('channel-update','lichat')], {
+   'target': null,
+   'update-id': null,
+});
+cl.defclass(s('typing','shirakumo'), [s('channel-update','lichat')]);
+})();

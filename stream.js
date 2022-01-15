@@ -49,3 +49,6 @@ var LichatStream = function(string){
     
     return self;
 };
+
+if(typeof module !== 'undefined')
+    module.exports = LichatStream;

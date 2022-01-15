@@ -55,7 +55,7 @@ var CL = function(){
 
     self.defclass = (name, directSuperclasses, initforms, constructor)=>{
         if(directSuperclasses.length === 0)
-            directSuperclasses = ["StandardObject"];
+            directSuperclasses = ["object"];
         if(initforms === undefined) initforms = {};
         if(constructor === undefined) constructor=()=>{};
         directSuperclasses = directSuperclasses.map(self.findClass);
@@ -110,6 +110,9 @@ var CL = function(){
     };
 
     self.setClass = (name, c)=>{
+        if(name instanceof Symbol)
+            name = name.name;
+        
         name = name.toLowerCase();
         if(c)
             classes[name] = c;
@@ -264,8 +267,8 @@ var StandardObject = function(initargs){
 
     return self;
 };
-cl.setClass("StandardObject", StandardObject);
-StandardObject.className = "StandardObject";
+cl.setClass("object", StandardObject);
+StandardObject.className = cl.intern("object", "lichat");
 StandardObject.directSuperclasses = [];
 StandardObject.superclasses = [];
 
@@ -291,3 +294,8 @@ StandardObject.prototype.set = function(key, val){
     cl.pushnew(varname, self.fields);
     return val;
 };
+
+cl.StandardObject = StandardObject;
+
+if(typeof module !== 'undefined')
+    module.exports = cl;

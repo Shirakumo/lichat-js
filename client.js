@@ -1,3 +1,4 @@
+var LichatVersion = "2.0";
 var LichatDefaultPort = 1113;
 var LichatDefaultSSLPort = 1114;
 var LichatDefaultClient = {
@@ -47,7 +48,7 @@ class LichatMessage{
         this.url = document.location.href.match(/(^[^#]*)/)[0]+"#"+this.gid;
         this.timestamp = cl.universalToUnix(update.clock);
         this.clock = new Date(this.timestamp*1000);
-        this.type = update.type.toLowerCase();
+        this.type = update.type.name;
         this.contentType = update.link || "text/plain";
         if(update["reply-to"])
             this.replyTo = channel.getMessage(update["reply-to"][0], update["reply-to"][1]);
@@ -440,7 +441,7 @@ class LichatChannel{
         options = options || {};
         options.system = true;
         let message = new LichatMessage({
-            id: nextID(),
+            id: this._client.nextID(),
             from: "System",
             clock: cl.getUniversalTime(),
             text: text,
@@ -501,6 +502,7 @@ class LichatClient{
         this._printer = new LichatPrinter();
         this._pingTimer = null;
         this._reconnectAttempts = 0;
+        this._IDCounter = Math.floor(Math.random()*(+new Date()));
 
         this.supportedExtensions = this.supportedExtensions.filter((extension)=>
             !(options.disabledExtensions || []).includes(extension));
@@ -541,7 +543,7 @@ class LichatClient{
                 }
                 channel.s("users", {}, true);
                 if(this.isAvailable("shirakumo-channel-info"))
-                    channel.s("channel-info", {}, true);
+                    channel.s("channel-info", {keys: true}, true);
                 if(this.isAvailable("shirakumo-emotes"))
                     channel.s("emotes", {names: channel.getEmoteList()}, true);
             }
@@ -655,9 +657,9 @@ class LichatClient{
             this._socket.onmessage = (e)=>{
                 let update = this._reader.fromWire(new LichatStream(e.data));
                 try{
-                    if(!(cl.typep(update, "wire-object")))
+                    if(!(cl.typep(update, "object")))
                         fail({text: "non-Update message", update: update});
-                    else if(update.type !== "connect")
+                    else if(update.type.name !== "connect")
                         fail({text: update.text, update: update});
                     else{
                     }
@@ -705,6 +707,12 @@ class LichatClient{
         return this._socket && 0 < this._reconnectAttempts;
     }
 
+    nextID(){
+        let ID = this._IDCounter;
+        this._IDCounter++;
+        return ID;
+    }
+
     send(wireable){
         if(!this._socket || this._socket.readyState != 1)
             throw new Error("The client is not connected.");
@@ -720,7 +728,7 @@ class LichatClient{
         args = args || {};
         if(!args.from) args.from = this.username;
         if(!args.clock) args.clock = cl.getUniversalTime();
-        if(!args.id) args.id = nextID();
+        if(!args.id) args.id = this.nextID();
         let update = cl.makeInstance(type, args);
         if(noPromise) return this.send(update);
         return new Promise((ok, fail)=>{
@@ -789,13 +797,13 @@ class LichatClient{
             this.processCallbacks(update["update-id"], update);
         else
             this.processCallbacks(update.id, update);
-        if(!this.maybeCallInternalHandler(update.type, update)){
+        if(!this.maybeCallInternalHandler(update.type.name, update)){
             for(let s of cl.classOf(update).superclasses){
                 if(this.maybeCallInternalHandler(s.className, update))
                     break;
             }
         }
-        if(!this.maybeCallHandler(update.type, update)){
+        if(!this.maybeCallHandler(update.type.name, update)){
             for(let s of cl.classOf(update).superclasses){
                 if(this.maybeCallHandler(s.className, update))
                     break;

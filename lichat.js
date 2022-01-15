@@ -55,7 +55,7 @@ var CL = function(){
 
     self.defclass = (name, directSuperclasses, initforms, constructor)=>{
         if(directSuperclasses.length === 0)
-            directSuperclasses = ["StandardObject"];
+            directSuperclasses = ["object"];
         if(initforms === undefined) initforms = {};
         if(constructor === undefined) constructor=()=>{};
         directSuperclasses = directSuperclasses.map(self.findClass);
@@ -110,6 +110,9 @@ var CL = function(){
     };
 
     self.setClass = (name, c)=>{
+        if(name instanceof Symbol)
+            name = name.name;
+        
         name = name.toLowerCase();
         if(c)
             classes[name] = c;
@@ -264,8 +267,8 @@ var StandardObject = function(initargs){
 
     return self;
 };
-cl.setClass("StandardObject", StandardObject);
-StandardObject.className = "StandardObject";
+cl.setClass("object", StandardObject);
+StandardObject.className = cl.intern("object", "lichat");
 StandardObject.directSuperclasses = [];
 StandardObject.superclasses = [];
 
@@ -291,6 +294,11 @@ StandardObject.prototype.set = function(key, val){
     cl.pushnew(varname, self.fields);
     return val;
 };
+
+cl.StandardObject = StandardObject;
+
+if(typeof module !== 'undefined')
+    module.exports = cl;
 var LichatStream = function(string){
     var self = this;
     self.string = string || "";
@@ -342,184 +350,213 @@ var LichatStream = function(string){
     
     return self;
 };
-var LichatVersion = "2.0";
-var IDCounter = Math.floor(Math.random()*(+new Date()));
-var nextID = ()=>{
-    var ID = IDCounter;
-    IDCounter++;
-    return ID;
-};
 
-cl.defclass("wire-object", []);
-cl.defclass("update", ["wire-object"], {
-    clock: cl.getUniversalTime,
-    id: nextID,
-    from: null
+if(typeof module !== 'undefined')
+    module.exports = LichatStream;
+var LichatExtensions = ['shirakumo-backfill','shirakumo-data','shirakumo-emote','shirakumo-edit','shirakumo-channel-trees','shirakumo-channel-info','shirakumo-server-management','shirakumo-pause','shirakumo-quiet','shirakumo-ip','shirakumo-bridge','shirakumo-link','shirakumo-markup','shirakumo-user-info','shirakumo-shared-identity','shirakumo-sign','shirakumo-history','shirakumo-block','shirakumo-reactions','shirakumo-replies','shirakumo-last-read','shirakumo-typing'];
+(()=>{ let s = cl.intern;
+cl.defclass(s('update','lichat'), [s('object','lichat')], {
+   'id': cl.requiredArg('id'),
+   'clock': null,
+   'from': null,
+   'signature': null,
 });
-cl.defclass("ping", ["update"]);
-cl.defclass("pong", ["update"]);
-cl.defclass("connect", ["update"], {
-    password: null,
-    version: LichatVersion,
-    extensions: []
+cl.defclass(s('ping','lichat'), [s('update','lichat')]);
+cl.defclass(s('pong','lichat'), [s('update','lichat')]);
+cl.defclass(s('connect','lichat'), [s('update','lichat')], {
+   'password': null,
+   'version': cl.requiredArg('version'),
+   'extensions': cl.requiredArg('extensions'),
 });
-cl.defclass("disconnect", ["update"]);
-cl.defclass("register", ["update"], {
-    password: cl.requiredArg("password")
+cl.defclass(s('disconnect','lichat'), [s('update','lichat')]);
+cl.defclass(s('register','lichat'), [s('update','lichat')], {
+   'password': cl.requiredArg('password'),
 });
-cl.defclass("channel-update", ["update"], {
-    channel: cl.requiredArg("channel"),
-    bridge: null
+cl.defclass(s('channel-update','lichat'), [s('update','lichat')], {
+   'channel': cl.requiredArg('channel'),
+   'bridge': null,
 });
-cl.defclass("target-update", ["update"], {
-    target: cl.requiredArg("target")
+cl.defclass(s('target-update','lichat'), [s('update','lichat')], {
+   'target': cl.requiredArg('target'),
 });
-cl.defclass("text-update", ["update"], {
-    text: cl.requiredArg("text")
+cl.defclass(s('text-update','lichat'), [s('update','lichat')], {
+   'text': cl.requiredArg('text'),
+   'rich': null,
+   'markup': null,
 });
-cl.defclass("join", ["channel-update"]);
-cl.defclass("leave", ["channel-update"]);
-cl.defclass("create", ["channel-update"], {
-    channel: null
+cl.defclass(s('join','lichat'), [s('channel-update','lichat')]);
+cl.defclass(s('leave','lichat'), [s('channel-update','lichat')]);
+cl.defclass(s('message','lichat'), [s('channel-update','lichat'),s('text-update','lichat')], {
+   'link': null,
+   'reply-to': null,
 });
-cl.defclass("kick", ["channel-update", "target-update"]);
-cl.defclass("pull", ["channel-update", "target-update"]);
-cl.defclass("permissions", ["channel-update"], {
-    permissions: []
+cl.defclass(s('create','lichat'), [s('object','lichat')], {
+   'channel': null,
 });
-cl.defclass("grant", ["channel-update", "target-update"], {
-    update: cl.requiredArg("update")
+cl.defclass(s('kick','lichat'), [s('channel-update','lichat'),s('target-update','lichat')]);
+cl.defclass(s('pull','lichat'), [s('channel-update','lichat'),s('target-update','lichat')]);
+cl.defclass(s('permissions','lichat'), [s('channel-update','lichat')], {
+   'permissions': null,
 });
-cl.defclass("deny", ["channel-update", "target-update"], {
-    update: cl.requiredArg("update")
+cl.defclass(s('grant','lichat'), [s('channel-update','lichat'),s('target-update','lichat')], {
+   'update': cl.requiredArg('update'),
 });
-cl.defclass("capabilities", ["channel-update"], {
-    permitted: []
+cl.defclass(s('deny','lichat'), [s('channel-update','lichat'),s('target-update','lichat')], {
+   'update': cl.requiredArg('update'),
 });
-cl.defclass("message", ["channel-update", "text-update"], {
-    bridge: null,
-    link: null,
-    "reply-to": null
+cl.defclass(s('users','lichat'), [s('channel-update','lichat')], {
+   'users': null,
 });
-cl.defclass("edit", ["channel-update", "text-update"]);
-cl.defclass("users", ["channel-update"], {
-    users: []
+cl.defclass(s('channels','lichat'), [s('channel-update','lichat')], {
+   'channels': null,
+   'channel': null,
 });
-cl.defclass("channels", ["update"], {
-    channels: [],
-    channel: null
+cl.defclass(s('user-info','lichat'), [s('target-update','lichat')], {
+   'registered': null,
+   'connections': null,
+   'info': null,
 });
-cl.defclass("user-info", ["target-update"], {
-    registered: false,
-    connections: 1,
-    info: []
+cl.defclass(s('capabilities','lichat'), [s('channel-update','lichat')], {
+   'permitted': null,
 });
-cl.defclass("server-info", ["target-update"], {
-    attributes: [],
-    connections: []
+cl.defclass(s('server-info','lichat'), [s('target-update','lichat')], {
+   'attributes': cl.requiredArg('attributes'),
+   'connections': cl.requiredArg('connections'),
 });
-cl.defclass("backfill", ["channel-update"], {
-    since: null
+cl.defclass(s('failure','lichat'), [s('text-update','lichat')]);
+cl.defclass(s('malformed-update','lichat'), [s('failure','lichat')]);
+cl.defclass(s('update-too-long','lichat'), [s('failure','lichat')]);
+cl.defclass(s('connection-unstable','lichat'), [s('failure','lichat')]);
+cl.defclass(s('too-many-connections','lichat'), [s('failure','lichat')]);
+cl.defclass(s('update-failure','lichat'), [s('failure','lichat')], {
+   'update-id': cl.requiredArg('update-id'),
 });
-cl.defclass("data", ["channel-update"], {
-    "content-type": cl.requiredArg("content-type"),
-    filename: null,
-    payload: cl.requiredArg("payload")
+cl.defclass(s('invalid-update','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('already-connected','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('username-mismatch','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('incompatible-version','lichat'), [s('update-failure','lichat')], {
+   'compatible-versions': cl.requiredArg('compatible-versions'),
 });
-cl.defclass("emotes", ["update"], {
-    names: []
+cl.defclass(s('invalid-password','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('no-such-profile','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('username-taken','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('no-such-channel','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('registration-rejected','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('already-in-channel','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('not-in-channel','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('channelname-taken','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('too-many-channels','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('bad-name','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('insufficient-permissions','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('invalid-permissions','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('no-such-user','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('too-many-updates','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('clock-skewed','lichat'), [s('update-failure','lichat')]);
+cl.defclass(s('backfill','shirakumo'), [s('channel-update','lichat')], {
+   'since': null,
 });
-cl.defclass("emote", ["update"], {
-    "content-type": cl.requiredArg("content-type"),
-    name: cl.requiredArg("name"),
-    payload: cl.requiredArg("payload")
+cl.defclass(s('data','shirakumo'), [s('channel-update','lichat')], {
+   'content-type': cl.requiredArg('content-type'),
+   'filename': null,
+   'payload': cl.requiredArg('payload'),
 });
-cl.defclass("channel-info", ["channel-update"], {
-    keys: true
+cl.defclass(s('bad-content-type','shirakumo'), [s('update-failure','lichat')], {
+   'allowed-content-types': cl.requiredArg('allowed-content-types'),
 });
-cl.defclass("set-channel-info", ["channel-update", "text-update"], {
-    key: cl.requiredArg("key")
+cl.defclass(s('emotes','shirakumo'), [s('channel-update','lichat')], {
+   'names': null,
 });
-cl.defclass("set-user-info", ["text-update"], {
-    key: cl.requiredArg("key")
+cl.defclass(s('emote','shirakumo'), [s('channel-update','lichat')], {
+   'content-type': cl.requiredArg('content-type'),
+   'name': cl.requiredArg('name'),
+   'payload': cl.requiredArg('payload'),
 });
-cl.defclass("pause", ["channel-update"], {
-    by: cl.requiredArg("by")
+cl.defclass(s('emote-list-full','shirakumo'), [s('update-failure','lichat')]);
+cl.defclass(s('edit','shirakumo'), [s('message','lichat')]);
+cl.defclass(s('no-such-parent-channel','shirakumo'), [s('update-failure','lichat')]);
+cl.defclass(s('channel-info','shirakumo'), [s('channel-update','lichat')], {
+   'keys': cl.requiredArg('keys'),
 });
-cl.defclass("quiet", ["channel-update","target-update"]);
-cl.defclass("unquiet", ["channel-update","target-update"]);
-cl.defclass("kill", ["target-update"]);
-cl.defclass("destroy", ["channel-update"]);
-cl.defclass("ban", ["target-update"]);
-cl.defclass("unban", ["target-update"]);
-cl.defclass("blacklist", ["update"], {
-    target: null
+cl.defclass(s('set-channel-info','shirakumo'), [s('channel-update','lichat'),s('text-update','lichat')], {
+   'key': cl.requiredArg('key'),
 });
-cl.defclass("ip-ban", ["update"], {
-    ip: cl.requiredArg("ip"),
-    mask: cl.requiredArg("mask")
+cl.defclass(s('no-such-channel-info','shirakumo'), [s('update-failure','lichat')], {
+   'key': cl.requiredArg('key'),
 });
-cl.defclass("ip-unban", ["update"], {
-    ip: cl.requiredArg("ip"),
-    mask: cl.requiredArg("mask")
+cl.defclass(s('malformed-channel-info','shirakumo'), [s('update-failure','lichat')]);
+cl.defclass(s('kill','shirakumo'), [s('target-update','lichat')]);
+cl.defclass(s('destroy','shirakumo'), [s('channel-update','lichat')]);
+cl.defclass(s('ban','shirakumo'), [s('target-update','lichat')]);
+cl.defclass(s('unban','shirakumo'), [s('target-update','lichat')]);
+cl.defclass(s('blacklist','shirakumo'), [s('update','lichat')], {
+   'target': null,
 });
-cl.defclass("ip-blacklist", ["update"], {
-    target: null
+cl.defclass(s('pause','shirakumo'), [s('channel-update','lichat')], {
+   'by': cl.requiredArg('by'),
 });
-cl.defclass("block", ["target-update"]);
-cl.defclass("unblock", ["target-update"]);
-cl.defclass("blocked", ["update"], {
-    target: null
+cl.defclass(s('quiet','shirakumo'), [s('channel-update','lichat'),s('target-update','lichat')]);
+cl.defclass(s('unquiet','shirakumo'), [s('channel-update','lichat'),s('target-update','lichat')]);
+cl.defclass(s('quieted','shirakumo'), [s('channel-update','lichat')], {
+   'target': null,
 });
-cl.defclass("react", ["channel-update"], {
-    target: cl.requiredArg("target"),
-    "update-id": cl.requiredArg("update-id"),
-    emote: cl.requiredArg("emote")
+cl.defclass(s('ip-ban','shirakumo'), [s('update','lichat')], {
+   'ip': cl.requiredArg('ip'),
+   'mask': cl.requiredArg('mask'),
 });
-cl.defclass("typing", ["channel-update"]);
-cl.defclass("search", ["channel-update"], {
-    results: null,
-    offset: null,
-    query: null
+cl.defclass(s('ip-unban','shirakumo'), [s('update','lichat')], {
+   'ip': cl.requiredArg('ip'),
+   'mask': cl.requiredArg('mask'),
 });
+cl.defclass(s('ip-blacklist','shirakumo'), [s('update','lichat')], {
+   'target': null,
+});
+cl.defclass(s('bad-ip-format','shirakumo'), [s('update-failure','lichat')]);
+cl.defclass(s('bridge','shirakumo'), [s('channel-update','lichat')]);
+cl.defclass(s('set-user-info','shirakumo'), [s('text-update','lichat')], {
+   'key': cl.requiredArg('key'),
+});
+cl.defclass(s('malformed-user-info','shirakumo'), [s('update-failure','lichat')]);
+cl.defclass(s('no-such-user-info','shirakumo'), [s('update-failure','lichat')], {
+   'key': cl.requiredArg('key'),
+});
+cl.defclass(s('share-identity','shirakumo'), [s('update','lichat')], {
+   'key': null,
+});
+cl.defclass(s('unshare-identity','shirakumo'), [s('update','lichat')], {
+   'key': null,
+});
+cl.defclass(s('list-shared-identities','shirakumo'), [s('update','lichat')], {
+   'identities': null,
+});
+cl.defclass(s('assume-identity','shirakumo'), [s('target-update','lichat')], {
+   'key': cl.requiredArg('key'),
+});
+cl.defclass(s('search','shirakumo'), [s('channel-update','lichat')], {
+   'results': null,
+   'offset': null,
+   'query': null,
+});
+cl.defclass(s('block','shirakumo'), [s('target-update','lichat')]);
+cl.defclass(s('unblock','shirakumo'), [s('target-update','lichat')]);
+cl.defclass(s('blocked','shirakumo'), [s('update','lichat')], {
+   'target': null,
+});
+cl.defclass(s('react','shirakumo'), [s('channel-update','lichat')], {
+   'target': cl.requiredArg('target'),
+   'update-id': cl.requiredArg('update-id'),
+   'emote': cl.requiredArg('emote'),
+});
+cl.defclass(s('last-read','shirakumo'), [s('channel-update','lichat')], {
+   'target': null,
+   'update-id': null,
+});
+cl.defclass(s('typing','shirakumo'), [s('channel-update','lichat')]);
+})();
+if(typeof module !== 'undefined'){
+    cl = module.require('./cl.js');
+    LichatStream = module.require('./stream.js');
+}
 
-cl.defclass("failure", ["text-update"]);
-cl.defclass("malformed-update", ["failure"]);
-cl.defclass("update-too-long", ["failure"]);
-cl.defclass("connection-unstable", ["failure"]);
-cl.defclass("too-many-connections", ["failure"]);
-cl.defclass("update-failure", ["failure"], {
-    "update-id": cl.requiredArg("update-id")
-});
-cl.defclass("invalid-update", ["update-failure"]);
-cl.defclass("username-mismatch", ["update-failure"]);
-cl.defclass("incompatible-version", ["update-failure"], {
-    "compatible-versions": cl.requiredArg("compatible-versions")
-});
-cl.defclass("invalid-password", ["update-failure"]);
-cl.defclass("no-such-profile", ["update-failure"]);
-cl.defclass("username-taken", ["update-failure"]);
-cl.defclass("no-such-channel", ["update-failure"]);
-cl.defclass("already-in-channel", ["update-failure"]);
-cl.defclass("not-in-channel", ["update-failure"]);
-cl.defclass("channelname-taken", ["update-failure"]);
-cl.defclass("bad-name", ["update-failure"]);
-cl.defclass("insufficient-permissions", ["update-failure"]);
-cl.defclass("no-such-user", ["update-failure"]);
-cl.defclass("too-many-updates", ["update-failure"]);
-cl.defclass("bad-content-type", ["update-failure"], {
-    "allowed-content-types": []
-});
-cl.defclass("no-such-channel-info", ["update-failure"], {
-    key: cl.requiredArg("key")
-});
-cl.defclass("malformed-channel-info", ["update-failure"]);
-cl.defclass("no-such-user-info", ["update-failure"], {
-    key: cl.requiredArg("key")
-});
-cl.defclass("malformed-user-info", ["update-failure"]);
-cl.defclass("clock-skewed", ["update-failure"]);
-cl.defclass("registration-rejected", ["update-failure"]);
 var LichatPrinter = function(){
     var self = this;
 
@@ -600,12 +637,15 @@ var LichatPrinter = function(){
                     "Number",  ()=> self.printSexprNumber(sexpr, stream),
                     "Symbol",  ()=> self.printSexprSymbol(sexpr, stream),
                     "Boolean", ()=> self.printSexprToken((sexpr)?"T":"NIL", stream),
-                    true, ()=>{throw new Error(sexpr+" is unprintable");});
+                    true, ()=>{
+                        console.error(sexpr);
+                        throw new Error(sexpr+" is unprintable");
+                    });
     };
 
     self.toWire = (wireable, stream)=>{
-        if(cl.typep(wireable, "wire-object")){
-            var list = [cl.findSymbol(wireable.type, "lichat")];
+        if(cl.typep(wireable, "object")){
+            var list = [wireable.type];
             for(var key of wireable.fields){
                 list.push(cl.findSymbol(key, "keyword"));
                 list.push(wireable[key]);
@@ -624,34 +664,40 @@ LichatPrinter.toString = (wireable)=>{
     new LichatPrinter().toWire(wireable, stream);
     return stream.string;
 };
+
+if(typeof module !== 'undefined')
+    module.exports = LichatPrinter;
+if(typeof module !== 'undefined'){
+    cl = module.require('./cl.js');
+    LichatStream = module.require('./stream.js');
+}
+
 var LichatReader = function(){
-    var self = this;
+    this.whitespace = "\u0009\u000A\u000B\u000C\u000D\u0020\u0085\u00A0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2008\u2009\u200A\u2028\u2029\u202F\u205F\u3000\u180E\u200B\u200C\u200D\u2060\uFEFF";
+    this.invalidSymbol = cl.intern("INVALID-SYMBOL");
 
-    self.whitespace = "\u0009\u000A\u000B\u000C\u000D\u0020\u0085\u00A0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2008\u2009\u200A\u2028\u2029\u202F\u205F\u3000\u180E\u200B\u200C\u200D\u2060\uFEFF";
-    self.invalidSymbol = cl.intern("INVALID-SYMBOL");
-
-    self.isWhitespace = (character)=>{
-        return self.whitespace.indexOf(character) >= 0;
+    this.isWhitespace = (character)=>{
+        return this.whitespace.indexOf(character) >= 0;
     };
 
-    self.skipWhitespace = (stream)=>{
-        while(self.isWhitespace(stream.readChar()));
+    this.skipWhitespace = (stream)=>{
+        while(this.isWhitespace(stream.readChar()));
         stream.unreadChar();
         return stream;
     };
 
-    self.readSexprList = (stream)=>{
+    this.readSexprList = (stream)=>{
         var array = [];
-        self.skipWhitespace(stream);
+        this.skipWhitespace(stream);
         while(stream.peekChar() !== ")"){
-            array.push(self.readSexpr(stream));
-            self.skipWhitespace(stream);
+            array.push(this.readSexpr(stream));
+            this.skipWhitespace(stream);
         }
         stream.readChar();
         return array;
     };
 
-    self.readSexprString = (stream)=>{
+    this.readSexprString = (stream)=>{
         var out = new LichatStream();
         loop:
         for(;;){
@@ -665,11 +711,11 @@ var LichatReader = function(){
         return out.string;
     };
 
-    self.readSexprKeyword = (stream)=>{
-        return cl.intern(self.readSexprToken(stream), "keyword");
+    this.readSexprKeyword = (stream)=>{
+        return cl.intern(this.readSexprToken(stream), "keyword");
     };
 
-    self.readSexprNumber = (stream)=>{
+    this.readSexprNumber = (stream)=>{
         var out = new LichatStream();
         var point = false;
         loop:
@@ -704,7 +750,7 @@ var LichatReader = function(){
         }
     };
 
-    self.readSexprToken = (stream)=>{
+    this.readSexprToken = (stream)=>{
         stream.peekChar();
         var out = new LichatStream();
         loop:
@@ -724,11 +770,11 @@ var LichatReader = function(){
         return out.string;
     };
 
-    self.readSexprSymbol = (stream)=>{
-        var token = self.readSexprToken(stream);
+    this.readSexprSymbol = (stream)=>{
+        var token = this.readSexprToken(stream);
         if(stream.peekChar(false) === ":"){
             stream.readChar();
-            return cl.intern(self.readSexprToken(stream), token);
+            return cl.intern(this.readSexprToken(stream), token);
         }else{
             var symbol = cl.intern(token, "LICHAT");
             if(symbol == cl.NIL) return null;
@@ -737,25 +783,25 @@ var LichatReader = function(){
         }
     };
 
-    self.readSexpr = (stream)=>{
-        self.skipWhitespace(stream);
+    this.readSexpr = (stream)=>{
+        this.skipWhitespace(stream);
         // FIXME: Catch symbol errors
         switch(stream.readChar()){
-        case "(": return self.readSexprList(stream);
+        case "(": return this.readSexprList(stream);
         case ")": throw new Error("INCOMPLETE-TOKEN");
-        case "\"": return self.readSexprString(stream);
+        case "\"": return this.readSexprString(stream);
         case "0": case "1": case "2": case "3": case "4":
         case "5": case "6": case "7": case "8": case "9": case ".":
             stream.unreadChar();
-            return self.readSexprNumber(stream);
-        case ":": return self.readSexprKeyword(stream);
+            return this.readSexprNumber(stream);
+        case ":": return this.readSexprKeyword(stream);
         default:
             stream.unreadChar();
-            return self.readSexprSymbol(stream);
+            return this.readSexprSymbol(stream);
         }
     };
 
-    self.parseUpdate = (sexpr)=>{
+    this.parseUpdate = (sexpr)=>{
         var type = sexpr.shift();
         if(!cl.symbolp(type))
             throw new Error("First item in list is not a symbol: "+sexpr);
@@ -776,21 +822,25 @@ var LichatReader = function(){
         return cl.makeInstance(type, initargs);
     };
 
-    self.fromWire = (stream)=>{
-        var sexpr = self.readSexpr(stream);
+    this.fromWire = (stream)=>{
+        var sexpr = this.readSexpr(stream);
         if(sexpr instanceof Array){
-            return self.parseUpdate(sexpr);
+            return this.parseUpdate(sexpr);
         }else{
             return sexpr;
         }
     };
 
-    return self;
+    return this;
 };
 
 LichatReader.fromString = (string)=>{
-    return new LichatReader().fromWire(new LichatStream(string));
+    return new LichatReader().readSexpr(new LichatStream(string));
 };
+
+if(typeof module !== 'undefined')
+    module.exports = LichatReader;
+var LichatVersion = "2.0";
 var LichatDefaultPort = 1113;
 var LichatDefaultSSLPort = 1114;
 var LichatDefaultClient = {
@@ -840,7 +890,7 @@ class LichatMessage{
         this.url = document.location.href.match(/(^[^#]*)/)[0]+"#"+this.gid;
         this.timestamp = cl.universalToUnix(update.clock);
         this.clock = new Date(this.timestamp*1000);
-        this.type = update.type.toLowerCase();
+        this.type = update.type.name;
         this.contentType = update.link || "text/plain";
         if(update["reply-to"])
             this.replyTo = channel.getMessage(update["reply-to"][0], update["reply-to"][1]);
@@ -1233,7 +1283,7 @@ class LichatChannel{
         options = options || {};
         options.system = true;
         let message = new LichatMessage({
-            id: nextID(),
+            id: this._client.nextID(),
             from: "System",
             clock: cl.getUniversalTime(),
             text: text,
@@ -1294,6 +1344,7 @@ class LichatClient{
         this._printer = new LichatPrinter();
         this._pingTimer = null;
         this._reconnectAttempts = 0;
+        this._IDCounter = Math.floor(Math.random()*(+new Date()));
 
         this.supportedExtensions = this.supportedExtensions.filter((extension)=>
             !(options.disabledExtensions || []).includes(extension));
@@ -1334,7 +1385,7 @@ class LichatClient{
                 }
                 channel.s("users", {}, true);
                 if(this.isAvailable("shirakumo-channel-info"))
-                    channel.s("channel-info", {}, true);
+                    channel.s("channel-info", {keys: true}, true);
                 if(this.isAvailable("shirakumo-emotes"))
                     channel.s("emotes", {names: channel.getEmoteList()}, true);
             }
@@ -1448,9 +1499,9 @@ class LichatClient{
             this._socket.onmessage = (e)=>{
                 let update = this._reader.fromWire(new LichatStream(e.data));
                 try{
-                    if(!(cl.typep(update, "wire-object")))
+                    if(!(cl.typep(update, "object")))
                         fail({text: "non-Update message", update: update});
-                    else if(update.type !== "connect")
+                    else if(update.type.name !== "connect")
                         fail({text: update.text, update: update});
                     else{
                     }
@@ -1498,6 +1549,12 @@ class LichatClient{
         return this._socket && 0 < this._reconnectAttempts;
     }
 
+    nextID(){
+        let ID = this._IDCounter;
+        this._IDCounter++;
+        return ID;
+    }
+
     send(wireable){
         if(!this._socket || this._socket.readyState != 1)
             throw new Error("The client is not connected.");
@@ -1512,6 +1569,8 @@ class LichatClient{
     s(type, args, noPromise){
         args = args || {};
         if(!args.from) args.from = this.username;
+        if(!args.clock) args.clock = cl.getUniversalTime();
+        if(!args.id) args.id = this.nextID();
         let update = cl.makeInstance(type, args);
         if(noPromise) return this.send(update);
         return new Promise((ok, fail)=>{
@@ -1580,13 +1639,13 @@ class LichatClient{
             this.processCallbacks(update["update-id"], update);
         else
             this.processCallbacks(update.id, update);
-        if(!this.maybeCallInternalHandler(update.type, update)){
+        if(!this.maybeCallInternalHandler(update.type.name, update)){
             for(let s of cl.classOf(update).superclasses){
                 if(this.maybeCallInternalHandler(s.className, update))
                     break;
             }
         }
-        if(!this.maybeCallHandler(update.type, update)){
+        if(!this.maybeCallHandler(update.type.name, update)){
             for(let s of cl.classOf(update).superclasses){
                 if(this.maybeCallHandler(s.className, update))
                     break;

@@ -1,3 +1,8 @@
+if(typeof module !== 'undefined'){
+    cl = module.require('./cl.js');
+    LichatStream = module.require('./stream.js');
+}
+
 var LichatPrinter = function(){
     var self = this;
 
@@ -78,12 +83,15 @@ var LichatPrinter = function(){
                     "Number",  ()=> self.printSexprNumber(sexpr, stream),
                     "Symbol",  ()=> self.printSexprSymbol(sexpr, stream),
                     "Boolean", ()=> self.printSexprToken((sexpr)?"T":"NIL", stream),
-                    true, ()=>{throw new Error(sexpr+" is unprintable");});
+                    true, ()=>{
+                        console.error(sexpr);
+                        throw new Error(sexpr+" is unprintable");
+                    });
     };
 
     self.toWire = (wireable, stream)=>{
-        if(cl.typep(wireable, "wire-object")){
-            var list = [cl.findSymbol(wireable.type, "lichat")];
+        if(cl.typep(wireable, "object")){
+            var list = [wireable.type];
             for(var key of wireable.fields){
                 list.push(cl.findSymbol(key, "keyword"));
                 list.push(wireable[key]);
@@ -102,3 +110,6 @@ LichatPrinter.toString = (wireable)=>{
     new LichatPrinter().toWire(wireable, stream);
     return stream.string;
 };
+
+if(typeof module !== 'undefined')
+    module.exports = LichatPrinter;
