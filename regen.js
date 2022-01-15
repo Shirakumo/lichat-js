@@ -4,6 +4,7 @@ let LichatReader = module.require('./reader.js');
 let fs = require('fs');
 
 module.exports = (files)=>{
+    files = files || ['spec/lichat.sexpr', 'spec/shirakumo.sexpr'];
     let reader = new LichatReader();
     let classes = new Map();
     let extensions = [];
