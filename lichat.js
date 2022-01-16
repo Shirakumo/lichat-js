@@ -390,7 +390,7 @@ cl.defclass(s('message','lichat'), [s('channel-update','lichat'),s('text-update'
    'link': null,
    'reply-to': null,
 });
-cl.defclass(s('create','lichat'), [s('object','lichat')], {
+cl.defclass(s('create','lichat'), [s('update','lichat')], {
    'channel': null,
 });
 cl.defclass(s('kick','lichat'), [s('channel-update','lichat'),s('target-update','lichat')]);

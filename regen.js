@@ -71,3 +71,6 @@ module.exports = (files)=>{
     fs.writeFileSync(__dirname+'/wire-object.js', result);
     return classes;
 };
+
+if (require.main === module)
+    module.exports();
