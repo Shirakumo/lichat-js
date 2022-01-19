@@ -2984,14 +2984,21 @@ class LichatUI{
                     }
                 },
                 uploadFile: (ev)=>{
+                    console.log(ev);
                     if(ev.type == 'click'){
                         document.getElementById("fileChooser").click();
                     }else if(ev.type == 'change'){
                         if(ev.target.files)
-                            this.app.uploadFile(ev.target.files);
+                            return this.app.uploadFile(ev.target.files);
                     }else if(ev.type == 'drop'){
-                        if(ev.dataTransfer.files)
-                            this.app.uploadFile(ev.dataTransfer.files);
+                        if(ev.dataTransfer)
+                            return this.app.uploadFile(ev.dataTransfer);
+                    }else if(ev.type == 'paste'){
+                        if(ev.clipboardData)
+                            return this.app.uploadFile(ev.clipboardData);
+                    }else if(ev instanceof DataTransfer){
+                        if(ev.files)
+                            return this.app.uploadFile(ev.files);
                     }else if(ev instanceof FileList){
                         let chain = Promise.resolve(null);
                         for(let i=0; i<ev.length; ++i){

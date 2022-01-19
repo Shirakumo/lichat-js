@@ -846,7 +846,10 @@
         </footer>
       </div>
       <divider v-show="showSideBar"></divider>
-      <main v-if="currentChannel" v-on:drop.capture="uploadFile">
+      <main v-if="currentChannel"
+            v-on:dragover.prevent=""
+            v-on:drop.capture="uploadFile"
+            v-on:paste.capture="uploadFile">
         <header>
           <img class="icon"
                v-bind:src="currentChannel.icon"
