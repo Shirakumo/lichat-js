@@ -621,6 +621,7 @@ var LichatPrinter = function(){
             stream.writeChar(":");
             break;
         case "lichat":
+        case "shirakumo":
             break;
         default:
             self.printSexprToken(symbol.pkg, stream);
