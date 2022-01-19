@@ -247,6 +247,32 @@ var CL = function(){
         return hash;
     };
 
+    self.base64toBlob = (base64Data, contentType)=>{
+        contentType = contentType || '';
+        var sliceSize = 1024;
+        var byteCharacters = atob(base64Data);
+        var bytesLength = byteCharacters.length;
+        var slicesCount = Math.ceil(bytesLength / sliceSize);
+        var byteArrays = new Array(slicesCount);
+
+        for (var sliceIndex = 0; sliceIndex < slicesCount; ++sliceIndex) {
+            var begin = sliceIndex * sliceSize;
+            var end = Math.min(begin + sliceSize, bytesLength);
+
+            var bytes = new Array(end - begin);
+            for (var offset = begin, i = 0; offset < end; ++i, ++offset) {
+                bytes[i] = byteCharacters[offset].charCodeAt(0);
+            }
+            byteArrays[sliceIndex] = new Uint8Array(bytes);
+        }
+        return new Blob(byteArrays, { type: contentType });
+    };
+
+    self.base64URLtoBlob = (url)=>{
+        let matches = url.match(/^data:([^;]+);(base64,)?(.*)$/);
+        return matches? self.base64toBlob(matches[3], matches[1]) : null;
+    };
+
     self.T = self.intern("T", "LICHAT");
     self.NIL = self.intern("NIL", "LICHAT");
 
@@ -853,7 +879,7 @@ var LichatDefaultClient = {
     port: LichatDefaultSSLPort,
     ssl: true
 };
-var EmptyIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=";
+var EmptyIcon = URL.createObjectURL(cl.base64toBlob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=", "image/png"));
 
 class LichatReaction{
     constructor(update, channel){
@@ -966,7 +992,7 @@ class LichatMessage{
 
 LichatMessage.makeGid = (channel, author, id)=>{
     return channel.client.servername+"  "+channel.name+"  "+author.toLowerCase()+"  "+id;
-}
+};
 
 class LichatUser{
     constructor(data, client){
@@ -998,8 +1024,7 @@ class LichatUser{
     get icon(){
         let icon = this.info[":icon"];
         if(!icon) return EmptyIcon;
-        let data = icon.split(" ");
-        return "data:"+data[0]+";base64,"+data[1];
+        else      return icon.url;
     }
 
     get client(){
@@ -1137,8 +1162,7 @@ class LichatChannel{
     get icon(){
         let icon = this.info[":icon"];
         if(!icon) return EmptyIcon;
-        let data = icon.split(" ");
-        return "data:"+data[0]+";base64,"+data[1];
+        else      return icon.url;
     }
 
     get topic(){
@@ -1172,7 +1196,7 @@ class LichatChannel{
 
     getEmote(name){
         let own = this.emotes[name.toLowerCase().replace(/^:|:$/g,"")];
-        if(own) return own;
+        if(own) return own.url;
         if(!this.isPrimary) return this.parentChannel.getEmote(name);
         return null;
     }
@@ -1313,6 +1337,22 @@ class LichatChannel{
             update = cl.intern(update, "lichat");
         return this.capabilities.includes(update);
     }
+
+    addEmote(update){
+        let name = update.name.toLowerCase().replace(/^:|:$/g,"");
+        if(update.payload){
+            let emote = this.emotes[name];
+            if(emote) URL.revokeObjectURL(emote.url);
+            else emote = {};
+            emote.blob = cl.base64toBlob(update.payload, update["content-type"]);
+            emote.url = URL.createObjectURL(emote.blob);
+            this.emotes[name] = emote;
+            return emote;
+        }else{
+            delete this.emotes[name];
+            return null;
+        }
+    }
 }
 
 class LichatClient{
@@ -1401,13 +1441,30 @@ class LichatClient{
             this.addEmote(ev);
         });
 
+        let convertIconInfo = (info, update)=>{
+            if(ev.key !== cl.kw('icon')) return null;
+
+            let key = LichatPrinter.toString(ev.key);
+            if(info[key]) URL.revokeObjectURL(info[key].url);
+            
+            let data = update.text.split(" ");
+            let blob = cl.base64toBlob(data[1], data[0]);
+            info[key] = {
+                blob: blob,
+                url: URL.createObjectURL(blob)
+            };
+            return info[key];
+        };
+
         this.addInternalHandler("set-channel-info", (ev)=>{
-            this.getChannel(ev.channel).info[LichatPrinter.toString(ev.key)] = ev.text;
+            if(!handleIconInfo(this.getChannel(ev.channel).info, ev))
+                this.getChannel(ev.channel).info[LichatPrinter.toString(ev.key)] = ev.text;
         });
 
         this.addInternalHandler("set-user-info", (ev)=>{
             let target = ev.target || this.username;
-            this.getUser(target).info[LichatPrinter.toString(ev.key)] = ev.text;
+            if(!handleIconInfo(this.getUser(target).info, ev))
+                this.getUser(target).info[LichatPrinter.toString(ev.key)] = ev.text;
         });
 
         this.addInternalHandler("user-info", (ev)=>{
@@ -1757,17 +1814,8 @@ class LichatClient{
     }
 
     addEmote(update){
-        let name = update.name.toLowerCase().replace(/^:|:$/g,"");
         let channel = update.channel || this.servername;
-
-        if(update.payload){
-            let emote = "data:"+update["content-type"]+";base64,"+update.payload;
-            this.getChannel(channel).emotes[name] = emote;
-            return emote;
-        }else{
-            delete this.getChannel(channel).emotes[name];
-            return null;
-        }
+        return this.getChannel(channel).addEmote(update);
     }
 
     isAvailable(name){
@@ -3383,19 +3431,32 @@ class LichatUI{
             let user = client.getUser(data.name);
             user.nickname = data.nickname;
             Object.assign(user.info, data.info);
+            if(data.info[':icon']){
+                if(typeof data.info[':icon'] === 'string')
+                    data.info[':icon'] = cl.base64URLtoBlob(data.info[':icon']);
+                channel.info[':icon'] = {
+                    blob: data.info[':icon'],
+                    url: URL.createObjectURL(data.info[':icon'])
+                };
+            }
         });
     }
 
     saveChannel(channel, tx){
         if(!tx && !this.db) return null;
         if(!tx) tx = this.db.transaction(["channels"], "readwrite");
+        let emotes = {};
+        for(let name in channel.emotes)
+            emotes[name] = channel.emotes[name].blob;
+        let info = {...channel.info};
+        info[':icon'] = info[':icon']? info[':icon'].blob : '';
         tx.onerror = (ev)=>console.error(ev);
         tx.objectStore("channels")
             .put({
                 gid: channel.gid,
                 name: channel.name,
-                info: {...channel.info},
-                emotes: {...channel.emotes},
+                info: info,
+                emotes: emotes,
                 server: channel.client.servername
             });
         return tx;
@@ -3404,8 +3465,23 @@ class LichatUI{
     loadChannels(client){
         return this._mapIndexed("channels", client.servername, (data)=>{
             let channel = client.getChannel(data.name);
-            Object.assign(channel.emotes, data.emotes);
+            for(let name in data.emotes){
+                if(typeof data.emotes[name] === 'string')
+                    data.emotes[name] = cl.base64URLtoBlob(data.emotes[name]);
+                channel.emotes[name] = {
+                    blob: data.emotes[name],
+                    url: URL.createObjectURL(data.emotes[name])
+                };
+            }
             Object.assign(channel.info, data.info);
+            if(data.info[':icon']){
+                if(typeof data.info[':icon'] === 'string')
+                    data.info[':icon'] = cl.base64URLtoBlob(data.info[':icon']);
+                channel.info[':icon'] = {
+                    blob: data.info[':icon'],
+                    url: URL.createObjectURL(data.info[':icon'])
+                };
+            }
         });
     }
 

@@ -10,7 +10,7 @@ var LichatDefaultClient = {
     port: LichatDefaultSSLPort,
     ssl: true
 };
-var EmptyIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=";
+var EmptyIcon = URL.createObjectURL(cl.base64toBlob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=", "image/png"));
 
 class LichatReaction{
     constructor(update, channel){
@@ -123,7 +123,7 @@ class LichatMessage{
 
 LichatMessage.makeGid = (channel, author, id)=>{
     return channel.client.servername+"  "+channel.name+"  "+author.toLowerCase()+"  "+id;
-}
+};
 
 class LichatUser{
     constructor(data, client){
@@ -155,8 +155,7 @@ class LichatUser{
     get icon(){
         let icon = this.info[":icon"];
         if(!icon) return EmptyIcon;
-        let data = icon.split(" ");
-        return "data:"+data[0]+";base64,"+data[1];
+        else      return icon.url;
     }
 
     get client(){
@@ -294,8 +293,7 @@ class LichatChannel{
     get icon(){
         let icon = this.info[":icon"];
         if(!icon) return EmptyIcon;
-        let data = icon.split(" ");
-        return "data:"+data[0]+";base64,"+data[1];
+        else      return icon.url;
     }
 
     get topic(){
@@ -329,7 +327,7 @@ class LichatChannel{
 
     getEmote(name){
         let own = this.emotes[name.toLowerCase().replace(/^:|:$/g,"")];
-        if(own) return own;
+        if(own) return own.url;
         if(!this.isPrimary) return this.parentChannel.getEmote(name);
         return null;
     }
@@ -470,6 +468,22 @@ class LichatChannel{
             update = cl.intern(update, "lichat");
         return this.capabilities.includes(update);
     }
+
+    addEmote(update){
+        let name = update.name.toLowerCase().replace(/^:|:$/g,"");
+        if(update.payload){
+            let emote = this.emotes[name];
+            if(emote) URL.revokeObjectURL(emote.url);
+            else emote = {};
+            emote.blob = cl.base64toBlob(update.payload, update["content-type"]);
+            emote.url = URL.createObjectURL(emote.blob);
+            this.emotes[name] = emote;
+            return emote;
+        }else{
+            delete this.emotes[name];
+            return null;
+        }
+    }
 }
 
 class LichatClient{
@@ -558,13 +572,30 @@ class LichatClient{
             this.addEmote(ev);
         });
 
+        let convertIconInfo = (info, update)=>{
+            if(ev.key !== cl.kw('icon')) return null;
+
+            let key = LichatPrinter.toString(ev.key);
+            if(info[key]) URL.revokeObjectURL(info[key].url);
+            
+            let data = update.text.split(" ");
+            let blob = cl.base64toBlob(data[1], data[0]);
+            info[key] = {
+                blob: blob,
+                url: URL.createObjectURL(blob)
+            };
+            return info[key];
+        };
+
         this.addInternalHandler("set-channel-info", (ev)=>{
-            this.getChannel(ev.channel).info[LichatPrinter.toString(ev.key)] = ev.text;
+            if(!handleIconInfo(this.getChannel(ev.channel).info, ev))
+                this.getChannel(ev.channel).info[LichatPrinter.toString(ev.key)] = ev.text;
         });
 
         this.addInternalHandler("set-user-info", (ev)=>{
             let target = ev.target || this.username;
-            this.getUser(target).info[LichatPrinter.toString(ev.key)] = ev.text;
+            if(!handleIconInfo(this.getUser(target).info, ev))
+                this.getUser(target).info[LichatPrinter.toString(ev.key)] = ev.text;
         });
 
         this.addInternalHandler("user-info", (ev)=>{
@@ -914,17 +945,8 @@ class LichatClient{
     }
 
     addEmote(update){
-        let name = update.name.toLowerCase().replace(/^:|:$/g,"");
         let channel = update.channel || this.servername;
-
-        if(update.payload){
-            let emote = "data:"+update["content-type"]+";base64,"+update.payload;
-            this.getChannel(channel).emotes[name] = emote;
-            return emote;
-        }else{
-            delete this.getChannel(channel).emotes[name];
-            return null;
-        }
+        return this.getChannel(channel).addEmote(update);
     }
 
     isAvailable(name){

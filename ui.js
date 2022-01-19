@@ -1519,19 +1519,32 @@ class LichatUI{
             let user = client.getUser(data.name);
             user.nickname = data.nickname;
             Object.assign(user.info, data.info);
+            if(data.info[':icon']){
+                if(typeof data.info[':icon'] === 'string')
+                    data.info[':icon'] = cl.base64URLtoBlob(data.info[':icon']);
+                channel.info[':icon'] = {
+                    blob: data.info[':icon'],
+                    url: URL.createObjectURL(data.info[':icon'])
+                };
+            }
         });
     }
 
     saveChannel(channel, tx){
         if(!tx && !this.db) return null;
         if(!tx) tx = this.db.transaction(["channels"], "readwrite");
+        let emotes = {};
+        for(let name in channel.emotes)
+            emotes[name] = channel.emotes[name].blob;
+        let info = {...channel.info};
+        info[':icon'] = info[':icon']? info[':icon'].blob : '';
         tx.onerror = (ev)=>console.error(ev);
         tx.objectStore("channels")
             .put({
                 gid: channel.gid,
                 name: channel.name,
-                info: {...channel.info},
-                emotes: {...channel.emotes},
+                info: info,
+                emotes: emotes,
                 server: channel.client.servername
             });
         return tx;
@@ -1540,8 +1553,23 @@ class LichatUI{
     loadChannels(client){
         return this._mapIndexed("channels", client.servername, (data)=>{
             let channel = client.getChannel(data.name);
-            Object.assign(channel.emotes, data.emotes);
+            for(let name in data.emotes){
+                if(typeof data.emotes[name] === 'string')
+                    data.emotes[name] = cl.base64URLtoBlob(data.emotes[name]);
+                channel.emotes[name] = {
+                    blob: data.emotes[name],
+                    url: URL.createObjectURL(data.emotes[name])
+                };
+            }
             Object.assign(channel.info, data.info);
+            if(data.info[':icon']){
+                if(typeof data.info[':icon'] === 'string')
+                    data.info[':icon'] = cl.base64URLtoBlob(data.info[':icon']);
+                channel.info[':icon'] = {
+                    blob: data.info[':icon'],
+                    url: URL.createObjectURL(data.info[':icon'])
+                };
+            }
         });
     }
 
