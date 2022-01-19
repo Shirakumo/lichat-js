@@ -157,6 +157,7 @@ class LichatUI{
         LichatClient.prototype.addToChannelList = function(channel){
             if(this.channelList.length == 0){
                 this.channelList.push(channel);
+                lichat.saveClient(this);
             }else if(!this.channelList.find(element => element === channel)){
                 let i=1;
                 for(; i<this.channelList.length; ++i){
@@ -1361,6 +1362,10 @@ class LichatUI{
             this.saveChannel(client.getChannel(ev.channel));
         });
 
+        client.addHandler("emote", (ev)=>{
+            this.saveChannel(client.getChannel(ev.channel));
+        });
+
         this.clients.push(client);
         
         return client.openConnection();
@@ -1582,7 +1587,8 @@ class LichatUI{
                             .then(()=>this.loadChannels(client))
                             .then(()=>this.addClient(client))
                             .catch((e)=>{
-                                client.getEmergencyChannel().showError(e, "Connection failed");
+                                try{client.getEmergencyChannel().showError(e, "Connection failed");}
+                                catch(e){}
                                 fail(e);
                             });
                     }
