@@ -1441,13 +1441,13 @@ class LichatClient{
             this.addEmote(ev);
         });
 
-        let convertIconInfo = (info, update)=>{
+        let handleIconInfo = (info, ev)=>{
             if(ev.key !== cl.kw('icon')) return null;
 
             let key = LichatPrinter.toString(ev.key);
             if(info[key]) URL.revokeObjectURL(info[key].url);
             
-            let data = update.text.split(" ");
+            let data = ev.text.split(" ");
             let blob = cl.base64toBlob(data[1], data[0]);
             info[key] = {
                 blob: blob,
