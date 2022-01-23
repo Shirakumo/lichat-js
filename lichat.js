@@ -270,7 +270,10 @@ var CL = function(){
 
     self.base64URLtoBlob = (url)=>{
         let matches = url.match(/^data:([^;]+);(base64,)?(.*)$/);
-        return matches? self.base64toBlob(matches[3], matches[1]) : null;
+        if(matches) return self.base64toBlob(matches[3], matches[1]);
+        matches = url.match(/^([^ ]+) (.*)$/);
+        if(matches) return self.base64toBlob(matches[2], matches[1]);
+        return null;
     };
 
     self.T = self.intern("T", "LICHAT");
@@ -3441,7 +3444,7 @@ class LichatUI{
             if(data.info[':icon']){
                 if(typeof data.info[':icon'] === 'string')
                     data.info[':icon'] = cl.base64URLtoBlob(data.info[':icon']);
-                channel.info[':icon'] = {
+                user.info[':icon'] = {
                     blob: data.info[':icon'],
                     url: URL.createObjectURL(data.info[':icon'])
                 };

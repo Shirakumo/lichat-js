@@ -1529,7 +1529,7 @@ class LichatUI{
             if(data.info[':icon']){
                 if(typeof data.info[':icon'] === 'string')
                     data.info[':icon'] = cl.base64URLtoBlob(data.info[':icon']);
-                channel.info[':icon'] = {
+                user.info[':icon'] = {
                     blob: data.info[':icon'],
                     url: URL.createObjectURL(data.info[':icon'])
                 };
