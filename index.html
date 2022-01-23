@@ -574,7 +574,7 @@
             <section class="emotes" v-show="tab == 'emotes'">
               <ul class="emotes">
                 <li v-for="[k, v] in emotes">
-                  <img class="emote" v-bind:src="v">
+                  <img class="emote" v-bind:src="v.url">
                   <span class="name">:{{k}}:</span>
                   <a v-if="channel.isPermitted('EMOTE')" v-bind:name="k" v-on:click="deleteEmote">
                     <i class="fas fa-trash"></i>
