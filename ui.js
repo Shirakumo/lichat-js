@@ -1509,12 +1509,14 @@ class LichatUI{
     saveUser(user, tx){
         if(!tx && !this.db) return null;
         if(!tx) tx = this.db.transaction(["users"], "readwrite");
+        let info = {...user.info};
+        info[':icon'] = info[':icon']? info[':icon'].blob : '';
         tx.onerror = (ev)=>console.error(ev);
         tx.objectStore("users")
             .put({
                 gid: user.gid,
                 name: user.name,
-                info: {...user.info},
+                info: info,
                 nickname: user.nickname,
                 server: user.client.servername
             });
