@@ -3383,7 +3383,7 @@ class LichatUI{
                 .index("server")
                 .openCursor(IDBKeyRange.only(index))
                 .onsuccess = (ev)=>{
-                    let cursor = event.target.result;
+                    let cursor = ev.target.result;
                     if(!cursor){
                         ok();
                         return;
