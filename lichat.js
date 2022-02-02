@@ -1179,7 +1179,7 @@ class LichatChannel{
                 .catch((e)=>{
                     this._capabilities = null;
                     if(cl.typep(e, "too-many-updates"))
-                        setTimeout(1000, this.capabilities);
+                        setTimeout(this.capabilities, 1000);
                 });
         }
         return this._capabilities;
@@ -1227,8 +1227,12 @@ class LichatChannel{
 
     leaveUser(user){
         if(typeof(user) === "string") user = this._client.getUser(user);
-        if(user.name === this._client.username) this.wasJoined = false;
-        delete this.users[user.name.toLowerCase()];
+        if(user.isSelf){
+            this.wasJoined = false;
+            this.users = {};
+        }else{
+            delete this.users[user.name.toLowerCase()];
+        }
         return user;
     }
 
@@ -1238,7 +1242,7 @@ class LichatChannel{
     }
 
     getUser(name){
-        return this._client.getUser(name.toLowerCase());
+        return this._client.getUser(name);
     }
 
     getUserList(){
@@ -1426,11 +1430,14 @@ class LichatClient{
             channel.joinUser(ev.from);
             if(ev.from === this.username){
                 if(channel.isPrimary){
-                    for(let name in this.channels){
-                        let channel = this.channels[name];
-                        if(channel.wasJoined && channel.name != this.servername)
-                            channel.s("join", {}, true);
-                    }
+                    setTimeout(()=>{
+                        if(!this.isConnected)
+                        for(let name in this.channels){
+                            let channel = this.channels[name];
+                            if(channel.wasJoined && !channel.isPresent && channel.name != this.servername)
+                                channel.s("join", {}, true);
+                        }
+                    }, 500);
                 }
                 channel.s("users", {}, true);
                 if(this.isAvailable("shirakumo-channel-info"))
@@ -3253,9 +3260,8 @@ class LichatUI{
             ev.text = " ** Joined " + ev.channel;
             let channel = client.getChannel(ev.channel);
             channel.record(ev);
-            if(client.getUser(ev.from.toLowerCase()).isSelf){
+            if(client.getUser(ev.from).isSelf){
                 client.addToChannelList(channel);
-
                 if(!channel.isPrimary){
                     let promise = this.loadMessages(channel);
                     if(client.isAvailable("shirakumo-backfill") && !this.embedded){
@@ -3271,6 +3277,7 @@ class LichatUI{
                             channel.s("BACKFILL", {since: since}, true);
                         });
                     }
+                    this.saveClient(client);
                 }
             }
             if(!this.currentChannel){
@@ -3280,6 +3287,9 @@ class LichatUI{
         
         client.addHandler("leave", (ev)=>{
             ev.text = " ** Left " + ev.channel;
+            if(client.getUser(ev.from).isSelf){
+                this.saveClient(client);
+            }
             client.getChannel(ev.channel).record(ev);
         });
 
@@ -3589,7 +3599,7 @@ class LichatUI{
             for(let name in client.users)
                 this.saveUser(client.users[name], tx);
             for(let name in client.channels)
-                    this.saveChannel(client.channels[name], tx);
+                this.saveChannel(client.channels[name], tx);
         }
     }
 
