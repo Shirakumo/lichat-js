@@ -355,8 +355,12 @@ class LichatChannel{
 
     leaveUser(user){
         if(typeof(user) === "string") user = this._client.getUser(user);
-        if(user.name === this._client.username) this.wasJoined = false;
-        delete this.users[user.name.toLowerCase()];
+        if(user.isSelf){
+            this.wasJoined = false;
+            this.users = {};
+        }else{
+            delete this.users[user.name.toLowerCase()];
+        }
         return user;
     }
 
