@@ -1175,7 +1175,12 @@ class LichatChannel{
     get capabilities(){
         if(this._capabilities == null){
             this._capabilities = [];
-            this.s("capabilities", {}, true);
+            this.s("capabilities", {})
+                .catch((e)=>{
+                    this._capabilities = null;
+                    if(cl.typep(e, "too-many-updates"))
+                        setTimeout(1000, this.capabilities);
+                });
         }
         return this._capabilities;
     }
