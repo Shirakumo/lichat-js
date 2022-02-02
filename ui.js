@@ -1312,14 +1312,16 @@ class LichatUI{
                 return client.getChannel(client.servername);
             }else{
                 return {
-                    showStatus: ()=>{},
-                    showError: ()=>{},
+                    showStatus: (e)=>console.info("Note:", e),
+                    showError: (e)=>console.error("Error:", e),
                     client: client
                 };
             }
         };
 
-        client.disconnectHandler = (e)=>client.getEmergencyChannel().showError(e, "Disconnected");
+        client.disconnectHandler = (e)=>{
+            client.getEmergencyChannel().showError(e, "Disconnected");
+        };
 
         client.addHandler("connect", (ev)=>{
             if(0 < client.channelList.length){
