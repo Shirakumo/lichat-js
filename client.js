@@ -370,7 +370,7 @@ class LichatChannel{
     }
 
     getUser(name){
-        return this._client.getUser(name.toLowerCase());
+        return this._client.getUser(name);
     }
 
     getUserList(){
@@ -558,11 +558,14 @@ class LichatClient{
             channel.joinUser(ev.from);
             if(ev.from === this.username){
                 if(channel.isPrimary){
-                    for(let name in this.channels){
-                        let channel = this.channels[name];
-                        if(channel.wasJoined && channel.name != this.servername)
-                            channel.s("join", {}, true);
-                    }
+                    setTimeout(()=>{
+                        if(!this.isConnected)
+                        for(let name in this.channels){
+                            let channel = this.channels[name];
+                            if(channel.wasJoined && !channel.isPresent && channel.name != this.servername)
+                                channel.s("join", {}, true);
+                        }
+                    }, 500);
                 }
                 channel.s("users", {}, true);
                 if(this.isAvailable("shirakumo-channel-info"))
