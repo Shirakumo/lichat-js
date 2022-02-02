@@ -559,10 +559,10 @@ class LichatClient{
             if(ev.from === this.username){
                 if(channel.isPrimary){
                     setTimeout(()=>{
-                        if(!this.isConnected)
+                        if(!this.isConnected) return;
                         for(let name in this.channels){
                             let channel = this.channels[name];
-                            if(channel.wasJoined && !channel.isPresent && channel.name != this.servername)
+                            if(channel.wasJoined && !channel.isPresent)
                                 channel.s("join", {}, true);
                         }
                     }, 500);

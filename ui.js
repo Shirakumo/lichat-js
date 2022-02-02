@@ -1350,7 +1350,6 @@ class LichatUI{
                             channel.s("BACKFILL", {since: since}, true);
                         });
                     }
-                    this.saveClient(client);
                 }
             }
             if(!this.currentChannel){
@@ -1360,9 +1359,6 @@ class LichatUI{
         
         client.addHandler("leave", (ev)=>{
             ev.text = " ** Left " + ev.channel;
-            if(client.getUser(ev.from).isSelf){
-                this.saveClient(client);
-            }
             client.getChannel(ev.channel).record(ev);
         });
 

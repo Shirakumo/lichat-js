@@ -1431,10 +1431,10 @@ class LichatClient{
             if(ev.from === this.username){
                 if(channel.isPrimary){
                     setTimeout(()=>{
-                        if(!this.isConnected)
+                        if(!this.isConnected) return;
                         for(let name in this.channels){
                             let channel = this.channels[name];
-                            if(channel.wasJoined && !channel.isPresent && channel.name != this.servername)
+                            if(channel.wasJoined && !channel.isPresent)
                                 channel.s("join", {}, true);
                         }
                     }, 500);
@@ -3277,7 +3277,6 @@ class LichatUI{
                             channel.s("BACKFILL", {since: since}, true);
                         });
                     }
-                    this.saveClient(client);
                 }
             }
             if(!this.currentChannel){
@@ -3287,9 +3286,6 @@ class LichatUI{
         
         client.addHandler("leave", (ev)=>{
             ev.text = " ** Left " + ev.channel;
-            if(client.getUser(ev.from).isSelf){
-                this.saveClient(client);
-            }
             client.getChannel(ev.channel).record(ev);
         });
 
