@@ -475,6 +475,8 @@ class LichatChannel{
     isPermitted(update){
         if(typeof update === 'string' || update instanceof String)
             update = cl.intern(update, "lichat");
+        let caps = this.capabilities;
+        if(caps == []) return true; // Default to true. The server will deny later anyway.
         return this.capabilities.includes(update);
     }
 
