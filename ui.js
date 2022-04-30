@@ -78,6 +78,11 @@ class LichatUI{
             if(!message.isSystem && !message.channel.isPrimary)
                 lichat.saveMessage(message);
 
+            LichatChannel._insertMessageSorted(message, message.channel.uiMessageList);
+            if(500 < message.channel.uiMessageList.length){
+                message.channel.uiMessageList.shift();
+            }
+
             let notify = inserted && !this.isPrimary;
             if(lichat.currentChannel == message.channel){
                 let output = lichat.app.$refs.output;

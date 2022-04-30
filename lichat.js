@@ -1118,6 +1118,7 @@ class LichatChannel{
             this.currentMessage.text = "";
             this.currentMessage.replyTo = null;
         };
+        this.uiMessageList = [];
         this.unread = 0;
         this.alerted = false;
         this.lastRead = data.lastRead || null;
@@ -1283,24 +1284,8 @@ class LichatChannel{
         this.messages[message.gid] = message;
         if(existing){
             Object.assign(existing, message);
-        }else if(this.messageList.length == 0 || this.messageList[this.messageList.length-1].timestamp <= message.timestamp){
-            this.messageList.push(message);
         }else{
-            // Perform binary search insert according to clock
-            let start = 0;
-            let end = this.messageList.length-1;
-            let stamp = message.timestamp;
-            while(start<=end){
-                let mid = Math.floor((start + end)/2);
-                let cmp = this.messageList[mid].timestamp;
-                if(stamp <= cmp &&
-                   (mid == 0 || this.messageList[mid-1].timestamp <= stamp)){
-                    this.messageList.splice(start, 0, message);
-                    break;
-                }
-                if(cmp < stamp) start = mid + 1;
-                else            end = mid - 1;
-            }
+            LichatChannel._insertMessageSorted(message, this.messageList);
         }
         return [message, existing?false:true];
     }
@@ -1347,6 +1332,8 @@ class LichatChannel{
     isPermitted(update){
         if(typeof update === 'string' || update instanceof String)
             update = cl.intern(update, "lichat");
+        let caps = this.capabilities;
+        if(caps == []) return true; // Default to true. The server will deny later anyway.
         return this.capabilities.includes(update);
     }
 
@@ -1366,6 +1353,28 @@ class LichatChannel{
         }
     }
 }
+
+LichatChannel._insertMessageSorted = (message, list)=>{
+    if(list.length == 0 || list[list.length-1].timestamp <= message.timestamp){
+        list.push(message);
+    }else{
+        // Perform binary search insert according to clock
+        let start = 0;
+        let end = list.length-1;
+        let stamp = message.timestamp;
+        while(start<=end){
+            let mid = Math.floor((start + end)/2);
+            let cmp = list[mid].timestamp;
+            if(stamp <= cmp &&
+               (mid == 0 || list[mid-1].timestamp <= stamp)){
+                list.splice(start, 0, message);
+                break;
+            }
+            if(cmp < stamp) start = mid + 1;
+            else            end = mid - 1;
+        }
+    }
+};
 
 class LichatClient{
     constructor(options){
@@ -2004,6 +2013,11 @@ class LichatUI{
 
             if(!message.isSystem && !message.channel.isPrimary)
                 lichat.saveMessage(message);
+
+            LichatChannel._insertMessageSorted(message, message.channel.uiMessageList);
+            if(500 < message.channel.uiMessageList.length){
+                message.channel.uiMessageList.shift();
+            }
 
             let notify = inserted && !this.isPrimary;
             if(lichat.currentChannel == message.channel){
@@ -2690,9 +2704,11 @@ class LichatUI{
                 },
                 toURL: function(value){
                     if(!value) return EmptyIcon;
-                    else{
+                    else if(typeof value === 'string'){
                         let parts = value.split(" ");
                         return "data:"+parts[0]+";base64,"+parts[1];
+                    }else{
+                        return value.url;
                     }
                 },
                 setImage: function(ev){
@@ -3064,7 +3080,7 @@ class LichatUI{
                 },
                 handleScroll: (ev)=>{
                     let output = this.app.$refs.output;
-                    this.autoScroll = (output.scrollTop === (output.scrollHeight - output.offsetHeight));
+                    this.autoScroll = Math.abs(output.scrollTop - (output.scrollHeight - output.offsetHeight)) < 5;
                 }
             }
         });
