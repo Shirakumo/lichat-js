@@ -763,9 +763,11 @@ class LichatUI{
                 },
                 toURL: function(value){
                     if(!value) return EmptyIcon;
-                    else{
+                    else if(typeof value === 'string'){
                         let parts = value.split(" ");
                         return "data:"+parts[0]+";base64,"+parts[1];
+                    }else{
+                        return value.url;
                     }
                 },
                 setImage: function(ev){
