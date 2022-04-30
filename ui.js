@@ -1139,7 +1139,7 @@ class LichatUI{
                 },
                 handleScroll: (ev)=>{
                     let output = this.app.$refs.output;
-                    this.autoScroll = (output.scrollTop === (output.scrollHeight - output.offsetHeight));
+                    this.autoScroll = Math.abs(output.scrollTop - (output.scrollHeight - output.offsetHeight)) < 5;
                 }
             }
         });
