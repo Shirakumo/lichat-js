@@ -2,27 +2,57 @@ class LichatUI{
     constructor(el, config){
         console.log("Setting up Lichat", this, config);
         let lichat = this;
+        // Map of command prefixes to handler functions
         this.commands = {};
+        
+        // List of LichatClient instances
         this.clients = [];
+
+        // Pointer to currently visible LichatChannel instance
         this.currentChannel = null;
+
+        // Whether the output should auto-scroll to the end
         this.autoScroll = true;
+
+        // The current search query or null if none.
         this.search = null;
+
+        // The currently displayed error message, or null if none.
+        this.errorMessage = null;
+
+        // Whether the UI should be in "mobile mode" or not.
+        // If in mobile mode, hides the client/channel list and
+        // minimises other UI elements for a compacter display.
+        this.isMobile = (config.mobile !== undefined)
+            ? config.mobile
+            : (document.body.getBoundingClientRect().width < 500);
+
+        // Whether the client is in "embedded" mode, meaning being
+        // shown on an external website and should thus always show
+        // the login and not save the configuration.
+        this.embedded = config.embedded;
+
+        // Toggles to keep track of popups
         this.showEmotePicker = false;
         this.showChannelMenu = false;
         this.showClientMenu = false;
         this.showSelfMenu = false;
         this.showSettings = false;
-        this.errorMessage = null;
-        this.isMobile = (config.mobile !== undefined)
-            ? config.mobile
-            : (document.body.getBoundingClientRect().width < 500);
-        this.embedded = config.embedded;
         this.showSideBar = !(this.embedded || this.isMobile);
+
+        // Tracker for the IndexedDB object
         this.db = null;
+
+        // The universal time at which the last TYPING update was sent out.
         this.lastTypingUpdate = 0;
+
+        // The default client configuration options.
         this.defaultClientConfig = {...LichatDefaultClient};
+
+        // Function to call once the UI is fully initialised and connected.
         this._init = null;
 
+        // The local user preferences.
         this.options = {
             transmitTyping: !this.embedded,
             showNotifications: !this.embedded,
@@ -33,12 +63,14 @@ class LichatUI{
             sidebarWidth: '15em',
         };
 
+        // Tracking information for the tab auto-completion
         this.autoComplete = {
             index: 0,
             prefix: null,
             pretext: null
         };
 
+        // Restore connections/clients from the config object.
         if(config.connection){
             for(let key in config.connection){
                 let value = config.connection[key];
@@ -48,12 +80,18 @@ class LichatUI{
                 this.defaultClientConfig.ssl = (config.connection.port == LichatDefaultSSLPort);
         }
 
+        // Tracking for the current mouse position. We need this ugly crap to
+        // ensure we can place popups at the correct positions.
         let mouseX = 0, mouseY = 0;
         ["mousemove", "mousedown", "touchmove", "touchstart"].forEach((e)=>document.addEventListener(e, (ev)=>{
             mouseX = ev.clientX;
             mouseY = ev.clientY;
         }));
 
+        // Track whether the tab has gone out of focus. If we have become unhidden,
+        // clear alerts and update unreads, assuming the user has now read the new
+        // messages.
+        // FIXME: should check whether we've actually scrolled to the bottom or not.
         document.addEventListener("visibilitychange", ()=>{
             if(!document.hidden && this.currentChannel){
                 this.currentChannel.unread = 0;
@@ -62,6 +100,9 @@ class LichatUI{
             }
         });
 
+        ///////////////////////////// CLIENT OBJECT HOOKS //////////////////////////////////////
+
+        // Helper to supersede a method.
         let supersede = (object, field, newfun)=>{
             let original = object.prototype[field];
             object.prototype[field] = function(...args){
@@ -71,25 +112,41 @@ class LichatUI{
             };
         };
 
+        // Inject into the LichatChannel's record method, so that we can add behaviour.
         supersede(LichatChannel, 'record', function(nextMethod, update, ignore){
+            // First process the message as usual, this will update the messageList.
             const [message, inserted] = nextMethod(update);
             if(ignore) return [message, inserted];
 
+            // If it wasn't in the primary channel or a generated message, save it in
+            // the local database.
             if(!message.isSystem && !message.channel.isPrimary)
                 lichat.saveMessage(message);
 
+            // Insert it into our list of displayed messages and drop messages if there's
+            // too many now.
+            // FIXME: This should check whether we've been scrolled up. If so, we probably
+            //        do not want to insert the message unless it is within the current
+            //        region of visible messages already.
             LichatChannel._insertMessageSorted(message, message.channel.uiMessageList);
             if(500 < message.channel.uiMessageList.length){
                 message.channel.uiMessageList.shift();
             }
 
+            // Check whether we should notify for this message at all.
             let notify = inserted && !this.isPrimary;
             if(lichat.currentChannel == message.channel){
                 let output = lichat.app.$refs.output;
+                // If this channel is current but not visible (wtf) don't notify.
                 if(!output)
                     notify = false;
                 else if(lichat.autoScroll){
+                    // Don't notify if the current channel is visible, since we
+                    // assume the user is actually reading the messages.
                     if(!document.hidden) notify = false;
+                    // If we should auto scroll, perform some delay logic to ensure
+                    // we make the message visible once all images and such have
+                    // been loaded.
                     Vue.nextTick(() => {
                         let el = document.getElementById(message.gid);
                         if(el){
@@ -109,19 +166,23 @@ class LichatUI{
             return [message, inserted];
         });
 
+        // Inject a function to handle notifications of messages for the channel.
         LichatChannel.prototype.notify = function(message){
             let notify = false;
             let level = this.notificationLevel;
             if(message.author.isSelf) return;
+            // Process the notification level
             if(level == 'inherit' || !level)
                 level = lichat.options.notificationLevel;
             if(level == 'all')
                 notify = true;
+            // Check if the message includes important stuff via <mark> (this is kinda hacky tbh)
             if(message.html.includes("<mark>")){
                 if(!this.alerted) this.alerted = true;
                 if(level == 'mentions')
                     notify = true;
             }
+            // If we should notify and we have permission for popups, make one!
             if(notify && lichat.options.showNotifications && Notification.permission === "granted"){
                 let notification = new Notification(message.from+" in "+this.name, {
                     body: (message.isImage)? undefined: message.text,
@@ -132,6 +193,7 @@ class LichatUI{
                         title: "Dismiss"
                     }]
                 });
+                // If the player clicks the popup, highlight the message in the UI.
                 notification.addEventListener('notificationclick', (ev)=>{
                     ev.notification.close();
                     if(ev.action != 'close'){
@@ -139,6 +201,7 @@ class LichatUI{
                     }
                 });
             }
+            // Play a sound if so desired.
             if(notify && lichat.options.playSound){
                 LichatUI.sound.play();
             }
@@ -146,10 +209,13 @@ class LichatUI{
             lichat.updateTitle();
         };
 
+        // Supersede the markup function with our own that knows about
+        // user preferences like aliases and such.
         LichatMessage.prototype.markupText = function(text){
             return LichatUI.formatUserText(text, this.channel);
         };
 
+        // Function to highlight a message in the UI and present it to the user.
         LichatMessage.prototype.highlight = function(){
             lichat.app.switchChannel(this.channel);
             Vue.nextTick(() => {
@@ -159,11 +225,13 @@ class LichatUI{
             });
         };
 
+        // Function to add a channel into the list of shown channels in the side bar.
         LichatClient.prototype.addToChannelList = function(channel){
             if(this.channelList.length == 0){
                 this.channelList.push(channel);
                 lichat.saveClient(this);
             }else if(!this.channelList.find(element => element === channel)){
+                // Insert the channel in the correct position according to name.
                 let i=1;
                 for(; i<this.channelList.length; ++i){
                     if(0 < this.channelList[i].name.localeCompare(channel.name))
@@ -174,6 +242,7 @@ class LichatUI{
             }
         };
 
+        // Function to remove a channel from the list of shown channels.
         LichatClient.prototype.removeFromChannelList = function(channel){
             let index = this.channelList.indexOf(channel);
             if(0 <= index){
@@ -186,7 +255,10 @@ class LichatUI{
                 lichat.app.switchChannel(this.channelList[index]);
             }
         };
+        
+        ///////////////////////////// VUE COMPONENTS //////////////////////////////////////
 
+        // Draggable divider to allow customising the width of the sidebar.
         Vue.component("divider", {
             template: "<div class='divider'></div>",
             data: ()=>{return {
@@ -219,6 +291,7 @@ class LichatUI{
             }
         });
 
+        // Base "class" to handle popup behaviours in the UI.
         let popup = {
             mounted: function(){
                 document.addEventListener('click', (ev)=>{
@@ -253,6 +326,7 @@ class LichatUI{
             }
         };
 
+        // Base "class" to handle popups that have an input field in the UI.
         let inputPopup = {
             data: function(){
                 return {
@@ -269,12 +343,14 @@ class LichatUI{
             }
         };
 
+        // Component for plain popups in the UI. These show some generic HTML.
         Vue.component("popup", {
             template: "#popup",
             mixins: [popup, inputPopup],
             props: ['prompt']
         });
 
+        // Component for the menu when the user clicks on their own icon.
         Vue.component("self-menu", {
             template: "#self-menu",
             mixins: [popup],
@@ -301,6 +377,7 @@ class LichatUI{
             }
         });
 
+        // Component for the menu when the user clicks on a user in the chat log.
         Vue.component("user-menu", {
             template: "#user-menu",
             mixins: [popup],
@@ -347,6 +424,7 @@ class LichatUI{
             }
         });
 
+        // Component for the menu that appears when the user clicks on a channel's top menu (the three dots)
         Vue.component("channel-menu", {
             template: "#channel-menu",
             mixins: [popup],
@@ -376,6 +454,7 @@ class LichatUI{
             }
         });
 
+        // Component for the menu that appears when the user clicks on a message's dots icon.
         Vue.component("message-menu", {
             template: "#message-menu",
             mixins: [popup],
@@ -412,6 +491,7 @@ class LichatUI{
             }
         });
 
+        // Component for the menu that appears when the user clicks a client's dots icon.
         Vue.component("client-menu", {
             template: "#client-menu",
             mixins: [popup],
@@ -425,6 +505,8 @@ class LichatUI{
             }
         });
 
+        // Component for the client configure popup. This is also used for the
+        // first-time setup and the minimised embedded mode login.
         Vue.component("client-configure", {
             template: "#client-configure",
             mixins: [inputPopup],
@@ -554,6 +636,7 @@ class LichatUI{
             }
         });
 
+        // Component for the popup that handles user preferences and configurations independent of connections.
         Vue.component('ui-configure', {
             template: "#ui-configure",
             mixins: [inputPopup],
@@ -607,6 +690,7 @@ class LichatUI{
             }
         });
 
+        // Component that handles a user list and allows picking a user from that list.
         Vue.component("select-user", {
             template: "#select-user",
             mixins: [inputPopup],
@@ -621,6 +705,7 @@ class LichatUI{
             }
         });
 
+        // Component that handles the creation of a new channel via popup.
         Vue.component("create-channel", {
             template: "#create-channel",
             mixins: [inputPopup],
@@ -647,6 +732,7 @@ class LichatUI{
             }
         });
 
+        // Popup component that shows a list of all users and provides options for them.
         Vue.component("list-users", {
             template: "#list-users",
             mixins: [inputPopup],
@@ -674,6 +760,9 @@ class LichatUI{
             }
         });
 
+        // Popup component that shows a list of all channels on the server and provides options for them.
+        // TODO: Add support for the shirakumo-channel-trees extension and show an expandable tree of
+        //       channels. Need to query for sub-channels on each expansion.
         Vue.component("list-channels", {
             template: "#list-channels",
             mixins: [inputPopup],
@@ -722,6 +811,7 @@ class LichatUI{
             }
         });
 
+        // Popup component that shows an emote and emoji picker.
         Vue.component("emote-picker", {
             template: "#emote-picker",
             mixins: [popup, inputPopup],
@@ -751,6 +841,7 @@ class LichatUI{
             }
         });
 
+        // Base "class" for common functionality in configuration widgets and popups.
         let configureWidget = {
             data: ()=>{
                 return {
@@ -805,6 +896,7 @@ class LichatUI{
             }
         };
 
+        // Popup component for a user's options such as their server and user information.
         Vue.component("user-configure", {
             template: "#user-configure",
             mixins: [configureWidget],
@@ -871,6 +963,7 @@ class LichatUI{
             }
         });
 
+        // Popup component for a channel's options such as their emotes, permissions, bans, etc.
         Vue.component("channel-configure", {
             template: "#channel-configure",
             mixins: [configureWidget],
@@ -971,6 +1064,8 @@ class LichatUI{
             }
         });
 
+        // Base component representing a message in the UI. Adds extra stuff such as for
+        // editing, emotes, and handling the popups.
         Vue.component("message", {
             template: "#message",
             props: {message: LichatMessage},
@@ -1023,6 +1118,7 @@ class LichatUI{
                 isConnected(client){
                     return client._socket && client._reconnectAttempts == 0;
                 },
+                // Switches the visible channel to the requested one.
                 switchChannel: (channel)=>{
                     channel.unread = 0;
                     channel.alerted = false;
@@ -1034,6 +1130,7 @@ class LichatUI{
                         this.app.$refs.input.focus();
                     });
                 },
+                // Toggles the search field on or off.
                 toggleSearch: ()=>{
                     if(this.search===null){
                         this.search = "";
@@ -1047,6 +1144,7 @@ class LichatUI{
                         });
                     }
                 },
+                // Handles auto completion requests and typing updates.
                 handleKeypress: (ev)=>{
                     if(ev.keyCode === 9){
                         ev.preventDefault();
@@ -1060,6 +1158,7 @@ class LichatUI{
                         }
                     }
                 },
+                // Handles message submission and multiline input.
                 submit: (ev)=>{
                     let channel = this.currentChannel;
                     let message = channel.currentMessage;
@@ -1078,6 +1177,10 @@ class LichatUI{
                         message.text += '\n';
                     }
                 },
+                // Handles any kind of file upload, be it through a file input, drag&drop, or pastes.
+                // Ultimately sends a DATA update, if the file can be successfully read in.
+                // Returns a promise that fulfils if the update was sent successfully and fails in any
+                // other case.
                 uploadFile: (ev)=>{
                     console.log(ev);
                     if(ev.type == 'click'){
@@ -1123,6 +1226,7 @@ class LichatUI{
                     }
                     return null;
                 },
+                // Perform a search query and show the results once available.
                 performSearch: (ev)=>{
                     let [query, channel] = LichatClient.parseQuery(this.search);
                     channel = (channel === null)? this.currentChannel : this.currentChannel.client.getChannel(channel);
@@ -1131,10 +1235,12 @@ class LichatUI{
                         .then((ev)=>this.showSearchResults(channel, ev.results, query))
                         .catch((e)=>channel.showError(e));
                 },
+                // Add an emote to the message being composed right now.
                 addEmote: (emote)=>{
                     this.showEmotePicker = false;
                     if(emote){
                         if(!(emote in LichatUI.allEmoji)) emote = ":"+emote+":";
+                        // FIXME: This is wrong as it does not respect cursor position.
                         this.currentChannel.currentMessage.text += emote;
                         this.app.$refs.input.focus();
                     }
@@ -1142,6 +1248,7 @@ class LichatUI{
                 formatUserText: (text, channel)=>{
                     return LichatUI.formatUserText(text, channel);
                 },
+                // Checks whether we should start auto scrolling if the user reached the bottom of the scrollback.
                 handleScroll: (ev)=>{
                     let output = this.app.$refs.output;
                     this.autoScroll = Math.abs(output.scrollTop - (output.scrollHeight - output.offsetHeight)) < 5;
@@ -1149,6 +1256,8 @@ class LichatUI{
             }
         });
 
+        ///////////////////////////// UI COMMANDS //////////////////////////////////////
+        
         this.addCommand("help", (channel, subcommand)=>{
             if(subcommand){
                 let command = this.commands["/"+subcommand];
@@ -1256,7 +1365,11 @@ class LichatUI{
 
         // FIXME: missing commands from extensions, and also this is very repetitious...
     }
+    
+    ///////////////////////////// SUPPORT METHODS //////////////////////////////////////
 
+    // Returns a promise that succeeds once the UI has been fully set up and
+    // the client connected.
     init(){
         return new Promise((ok, fail)=>{
             if(this.embedded){
@@ -1301,6 +1414,9 @@ class LichatUI{
         }
     }
 
+    // Adds a new client objcet and ties it into the UI.
+    // This is also responsible for setting up the various update handler
+    // callbacks to process them and trigger changes in the UI.
     addClient(client){
         if(this.clients.find(el => el.name == client)) 
             return false;
@@ -1310,6 +1426,7 @@ class LichatUI{
         client.aliases = [];
         client.notificationLevel = 'all';
 
+        // Returns a "minimally usable channel" to output errors to.
         client.getEmergencyChannel = ()=>{
             if(this.currentChannel && this.currentChannel.client == client){
                 return this.currentChannel;
@@ -1337,15 +1454,20 @@ class LichatUI{
         });
 
         client.addHandler("join", (ev)=>{
+            // Stub out the text and record it like a regular message update.
             ev.text = " ** Joined " + ev.channel;
             let channel = client.getChannel(ev.channel);
             channel.record(ev);
+            // If we're joining, add the channel to the list and request backfill
             if(client.getUser(ev.from).isSelf){
                 client.addToChannelList(channel);
                 if(!channel.isPrimary){
                     let promise = this.loadMessages(channel);
                     if(client.isAvailable("shirakumo-backfill") && !this.embedded){
+                        // Use the promise to delay the execution until we're out of this
+                        // callback. Otherwise stuff gets hairy.
                         promise.then(()=>{
+                            // Determine last non-self message timestamp and then backfill since.
                             let since = null;
                             for(let i=channel.messageList.length-1; 0<i; i--){
                                 let message = channel.messageList[i];
@@ -1359,6 +1481,7 @@ class LichatUI{
                     }
                 }
             }
+            // If we don't have a channel yet, switch to this one.
             if(!this.currentChannel){
                 this.app.switchChannel(channel);
             }
@@ -1420,6 +1543,7 @@ class LichatUI{
         }
     }
 
+    // Show the search results by constructing a fake channel that we can display.
     showSearchResults(channel, results, query){
         let tempChannel = Object.assign(Object.create(Object.getPrototypeOf(channel)), channel);
         tempChannel.isVirtual = true;
@@ -1451,6 +1575,8 @@ class LichatUI{
         return this.addClient(new LichatClient(client || this.defaultClient))
             .catch((e)=>client.getEmergencyChannel().showError(e, "Connection failed"));
     }
+
+    ///////////////////////////// IndexedDB STORAGE INTEGRATION //////////////////////////////////////
 
     setupDatabase(){
         let ensureStore = (name, options)=>{
@@ -1706,6 +1832,8 @@ class LichatUI{
             };
         }
     }
+
+    ///////////////////////////// TEXT INPUT AND OUTPUT SUPPORT //////////////////////////////////////
 
     autoCompleteInput(text){
         // FIXME: this is not a very good auto-completer, as it chokes on completions with spaces.
