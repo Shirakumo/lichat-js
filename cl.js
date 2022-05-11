@@ -4,6 +4,7 @@ var CL = function(){
     var symbols = {};
     var classes = {};
 
+    // Helper class to represent a Lichat symbol (pkg+name)
     var Symbol = function(name, pkg){
         var self = this;
         if(!name) throw "Cannot create symbol with empty name.";
@@ -14,7 +15,8 @@ var CL = function(){
         };
         return self;
     };
-    
+
+    // Function to simulate serialised inheritance ala CLOS.
     self.computeClassPrecedenceList = (c)=>{
         var nodes = {};
         var edges = {};
@@ -53,6 +55,8 @@ var CL = function(){
         return sorted;
     };
 
+    // Another CLOS facsimile. Only really handles slots though, as our
+    // update type "classes" only need to hold data.
     self.defclass = (name, directSuperclasses, initforms, constructor)=>{
         if(directSuperclasses.length === 0)
             directSuperclasses = ["object"];
