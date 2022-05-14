@@ -127,7 +127,7 @@ var CL = function(){
     self.requiredArg = (name)=>{
         return (e)=>{
             if(e[name] === undefined)
-                throw new Error("Object "+e+" is missing the initarg "+name);
+                throw new Error("Object "+e.type+" is missing the initarg "+name);
             else
                 return e[name];
             return null;

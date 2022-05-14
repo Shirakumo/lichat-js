@@ -38,6 +38,12 @@ class LichatClient{
         // How long to wait until a ping message is sent.
         this.pingDelay = 15000;
 
+        // How many times we've tried to ping.
+        this._pingAttempts = 0;
+
+        // How many times to try and send a ping before we force a disconnect.
+        this.pingAttempts = 5;
+
         // Map of channel names to LichatChannel instances.
         this.channels = {};
 
@@ -260,6 +266,7 @@ class LichatClient{
     // for the promise will be the client itself.
     openConnection(){
         return new Promise((ok, fail) => {
+            let localFail = fail;
             this._socket = new WebSocket((this.ssl?"wss://":"ws://")+this.hostname+":"+this.port, "lichat");
             this._socket.onopen = ()=>{
                 this.s("connect", {
@@ -286,13 +293,13 @@ class LichatClient{
                     this.username = update.from;
 
                 this._socket.onmessage = ev => this.handleMessage(ev);
+                this._socket.onerror = ev => this.handleError(ev);
                 this._socket.onclose = ev => this.handleClose(ev);
                 this.process(update);
                 ok(this);
             };
-            this._socket.onclose = (e)=>{
-                fail(this, e);
-            };
+            this._socket.onerror = ev => fail(this, ev);
+            this._socket.onclose = ev => fail(this, ev);
         });
     }
 
@@ -377,9 +384,14 @@ class LichatClient{
     startDelayPing(){
         if(this._pingTimer) clearTimeout(this._pingTimer);
         this._pingTimer = setTimeout(()=>{
-            if(this._socket.readyState == 1){
+            if(this.pingAttempts <= this._pingAttempts){
+                console.log("Failed too many ping attempts, reconnecting...");
+                this.handleClose({message: "Ping timeout."});
+            }else if(this._socket.readyState == 1){
+                console.log("Haven't seen any updates in a while, pinging...");
                 this.s("ping", {}, true);
                 this.startDelayPing();
+                this._pingAttempts++;
             }
         }, this.pingDelay);
         return this._pingTimer;
@@ -389,6 +401,7 @@ class LichatClient{
     handleMessage(event){
         try{
             let update = this._reader.fromWire(new LichatStream(event.data));
+            this._pingAttempts = 0;
             this.startDelayPing();
             this.process(update);
         }catch(e){
@@ -397,8 +410,14 @@ class LichatClient{
         return this;
     }
 
+    handleError(event){
+        console.warn("Got error", event);
+        handleClose(event);
+    }
+
     // Processes a WebSocket close event.
     handleClose(event){
+        console.warn("Got close", event);
         this._idCallbacks = {};
         if(event.code !== 1000){
             this.disconnectHandler(event);
