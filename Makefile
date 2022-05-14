@@ -1,4 +1,4 @@
-FILES=cl.js stream.js wire-object.js printer.js reader.js client.js ui.js
+FILES=src/cl.js src/stream.js src/wire-object.js src/printer.js src/reader.js src/reaction.js src/user.js src/channel.js src/message.js src/client.js src/ui.js
 OUTPUT=lichat
 
 all: $(FILES)	

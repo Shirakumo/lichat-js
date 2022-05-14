@@ -1,6 +1,6 @@
-let cl = module.require('./cl.js');
-let LichatStream = module.require('./stream.js');
-let LichatReader = module.require('./reader.js');
+let cl = module.require('./src/cl.js');
+let LichatStream = module.require('./src/stream.js');
+let LichatReader = module.require('./src/reader.js');
 let fs = require('fs');
 
 module.exports = (files)=>{
@@ -72,7 +72,7 @@ module.exports = (files)=>{
     });
     
     result += "})();\n";
-    fs.writeFileSync(__dirname+'/wire-object.js', result);
+    fs.writeFileSync(__dirname+'/src/wire-object.js', result);
     return classes;
 };
 
