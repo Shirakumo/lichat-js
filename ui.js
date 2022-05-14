@@ -100,7 +100,7 @@ class LichatUI{
             }
         });
 
-        ///////////////////////////// CLIENT OBJECT HOOKS //////////////////////////////////////
+///////////////////////////// CLIENT OBJECT HOOKS //////////////////////////////////////
 
         // Helper to supersede a method.
         let supersede = (object, field, newfun)=>{
@@ -256,7 +256,7 @@ class LichatUI{
             }
         };
         
-        ///////////////////////////// VUE COMPONENTS //////////////////////////////////////
+///////////////////////////// VUE COMPONENTS //////////////////////////////////////
 
         // Draggable divider to allow customising the width of the sidebar.
         Vue.component("divider", {
@@ -1256,7 +1256,7 @@ class LichatUI{
             }
         });
 
-        ///////////////////////////// UI COMMANDS //////////////////////////////////////
+///////////////////////////// UI COMMANDS //////////////////////////////////////
         
         this.addCommand("help", (channel, subcommand)=>{
             if(subcommand){
@@ -1366,7 +1366,7 @@ class LichatUI{
         // FIXME: missing commands from extensions, and also this is very repetitious...
     }
     
-    ///////////////////////////// SUPPORT METHODS //////////////////////////////////////
+///////////////////////////// SUPPORT METHODS //////////////////////////////////////
 
     // Returns a promise that succeeds once the UI has been fully set up and
     // the client connected.
@@ -1576,7 +1576,7 @@ class LichatUI{
             .catch((e)=>client.getEmergencyChannel().showError(e, "Connection failed"));
     }
 
-    ///////////////////////////// IndexedDB STORAGE INTEGRATION //////////////////////////////////////
+///////////////////////////// IndexedDB STORAGE INTEGRATION //////////////////////////////////////
 
     setupDatabase(){
         let ensureStore = (name, options)=>{
@@ -1833,7 +1833,7 @@ class LichatUI{
         }
     }
 
-    ///////////////////////////// TEXT INPUT AND OUTPUT SUPPORT //////////////////////////////////////
+///////////////////////////// TEXT INPUT AND OUTPUT SUPPORT //////////////////////////////////////
 
     autoCompleteInput(text){
         // FIXME: this is not a very good auto-completer, as it chokes on completions with spaces.
