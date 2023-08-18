@@ -1,0 +1,567 @@
+(:keyframes flash
+            (0% :outline-color transparent)
+            (20% :outline-color red)
+            (40% :outline-color transparent)
+            (60% :outline-color transparent)
+            (80% :outline-color red)
+            (100% :outline-color transparent))
+(:keyframes typing
+            ((:or 0% 80% 100%)
+             :transform scale 0)
+            (40%
+             :transform scale 1))
+
+(body
+ :margin 0
+ :padding 0)
+(.client
+ :font-family "sans-serif"
+ :font-size 14pt
+ :margin 0
+ :padding 0
+ :display flex
+ :height 100vh
+ :width 100%
+ :min-width 0
+ :overflow hidden
+ ((:or .roll-enter-active .roll-leave-active)
+  :transition all 0.5s ease)
+ ((:or .roll-enter .roll-leave-to)
+  :transform "translateX(10px)"
+  :opacity 0)
+ ((:or .roll-enter-active .roll-leave-active)
+  :transition all 0.5s ease)
+ ((:or .roll-enter .roll-leave-to)
+  :opacity 0)
+ (img.icon
+  :width 1em
+  :height 1em
+  :border-radius 1em
+  :background white
+  :vertical-align middle)
+ (a
+  :cursor pointer
+  :text-shadow 0 0 0 transparent
+  :transition 0.2s text-shadow)
+ ((:and a :hover)
+  :color (hex 0088EE)
+  :text-shadow 0 0 1em (hex 0088EE))
+ (.reply-to
+  :overflow-x hidden
+  :white-space nowrap
+  :text-overflow ellipsis
+  :border-bottom 1px solid (hex 0088EE)
+  :margin-bottom 0.2em
+  :padding-left 0.5em
+  ((:and >.name :after) :content ":")
+  (>p :display inline))
+ ((:and .reply-to :before)
+  :content ""
+  :font-family "FontAwesome")
+ (header
+  :align-items center
+  (img.icon
+   :object-fit cover
+   :border-radius 1em
+   :background white
+   :border 0.15em solid (hex 303030)
+   :margin 0 0.2em))
+ ((:or input select)
+  :font-size inherit
+  :background (hex 202020)
+  :color (hex FFFFFF)
+  :padding 0.1em 0.2em
+  :margin 0.2em 0
+  :border none)
+ (input[readonly]
+  :color (hex 808080))
+ ((:or input[type=submit] input[type=button])
+  :background (hex 303030)
+  :cursor pointer)
+ (input.flash
+  :outline 0.2em solid transparent
+  :animation flash 1s linear)
+ (input.confirm
+  :background (hex AA0000) !important
+  :color (hex FFFFFF) !important)
+ ((:and input :hover)
+  :background (hex 505050))
+ (.userlist
+  :padding 0.5em
+  :overflow-y scroll
+  :min-height 3em
+  (li
+   :display flex
+   :min-width 0
+   (>.name
+    :flex-grow 1
+    :overflow-x hidden
+    :text-overflow ellipsis)))
+ (.popup-container
+  :position fixed
+  :top 0 :left 0 :right 0 :bottom 0
+  :background (rgba 50 50 50 0.5)
+  :z-index 100
+  :font-size 14pt
+  (>.popup
+   :width 30em
+   :max-width 100%
+   :margin 5em auto 0 auto
+   :min-height 0
+   :max-height 70vh
+   :background (hex 202020)
+   :color (hex FFFFFF)
+   :border 1px solid (hex 000000)
+   :display flex
+   :flex-direction column
+   (>header
+    :background (hex 303030)
+    (.error-message
+     :background (hex FF3030)
+     :color (hex FFFFFF)
+     :padding 0.5em 1em)
+    (>img
+     :width 5em
+     :height 5em
+     :margin 0.5em
+     :border-radius 1em
+     :vertical-align middle)
+    (>h2
+     :display inline-block
+     :margin 0
+     :padding 0.2em 0.5em)
+    (>nav
+     :display block))
+   (>section
+    :margin 1em
+    :display flex
+    :flex-direction column
+    (>ul
+     :overflow-y auto
+     :list-style none
+     :padding 1em
+     :margin 0
+     (li
+      :display flex
+      :height 2em
+      (.name
+       :flex-grow 1)))
+    (label
+     :display inline-block
+     :box-sizing border-box
+     :min-width 10em)
+    ((:or input select)
+     :background (hex 151515))
+    ((:and (:or input select) :hover)
+     :background (hex 303030))
+    (.row
+     (label :margin-right 1em)))
+   (>section.emotes
+    :margin 0
+    :min-height 0
+    (img
+     :margin-right 1em
+     :height 2em
+     :width 5em
+     :object-fit scale-down
+     :object-position left center))
+   (>section.fields
+    (img
+     :min-height 1em
+     :min-width 1em
+     :max-height 10em
+     :max-width 100%))
+   (>section.permissions
+    :min-height 0
+    :overflow-y auto
+    (.row
+     :display flex
+     :align-items center
+     (>.update
+      :min-width 7em)
+     (>.type)
+     (>.users
+      :flex-grow 1
+      :list-style none
+      :margin 0 :padding 0
+      (li :padding 0.2em 0.5em
+          :display inline-block
+          :margin 0.2em 0.2em
+          :background (hex 303030)
+          :cursor pointer)
+      (li.none
+       :background (hex 202020)
+       :font-style italic))
+     (>.new
+      :max-width 5em)))))
+ (nav.tabbar
+  :padding 0.2em 0.2em 0 0.2em
+  :display flex
+  :background (hex 303030)
+  (>a :padding 0.2em 0.5em)
+  (>a.close
+   :margin-left auto)
+  (>a.active
+   :background (hex 202020)
+   :border-radius 0.3em 0.3em 0 0))
+ (.submenu
+  :position absolute
+  :border-radius 0.2em
+  :box-shadow 0 0 0.5em (hex 000000)
+  :overflow hidden
+  :background (hex 202020)
+  :display flex
+  :flex-direction column
+  :font-size 16pt
+  :z-index 5
+  (>a :padding 0.2em 0.5em))
+ (.emote-picker
+  :font-size 15pt
+  :position absolute
+  :background (hex 202020)
+  :display flex
+  :flex-direction column
+  :overflow hidden
+  :z-index 10
+  (>ul
+   :flex-grow 1
+   :list-style none
+   :margin 0
+   :padding 1em
+   :overflow-y scroll
+   :display flex
+   :flex-wrap wrap
+   (a :display block
+      :width 1em
+      :height 1em
+      :padding 0.2em
+      (img
+       :object-fit scale-down
+       :object-position center center
+       :height 100%
+       :width 100%))
+   (a.emote
+    :width 2em
+    :height 2em)))
+ (.emote-picker.big
+  :width 20em
+  :height 15em
+  :border-radius 0.5em 0 0 0)
+ (.emote-picker.small
+  :width 20em
+  :height 10em
+  :top 1em
+  :right 0
+  :border-radius 0.5em)
+ (>.side
+  :display flex
+  :flex-direction column
+  :width 15em
+  :background (hex 101010)
+  :color (hex F0F0F0)
+  :overflow-x hidden
+  (>nav
+   :flex-grow 1
+   :padding 0.5em 0 0.5em 0.5em
+   :overflow-y auto
+   :display block !important
+   (.server
+    (>header
+     :font-size 1.5em
+     :display flex
+     (>.name :flex-grow 1)
+     (>img.icon :border-color red))
+    (>ul
+     :list-style none
+     :padding 0 0 0 1em)
+    (.channel
+     :position relative
+     :display flex
+     :height 1.5em
+     :transition 0.2s background
+     (>header
+      :padding 0.1em 0.2em
+      :flex-grow 1
+      :display flex)
+     (>.unread-count
+      :background (hex 505050)
+      :width 1.5em
+      :text-align center))
+    ((:and .channel :after)
+     :content ""
+     :position absolute
+     :left -0.99em
+     :top 0
+     :bottom 0
+     :width 1em
+     :height 100%
+     :clip-path "polygon(100% 0, 100% 100%, 0 50%)"
+     :transition 0.2s background
+     :background transparent)
+    (.channel.update
+     :background (hex 202020))
+    ((:and .channel.update :after)
+     :background (hex 202020))
+    (.channel.current
+     :color black
+     :background white)
+    ((:and .channel.current :after)
+     :background white)
+    (.channel.alert
+     :background (hex C00000)
+     (.unread-count
+      :background (hex FF0000)))
+    ((:and .channel.alert :after)
+     :background (hex C00000))
+    ((:and .channel :hover)
+     :background (hex 0088EE))
+    ((:and .channel :hover :after)
+     :background (hex 0088EE)))
+   (.server.connected
+    (>header
+     (>img.icon
+      :border-color green))))
+  (>footer
+   :font-size 1.5em
+   :background (hex 202020)
+   (>nav
+    (>a
+     :padding 0.2em
+     :display inline-block))))
+ (.divider
+  :min-width 0.3em
+  :background (hex 303030)
+  :cursor col-resize)
+ (>main
+  :min-width 0
+  :flex-grow 1
+  :display flex
+  :flex-direction column
+  :background (hex 151515)
+  :color white
+  (>header
+   :min-width 0
+   :display flex
+   :background (hex 202020)
+   :color white
+   :font-size 1.5em
+   :padding 0.3em 0.5em
+   (>img.icon
+    :font-size 1.5em
+    :border none)
+   (>.name
+    :margin-right 1em)
+   (>.topic
+    :white-space nowrap
+    :overflow-x hidden
+    :text-overflow ellipsis
+    :flex-grow 1
+    :font-size 0.8em)
+   (>nav
+    :display flex
+    (>* :margin 0 0.2em)
+    (>input
+     :width 20em
+     :background (hex 151515)
+     :color (hex FFFFFF)
+     :border-radius 0.5em
+     :padding 0.6em 0.5em
+     :font-size 0.5em
+     :border none)))
+  (>.output
+   :flex-grow 1
+   :overflow-y scroll
+   :scrollbar-color white transparent
+   :scrollbar-width thin
+   (>.last-read
+    :border-bottom 0.1em solid red
+    :margin 0.5em 0
+    :position relative)
+   ((:and >.last-read :after)
+    :content ""
+    :position absolute
+    :left 0
+    :top -0.45em
+    :width 1em
+    :height 1em
+    :clip-path "polygon(0 0, 100% 50%, 0 100%)"
+    :background red)
+   (>.message
+    :padding 0.2em
+    :display flex
+    (>header
+     :display flex
+     :align-items flex-start
+     :max-width 10em
+     :min-width 10em
+     (>time
+      :margin-right 0.5em
+      :font-variant-numeric tabular-nums)
+     (>.name
+      :white-space nowrap
+      :flex-grow 1
+      :overflow-x hidden
+      :text-overflow ellipsis)
+     (>.name.me
+      :color white !important))
+    (>.content
+     :flex-grow 1
+     :padding 0 0.5em
+     ((:and p :first-of-type)
+      :margin-top 0)
+     ((:and p :last-of-type)
+      :margin-bottom 0)
+     (p
+      :white-space pre-wrap
+      :overflow-wrap anywhere
+      (a :color inherit)
+      (img.emoji
+       :max-height 1em
+       :margin 0 0.1em))
+     (textarea
+      :width 100%
+      :box-sizing border-box
+      :background (hex 303030)
+      :color (hex FFFFFF)
+      :border none
+      :font-size inherit
+      :font-family inherit
+      :margin -0.2em -0.5em
+      :padding 0.2em 0.5em
+      :border-radius 0.5em)
+     (img
+      :max-width 100%
+      :max-height 20em)
+     (.reactions
+      :display flex
+      :flex-wrap wrap
+      (.reaction
+       :background (hex 303030)
+       :padding 0.15em 0.2em
+       :margin 0.1em 0.2em
+       :border-radius 0.4em
+       :transition 0.2s background
+       :text-shadow none
+       :color white
+       (>i :font-style normal
+           :text-shadow none)
+       (>img :max-height 1em)
+       ((:or >i >img) :margin-right 0.2em))
+      ((:and .reaction :hover)
+       :background (hex 505050))))
+    (>nav
+     :white-space nowrap
+     :transition 0.5s color
+     :color (rgba 255 255 255 0.1)))
+   ((:and >.message .alert)
+    :background "linear-gradient(90deg, rgba(255,0,0,1) 0%, rgba(255,0,0,0) 10em);")
+   ((:and >.message .system)
+    :background "linear-gradient(90deg, rgba(0,0,255,1) 0%, rgba(0,0,255,0) 10em);")
+   ((:and >.message .highlight)
+    :background "linear-gradient(90deg, rgba(255,255,0,1) 0%, rgba(255,255,0,0) 10em);")
+   ((:and >.message (:or .join .leave))
+    (.content :color gray))
+   ((:and >.message :hover)
+    (>nav
+     :color (rgba 255 255 255 1))))
+  (">.output::-webkit-scrollbar"
+   :background transparent
+   :width 1em)
+  (">.output::-webkit-scrollbar-thumb"
+   :background white)
+  (>footer
+   :display flex
+   :align-items center
+   :color white
+   :background (hex 202020)
+   :font-size 1.5em
+   :padding 0.2em
+   (>.content
+    :display flex
+    :flex-direction column
+    :flex-grow 1
+    (>.reply-to
+     :font-size 0.6em)
+    (>textarea
+     :font-size 0.7em
+     :margin 0 0.5em
+     :color white
+     :font-family inherit
+     :box-sizing border-box
+     :transition 0.5s border
+     :border 0.1em solid (hex 505050)
+     :background (hex 505050)
+     :border-radius 0.2em)
+    (>.typing
+     :font-size 0.5em)
+    (>.typing
+     (>div
+      :width 0.5em
+      :height 0.5em
+      :margin 0 0.1em
+      :border-radius 1em
+      :background-color (rgba 255 255 255 0.75)
+      :display inline-block
+      :animation typing 1.4s infinite ease-in-out both)
+     ((:and >div (:nth-child 1)) :animation-delay -0.32s)
+     ((:and >div (:nth-child 2)) :animation-delay -0.16s)))
+   ((:and >textarea :focus)
+    :outline none !important
+    :border-color (hex 0088EE)))))
+
+(.client.mobile
+  (>.side
+   :position fixed
+   :top 0
+   :left 0
+   :height 100%)
+  (>.divider
+   :display none))
+
+(:media "(max-width: 800px)"
+        (.client
+         (>main
+          (>.output
+           (>.message
+            :flex-wrap wrap
+            (>nav
+             :width 100%
+             :text-align right))))
+         (>.divider+main
+          (>.output
+           (>.message
+            (>header
+             :max-width 8em
+             :min-width 8em
+             (time :color (rgba 255 255 255 0.5))
+             (img :display none)))))))
+
+(:media "(max-width: 600px)"
+        (.client
+         (>main
+          (>.output
+           (>.message
+            (>header
+             :max-width 8em
+             :min-width 8em
+             (time :color (rgba 255 255 255 0.5))
+             (img :display none))))))
+        (>.divider+main
+          (>.output
+           (>.message
+            (>header
+             :max-width 5em
+             :min-width 5em
+             (time :display none))
+            (>nav :display none)))))
+
+(:media "(max-width: 400px)"
+        (.client
+         (>main
+          (>.output
+           (>.message
+            (>header
+             :max-width 5em
+             :min-width 5em
+             (time :display none))
+            (>nav :display none))))))

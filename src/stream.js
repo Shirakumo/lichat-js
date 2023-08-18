@@ -10,7 +10,7 @@ var LichatStream = function(string){
             i++;
             return character;
         }else if(errorp){
-            cl.error("END-OF-STREAM");
+            throw new Error("END-OF-STREAM");
         }
         return null;
     };
@@ -19,7 +19,7 @@ var LichatStream = function(string){
         if(0 < i){
             i--;
         }else{
-            cl.error("BEGINNING-OF-STREAM");
+            throw new Error("BEGINNING-OF-STREAM");
         }
     };
 
@@ -28,7 +28,7 @@ var LichatStream = function(string){
         if(i < self.string.length){
             return self.string[i];
         }else if(errorp){
-            cl.error("END-OF-STREAM");
+            throw new Error("END-OF-STREAM");
         }
         return null;
     };
@@ -49,3 +49,6 @@ var LichatStream = function(string){
     
     return self;
 };
+
+if(typeof module !== 'undefined')
+    module.exports = LichatStream;

@@ -1,102 +1,971 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8" />
-    <title>Lichat-JS Client Library</title>
-    <link rel="stylesheet" type="text/css" href="lichat.css" />
+    <meta charset="utf-8">
+    <title>Lichat</title>
+    <meta name="viewport" content="width=device-width">
+    <link rel="stylesheet" href="stylesheet.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script src="https://twemoji.maxcdn.com/v/latest/twemoji.min.js" crossorigin="anonymous"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" crossorigin="anonymous">
-  </head>
-  <body class="light">
-    <noscript>
-      JavaScript is required for this to work. Sorry!
-    </noscript>
-    <div class="status" style="display:none"></div>
-    <form class="login" action="#">
-      <h1>Log In to Lichat</h1>
-      <div><label>Username</label>
-        <input type="text" name="username" maxlength="32" placeholder="My Name" autofocus />
-      </div>
-      <div style="display:none"><label>Password</label>
-        <input type="password" name="password" placeholder="" />
-      </div>
-      <div><label>Server Hostname</label>
-        <input type="text" name="hostname" value="chat.tymoon.eu" required />
-      </div>
-      <div><label>Server Port</label>
-        <input type="number" name="port" min="1" max="65535" value="1114" placeholder="1114" required />
-      </div>
-      <div><label>Channel</label>
-        <input type="text" name="channel" value="" maxlength="32" />
-      </div>
-      <div><label>Theme</label>
-        <select name="theme"><option value="light">Light</option><option value="dark">Dark</option></select>
-      </div>
-      <input type="submit" value="Connect" />
-    </form>
-    <main class="chat" style="display:none">
-      <div class="channels">
-        <h2>Channels</h2>
-        <div class="lichat-channel-list">
-        </div>
-      </div>
-      <div class="chat-area">
-        <nav class="menu">
-          <a data-action="create" title="Create a new channel">Create</a>
-          <a data-action="join" title="Join a channel">Join</a>
-          <a data-action="leave" title="Leave this channel">Leave</a>
-          <a data-action="channels" title="Toggle the channel list">Channels</a>
-          <a data-action="users" title="Toggle the user list">Users</a>
-          <a data-action="settings" title="Change some options">Settings</a>
-          <a data-action="about" title="About Lichat-JS">About</a>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14"></script>
+    <script src="lichat.js"></script>
+    <script type="text/x-template" id="self-menu">
+      <nav class="submenu" v-on:click.stop="">
+        <popup v-if="showStatus"
+               v-bind:prompt="client.user.info[':status']"
+               v-on:close="setStatus">
+          <template v-slot:header>Set Status</template>
+        </popup>
+        <a class="status"
+           v-on:click.stop="showStatus = true">
+          <i class="fas fa-fw fa-comment-dots"></i> Set Status
+        </a>
+        <user-configure
+            v-bind:user="client.user"
+            v-if="showInfo"
+            v-on:close="showInfo = false;$emit('close')"></user-configure>
+        <a class="info"
+           v-on:click.stop="showInfo = true">
+          <i class="fas fa-fw fa-info-circle"></i> View Info
+        </a>
+      </nav>
+    </script>
+    <script type="text/x-template" id="client-menu">
+      <nav class="submenu" v-on:click.stop="">
+        <list-channels
+            v-bind:channel="client.primaryChannel"
+            v-if="showChannelList"
+            v-on:close="showChannelList = false;$emit('close')"></list-channels>
+        <a class="join"
+           v-on:click="showChannelList = true">
+          <i class="fas fa-fw fa-sign-in-alt"></i> Join Channel
+        </a>
+        <create-channel
+            v-bind:client="client"
+            v-if="showChannelCreate"
+            v-on:close="showChannelCreate = false;$emit('close')"></create-channel>
+        <a class="create"
+           v-on:click="showChannelCreate = true">
+          <i class="fas fa-fw fa-plus-circle"></i> New Channel
+        </a>
+        <a class="disconnect"
+           v-on:click="client.closeConnection()"
+           v-if="client.isConnected || client.isConnecting">
+          <i class="fas fa-fw fa-handshake-slash"></i> Disconnect
+        </a>
+        <a class="connect"
+           v-on:click="client.openConnection()"
+           v-else>
+          <i class="fas fa-fw fa-handshake"></i> Connect
+        </a>
+        <client-configure
+            v-bind:client="client"
+            v-if="showConfigure"
+            v-on:close="showConfigure = false;$emit('close')"></client-configure>
+        <a class="config"
+           v-on:click="showConfigure = true">
+          <i class="fas fa-fw fa-cogs"></i> Settings
+        </a>
+      </nav>
+    </script>
+    <script type="text/x-template" id="message-menu">
+      <nav class="submenu" v-on:click.stop="">
+        <a class="copy"
+           v-on:click="copy">
+          <i class="fas fa-fw fa-clipboard"></i> Copy
+        </a>
+        <a class="kick"
+           v-if="message.channel.isPermitted('KICK')"
+           v-on:click="kick">
+          <i class="fas fa-fw fa-sign-out-alt"></i> Kick
+        </a>
+        <template v-if="message.channel.isPermitted('QUIET')">
+          <a class="unquiet"
+             v-if="message.author.isQuieted(message.channel)"
+             v-on:click="unquiet">
+            <i class="fas fa-fw fa-user"></i> Unquiet
+          </a>
+          <a class="quiet"
+             v-else
+             v-on:click="quiet">
+            <i class="fas fa-fw fa-user-slash"></i> Quiet
+          </a>
+        </template>
+      </nav>
+    </script>
+    <script type="text/x-template" id="channel-menu">
+      <nav class="submenu" v-on:click.stop="">
+        <select-user
+            v-bind:client="channel.client"
+            v-if="showInvite"
+            v-on:close="invite">Invite</select-user>
+        <a class="invite"
+             v-on:click.stop="showInvite = true">
+          <i class="fas fa-fw fa-user-plus"></i> Invite
+        </a>
+        <create-channel
+            v-bind:client="channel.client"
+            v-bind:channel="channel"
+            v-if="showChannelCreate"
+            v-on:close="showChannelCreate = false;$emit('close')"></create-channel>
+        <a class="create"
+           v-on:click.stop="showChannelCreate = true">
+          <i class="fas fa-fw fa-plus-circle"></i> Create Subchannel
+        </a>
+        <list-channels
+            v-bind:channel="channel"
+            v-if="showChannelList"
+            v-on:close="showChannelList = false;$emit('close')"></list-channels>
+        <a class="channels"
+           v-on:click.stop="showChannelList = true">
+          <i class="fas fa-fw fa-list"></i> List Subchannels
+        </a>
+        <list-users
+            v-bind:channel="channel"
+            v-if="showUserList"
+            v-on:close="showUserList = false;$emit('close')"></list-users>
+        <a class="users"
+           v-on:click.stop="showUserList = true">
+          <i class="fas fa-fw fa-users"></i> List Users
+        </a>
+        <popup v-if="showRules"
+               v-on:close="showRules = false">
+          <template v-slot:header>Rules for {{channel.name}}</template>
+          <template v-slot:content><p>{{channel.info[':rules']}}</p></template>
+        </popup>
+        <a class="rules"
+           v-if="channel.info[':rules']"
+           v-on:click="showRules = true">
+          <i class="fas fa-fw fa-gavel"></i> Rules
+        </a>
+        <a class="leave"
+           v-on:click="leave">
+          <i class="fas fa-fw fa-sign-out-alt"></i> Leave
+        </a>
+        <channel-configure
+            v-bind:channel="channel"
+            v-if="showInfo"
+            v-on:close="showInfo = false;$emit('close')"></channel-configure>
+          <a class="info"
+             v-on:click.stop="showInfo = true">
+          <i class="fas fa-fw fa-info-circle"></i> View Info
+        </a>
+      </nav>
+    </script>
+    <script type="text/x-template" id="user-menu">
+      <transition name="roll">
+        <nav class="submenu" v-on:click.stop="">
+          <a class="whisper"
+             v-on:click="whisper">
+            <i class="fas fa-fw fa-people-arrows"></i> Whisper
+          </a>
+          <a class="invite"
+             v-on:click.stop="showInvite = true">
+            <i class="fas fa-fw fa-user-plus"></i> Invite
+          </a>
+          <template v-if="user.client.isPermitted('BLOCK')">
+            <a class="unblock"
+               v-if="user.isBlocked"
+               v-on:click="unblock">
+              <i class="fas fa-fw fa-user-check"></i> Unblock
+            </a>
+            <a class="block"
+               v-else
+               v-on:click="block">
+              <i class="fas fa-fw fa-user-times"></i> Block
+            </a>
+          </template>
+          <template v-if="user.client.isPermitted('BAN')">
+            <a class="unban"
+               v-if="user.isBanned"
+               v-on:click="unban">
+              <i class="fas fa-fw fa-user-alt"></i> Unban
+            </a>
+            <a class="ban"
+               v-else
+               v-on:click="ban">
+              <i class="fas fa-fw fa-user-alt-slash"></i> Ban
+            </a>
+          </template>
+          <user-configure
+              v-bind:user="user"
+              v-if="showInfo"
+              v-on:close="showInfo = false;$emit('close')"></user-configure>
+          <a class="info"
+             v-on:click="showInfo = true">
+            <i class="fas fa-fw fa-info-circle"></i> View Info
+          </a>
         </nav>
-        <div class="lichat-topic"></div>
-        <div class="lichat-output">
-        </div>
-        <div class="input-area">
-          <textarea class="lichat-input"></textarea>
-          <div class="lichat-extra">
-            <div class="emote-list"></div>
-            <input type="button" id="emotes" name="emotes" />
-            <label for="emotes" title="Add an emote"><i class="fa fa-smile-o" aria-hidden="true"></i></label>
-            <input type="file" id="file" name="file" />
-            <label for="file" title="Send a file"><i class="fa fa-paperclip" aria-hidden="true"></i></label>
+      </transition>
+    </script>
+    <script type="text/x-template" id="emote-picker">
+      <div class="emote-picker" v-bind:class="classes" v-on:click.stop="">
+        <nav class="tabbar">
+          <a class="emoji" v-on:click="tab = 'emoji'" v-bind:class="{active: tab == 'emoji'}">
+            <i class="fas fa-grin"></i> Emoji
+          </a>
+          <a class="emotes" v-on:click="tab = 'emotes'" v-bind:class="{active: tab == 'emotes'}">
+            <i class="fas fa-icons"></i> Emotes
+          </a>
+          <a class="close" v-on:click="$emit('close')">
+            <i class="fas fa-times-circle"></i>
+          </a>
+        </nav>
+        <ul class="emoji" v-show="tab == 'emoji'" ref="emoji">
+          <li v-for="(names, emoji) in allEmoji" v-bind:title="names.join(', ')">
+            <a class="emoji" v-on:click="$emit('close', emoji)">{{ emoji }}</a>
+          </li>
+        </ul>
+        <ul class="emotes" v-show="tab == 'emotes'" ref="emotes">
+          <li v-for="emote in channel.getEmoteList()" v-bind:title="emote">
+            <a class="emote" v-on:click="$emit('close', emote)">
+              <img v-bind:src="channel.getEmote(emote)" />
+            </a>
+          </li>
+        </ul>
+        <input type="text" placeholder="Filter..." ref="input"
+               v-on:input="filter">
+      </div>
+    </script>
+    <script type="text/x-template" id="popup">
+      <transition name="modal">
+        <div class="popup-container" v-on:click.self.stop="close">
+          <form class="popup" v-on:submit="$emit('close', $refs.prompt.value)">
+            <header>
+              <h2><slot name="title">Info</slot></h2>
+              <div class="error-message" v-if="errorMessage">{{errorMessage}}</div>
+            </header>
+            <slot name="content"></slot>
+            <input type="text" ref="prompt" v-if="prompt">
+            <input type="submit" value="Ok">
           </div>
-          <input type="submit" value="Send" />
+        </form>
+      </transition>
+    </script>
+    <script type="text/x-template" id="client-configure">
+      <transition name="modal">
+        <div class="popup-container" v-on:click.self.stop="close">
+          <div class="popup">
+            <header>
+              <h2><slot>Configure {{options.name}}</slot></h2>
+              <div class="error-message" v-if="errorMessage">{{errorMessage}}</div>
+              <nav class="tabbar" v-if="!options.embedded">
+                <a v-on:click="tab = 'settings'" v-bind:class="{active: tab == 'settings'}">
+                  <i class="fas fa-info-circle"></i> Settings
+                </a>
+                <a v-on:click="tab = 'ban'" v-bind:class="{active: tab == 'ban'}" v-if="client && client.isPermitted('BAN')">
+                  <i class="fas fa-user-slash"></i> User Bans
+                </a>
+                <a v-on:click="tab = 'ip-ban'" v-bind:class="{active: tab == 'ip-ban'}" v-if="client && client.isPermitted('IP-BAN')">
+                  <i class="fas fa-ban"></i> Ip Bans
+                </a>
+              </nav>
+            </header>
+            <section v-if="tab == 'settings'">
+              <form v-on:submit.prevent="submit">
+                <div class="row" v-if="!options.embedded">
+                  <label>Name</label>
+                  <input type="text" ref="name" required
+                         v-model="options.name">
+                </div>
+                <div class="row">
+                  <label>Username</label>
+                  <input type="text" ref="username" maxlength="32"
+                         v-model="options.username"
+                         v-bind:readonly="client && client.isConnected">
+                </div>
+                <div class="row" v-show="!options.embedded || errorMessage">
+                  <label>Password</label>
+                  <input type="password" ref="password"
+                         v-model="options.password"
+                         v-bind:readonly="client && client.isConnected">
+                </div>
+                <div class="row" v-if="!options.embedded">
+                  <label title="Separated via two spaces">Aliases</label>
+                  <input type="text" ref="aliases"
+                         v-model="options.aliases">
+                </div>
+                <div class="row" v-if="!options.embedded">
+                  <label>Hostname</label>
+                  <input type="text" ref="hostname" required
+                         v-model="options.hostname"
+                         v-bind:readonly="client && client.isConnected">
+                </div>
+                <div class="row" v-if="!options.embedded">
+                  <label>Port</label>
+                  <input type="number" ref="port" required
+                         v-model="options.port"
+                         v-bind:readonly="client && client.isConnected">
+                </div>
+                <div class="row" v-if="!options.embedded">
+                  <label>SSL</label>
+                  <input type="checkbox" ref="ssl"
+                         v-model="options.ssl"
+                         v-bind:readonly="client && client.isConnected">
+                </div>
+                <input type="submit" v-bind:value="client?'Save':'Connect'">
+                <input type="button" value="Delete" class="confirm" v-if="client" v-on:click="remove">
+              </form>
+            </section>
+            <section v-if="tab == 'ban'">
+              <ul class="bans">
+                <li v-for="name in bans">
+                  <span class="name">{{name}}</span>
+                  <a v-bind:name="name" v-on:click="deleteBan">
+                    <i class="fas fa-trash"></i>
+                  </a>
+                </li>
+              </ul>
+              <input type="text" ref="name">
+              <input type="button" value="Ban" v-on:click="addBan">
+            </section>
+            <section v-if="tab == 'ip-ban'">
+              <ul class="bans">
+                <li v-for="[ip, mask] in ipBans">
+                  <span class="ip">{{ip}}</span>
+                  <span class="mask">{{mask}}</span>
+                  <a v-bind:ip="ip" v-bind:mask="mask" v-on:click="deleteIpBan">
+                    <i class="fas fa-trash"></i>
+                  </a>
+                </li>
+              </ul>
+              <input type="text" ref="ip" pattern="^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$">
+              <input type="text" ref="mask" pattern="^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$">
+              <input type="button" value="Ban" v-on:click="addIpBan">
+              <input type="button" value="Unban" v-on:click="addIpUnban">
+            </section>
+          </div>
         </div>
-      </div>
-      <div class="users">
-        <h2>Users</h2>
-        <div class="lichat-user-list">
+      </transition>
+    </script>
+    <script type="text/x-template" id="ui-configure">
+      <transition name="modal">
+        <div class="popup-container" v-on:click.self.stop="close">
+          <div class="popup">
+            <header>
+              <h2>Global Settings</h2>
+              <div class="error-message" v-if="errorMessage">{{errorMessage}}</div>
+            </header>
+            <section>
+              <div class="row">
+                <label for="font">Font</label>
+                <input type="text" id="font" list="fonts" ref="input"
+                       v-model="options.font">
+                <datalist id="fonts">
+                  <option v-for="font in fonts" v-bind:value="font"></option>
+                </datalist>
+              </div>
+              <div class="row">
+                <label for="font-size">Font Size</label>
+                <input type="number" id="font-size" min="1" max="32"
+                       v-model="options.fontSize">
+              </div>
+              <div class="row">
+                <label for="notification-level">Default Notify Level</label>
+                <select id="notification-level"
+                        v-model="options.notificationLevel">
+                  <option value="all">All messages</option>
+                  <option value="mention">Only mentions</option>
+                  <option value="none">None</option>
+                </select>
+              </div>
+              <div class="row">
+                <label for="show-notifications">Show Notification Popups</label>
+                <input type="checkbox" id="show-notifications"
+                       v-model="options.showNotifications">
+                <input type="button" value="Grant Permission"
+                       v-if="!havePermission"
+                       v-on:click="requestPermission">
+              </div>
+              <div class="row">
+                <label for="play-sound">Play Notification Sound</label>
+                <input type="checkbox" id="play-sound"
+                       v-model="options.playSound">
+              </div>
+              <div class="row">
+                <label for="transmit-typing">Show Typing Status</label>
+                <input type="checkbox" id="transmit-typing"
+                       v-model="options.transmitTyping">
+              </div>
+              <input type="button" value="Save" v-on:click="close">
+              <input type="button" class="confirm" value="Delete all" v-on:click="clear">
+            </section>
+          </div>
         </div>
+      </transition>
+    </script>
+    <script type="text/x-template" id="select-user">
+      <transition name="modal">
+        <div class="popup-container" v-on:click.self.stop="$emit('close')">
+          <div class="popup">
+            <header>
+              <h2><slot>Select User</slot></h2>
+              <div class="error-message" v-if="errorMessage">{{errorMessage}}</div>
+            </header>
+            <section>
+              <div class="row">
+                <label for="name">Username</label>
+                <input type="text" id="user" list="users" ref="input">
+                <datalist id="users">
+                  <option v-for="user in users" v-bind:value="user"></option>
+                </datalist>
+              </div>
+              <input type="button" value="Select" v-on:click="$emit('close', $refs.input.value)">
+            </section>
+          </div>
+        </div>
+      </transition>
+    </script>
+    <script type="text/x-template" id="create-channel">
+      <transition name="modal">
+        <div class="popup-container" v-on:click.self.stop="$emit('close')">
+          <div class="popup">
+            <header>
+              <h2>Create Channel</h2>
+              <div class="error-message" v-if="errorMessage">{{errorMessage}}</div>
+            </header>
+            <section>
+              <div class="row">
+                <label>Channel name</label>
+                <input type="text" name="channelname" maxlength="32" required ref="input"
+                       v-model="name"
+                       v-bind:readonly="anonymous">
+              </div>
+              <div class="row" v-if="channel == null">
+                <label>Anonymous</label>
+                <input type="checkbox" name="ssl"
+                       v-model="anonymous">
+              </div>
+              <input type="button" value="Create" v-on:click="create">
+            </section>
+          </div>
+        </div>
+      </transition>
+    </script>
+    <script type="text/x-template" id="list-users">
+      <transition name="modal">
+        <div class="popup-container" v-on:click.self.stop="$emit('close')">
+          <div class="popup">
+            <header>
+              <h2>Users in {{channel.name}}</h2>
+              <div class="error-message" v-if="errorMessage">{{errorMessage}}</div>
+            </header>
+            <section>
+              <ul class="userlist">
+                <li v-for="user in userList">
+                  <img class="icon" v-bind:src="user.icon">
+                  <span class="name"
+                        v-bind:style="{color: user.color}"
+                        v-bind:title="user.name">{{user.name}}</span>
+                  <nav>
+                    <user-menu v-if="userMenu == user"
+                               v-on:close="userMenu = null"
+                               v-bind:user="user"></user-menu>
+                    <a class="settings"
+                       v-on:click.stop="userMenu = user">
+                      <i class="fas fa-ellipsis-h"></i>
+                    </a>
+                  </nav>
+                </li>
+              </ul>
+              <input type="text" placeholder="Filter..." v-on:input="filter" ref="input">
+              <input type="button" value="Close" v-on:click="$emit('close')">
+            </section>
+          </div>
+        </div>
+      </transition>
+    </script>
+    <script type="text/x-template" id="list-channels">
+      <transition name="modal">
+        <div class="popup-container" v-on:click.self.stop="$emit('close')">
+          <div class="popup">
+            <header>
+              <h2>Channel List</h2>
+              <div class="error-message" v-if="errorMessage">{{errorMessage}}</div>
+            </header>
+            <section>
+              <ul class="channellist">
+                <li v-for="channel in channelList">
+                  <img class="icon" v-bind:src="channel.icon">
+                  <span class="name"
+                        v-bind:title="channel.name">{{channel.name}}</span>
+                  <nav>
+                    <channel-menu v-if="channelMenu == channel"
+                                  v-on:close="channelMenu = null"
+                                  v-bind:channel="channel"></channel-menu>
+                    <a class="settings"
+                       v-if="channel.isPresent"
+                       v-on:click.stop="channelMenu = channel">
+                      <i class="fas fa-ellipsis-h"></i>
+                    </a>
+                    <a class="join"
+                       v-else
+                       v-on:click.stop="join(channel)">
+                      <i class="fas fa-sign-in-alt"></i>
+                    </a>
+                    </a>
+                  </nav>
+                </li>
+              </ul>
+              <input type="text" placeholder="Filter..." v-on:input="filter" ref="input">
+              <input type="button" value="Close" v-on:click="$emit('close')">
+            </section>
+          </div>
+        </div>
+      </transition>
+    </script>
+    <script type="text/x-template" id="channel-configure">
+      <transition name="modal">
+        <div class="popup-container" v-on:click.self.stop="$emit('close')">
+          <div class="popup">
+            <header>
+              <img class="channel" v-bind:src="channel.icon">
+              <h2>{{channel.name}}</h2>
+              <div class="error-message" v-if="errorMessage">{{errorMessage}}</div>
+              <nav class="tabbar">
+                <a v-on:click="tab = 'info'" v-bind:class="{active: tab == 'info'}">
+                  <i class="fas fa-info-circle"></i> Info
+                </a>
+                <a v-on:click="tab = 'fields'" v-bind:class="{active: tab == 'fields'}">
+                  <i class="fas fa-tasks"></i> Fields
+                </a>
+                <a v-on:click="tab = 'emotes'" v-bind:class="{active: tab == 'emotes'}">
+                  <i class="fas fa-icons"></i> Emotes
+                </a>
+                <a v-on:click="tab = 'permissions'" v-bind:class="{active: tab == 'permissions'}" v-if="channel.isPermitted('PERMISSIONS')">
+                  <i class="fas fa-gavel"></i> Permissions
+                </a>
+                <a v-on:click="tab = 'settings'" v-bind:class="{active: tab == 'settings'}">
+                  <i class="fas fa-cogs"></i> Settings
+                </a>
+              </nav>
+            </header>
+            <section class="info" v-show="tab == 'info'">
+              <div class="row">
+                <label>Name:</label>
+                <span class="name">{{channel.name}}</span>
+              </div>
+              <div class="row">
+                <label>No. Users:</label>
+                <span class="users">{{Object.keys(channel.users).length}}</span>
+              </div>
+              <div class="row">
+                <label>My capabilities:</label>
+                <span class="capabilities">{{channel.capabilities.join(", ")}}</span>
+              </div>
+            </section>
+            <section class="fields" v-show="tab == 'fields'">
+              <div class="row" v-for="(v, k) in info">
+                <label>{{k}}</label>
+                <template v-if="channel.isPermitted('SET-CHANNEL-INFO')">
+                  <img v-if="isImage(k)" v-bind:name="k" v-bind:src="toURL(v)" v-on:click="setImage">
+                  <input type="text" v-bind:name="k" v-model="info[k]" v-else>
+                </template>
+                <template v-else>
+                  <img v-if="isImage(k)" v-bind:src="toURL(v)">
+                  <span v-else-if="v">{{v}}</span>
+                  <span v-else class="unset">no value</span>
+                </template>
+              </div>
+              <input type="button" value="Save" 
+                     v-if="channel.isPermitted('SET-CHANNEL-INFO')"
+                     v-on:click="saveInfo">
+            </section>
+            <section class="emotes" v-show="tab == 'emotes'">
+              <ul class="emotes">
+                <li v-for="[k, v] in emotes">
+                  <img class="emote" v-bind:src="v.url">
+                  <span class="name">:{{k}}:</span>
+                  <a v-if="channel.isPermitted('EMOTE')" v-bind:name="k" v-on:click="deleteEmote">
+                    <i class="fas fa-trash"></i>
+                  </a>
+                </li>
+              </ul>
+              <div class="row" v-if="channel.isPermitted('EMOTE')">
+                <input type="file" ref="file" accept=".png,.jpg,.jpeg,.gif">
+                <input type="text" ref="name">
+                <input type="button" value="submit" v-on:click="uploadEmote">
+              </div>
+            </section>
+            <section class="permissions" v-show="tab == 'permissions'">
+              <div class="row" v-for="rule in permissions">
+                <span class="update">{{rule.update}}</span>
+                <select class="type" v-model="rule.type">
+                  <option value="+">allow to</option>
+                  <option value="-">deny to</option>
+                </select>
+                <ul class="users">
+                  <li v-for="user in rule.users" v-on:click="rule.users = rule.users.filter((e)=>e !== user)">
+                    {{user}}
+                  </li>
+                  <li class="none" v-if="rule.users.length === 0">none</li>
+                </ul>
+                <input type="text" class="new" list="users" placeholder="Add..."
+                       v-on:keyup.enter="addUser($event, rule)">
+              </div>
+              <datalist id="users">
+                <option v-for="user in channel.users" v-bind:value="user.name"></option>
+              </datalist>
+              <input type="button" value="Save"
+                     v-on:click="savePermissions">
+            </section>
+            <section class="settings" v-show="tab == 'settings'">
+              <div class="row">
+                <label>Notify on</label>
+                <select v-model="channel.notificationLevel">
+                  <option value="inherit">Use client setting</option>
+                  <option value="all">All messages</option>
+                  <option value="mention">Only mentions</option>
+                  <option value="none">None</option>
+                </select>
+              </div>
+              <div class="row" v-if="channel.isPermitted('PAUSE')">
+                <label>Slow Mode</label>
+                <input type="number" ref="pause" min="0" value="0">
+                <input type="button" value="Save" v-on:click="toggleSlowMode">
+              </div>
+              <input class="confirm" type="button" value="Destroy Channel"
+                     v-if="channel.isPermitted('DESTROY')"
+                     v-on:click="destroy">
+            </section>
+          </div>
+        </div>
+      </transition>
+    </script>
+    <script type="text/x-template" id="user-configure">
+      <transition name="modal">
+        <div class="popup-container" v-on:click.self.stop="$emit('close')">
+          <div class="popup">
+            <header>
+              <img class="icon" v-bind:src="user.icon">
+              <h2>{{user.name}}</h2>
+              <div class="error-message" v-if="errorMessage">{{errorMessage}}</div>
+              <nav class="tabbar">
+                <a v-on:click="tab = 'info'" v-bind:class="{active: tab == 'info'}">
+                  <i class="fas fa-info-circle"></i> Info
+                </a>
+                <a v-on:click="tab = 'fields'" v-bind:class="{active: tab == 'fields'}">
+                  <i class="fas fa-tasks"></i> Fields
+                </a>
+                <a v-on:click="tab = 'settings'" v-bind:class="{active: tab == 'settings'}">
+                  <i class="fas fa-cogs"></i> Settings
+                </a>
+              </nav>
+            </header>
+            <section class="info" v-show="tab == 'info'">
+              <div class="row">
+                <label>Name:</label>
+                <span class="name">{{user.name}}</span>
+              </div>
+              <div class="row">
+                <label>Registered:</label>
+                <span class="registered">{{registered?"yes":"no"}}</span>
+              </div>
+              <div class="row">
+                <label>Channels:</label>
+                <span class="name">{{channels.join(", ")}}</span>
+              </div>
+              <div class="row" v-if="registered">
+                <label>Registered On:</label>
+                <span class="name">{{new Date(1000*registeredOn)}}</span>
+              </div>
+              <div class="row">
+                <label>No. Connections:</label>
+                <span class="name">{{connections}}</span>
+              </div>
+              <div class="row">
+                <label>Connection Info:</label>
+                <ul>
+                  <li v-for="connection in connectionInfo">
+                    <span class="ip" v-if="connection.ip">
+                      {{connection.ip}}
+                    </span>
+                    <span class="ssl" v-if="connection.ssl !== undefined">
+                      {{connection.ssl?'ssl':'plain'}}
+                    </span>
+                    <span class="connectedOn" v-if="connection.connectedOn">
+                      {{new Date(1000*connection.connectedOn)}}
+                    </span>
+                  </li>
+                </ul>
+              </div>
+            </section>
+            <section class="fields" v-show="tab == 'fields'">
+              <div class="row" v-for="(v, k) in info">
+                <label>{{k}}</label>
+                <template v-if="user.isSelf">
+                  <img v-if="isImage(k)" v-bind:name="k" v-bind:src="toURL(v)" v-on:click="setImage">
+                  <input type="text" v-bind:name="k" v-model="info[k]" v-else>
+                </template>
+                <template v-else>
+                  <img v-if="isImage(k)" v-bind:src="toURL(v)">
+                  <span v-else-if="v">{{v}}</span>
+                  <span v-else class="unset">no value</span>
+                </template>
+              </div>
+              <input type="file" ref="file" accept=".png,.jpg,.jpeg,.gif" style="display:none">
+              <input type="button" value="Save" 
+                     v-if="user.isSelf"
+                     v-on:click="saveInfo">
+            </section>
+            <section class="settings" v-show="tab == 'settings'">
+              <input class="confirm" type="button" value="Kill User"
+                     v-if="user.client.isPermitted('KILL') && !user.isServer"
+                     v-on:click="kill">
+            </section>
+          </div>
+        </div>
+      </transition>
+    </script>
+    <script type="text/x-template" id="message">
+      <div class="message"
+           v-bind:class="[{alert: message.isAlert, system: message.isSystem, bridged: message.isBridged}, message.type]"
+           v-bind:id="message.gid">
+        <header>
+          <time v-bind:title="message.date">{{message.time}}</time>
+          <img class="icon" v-bind:src="message.author.icon">
+          <user-menu v-if="showUserMenu"
+                     v-on:close="showUserMenu = false"
+                     v-bind:user="message.author"></user-menu>
+          <span class="name"
+                v-on:click.stop="showUserMenu = true"
+                v-bind:style="{color: message.author.color}"
+                v-bind:title="message.author.name"
+                v-bind:class="{me: message.author == message.channel.client.user}">{{message.from}}</span>
+        </header>
+        <a class="reply-to" v-if="message.replyTo" v-bind:href="message.replyTo.url">
+          <span class="name" v-bind:class="{me: message.replyTo.author == message.channel.client.user}">{{message.replyTo.author.name}}</span>
+          <p>{{message.replyTo.shortText}}</p>
+        </a>
+        <div class="content">
+          <img v-if="message.isImage" v-bind:src="message.text">
+          <video controls v-else-if="message.isVideo">
+            <source v-bind:src="message.text" v-bind:type="message.contentType">
+          </video>
+          <audio controls v-else-if="message.isAudio">
+            <source v-bind:src="message.text" v-bind:type="message.contentType">
+          </audio>
+          <textarea v-else-if="editText !== null"
+                    v-model="editText" ref="input"
+                    v-on:input="$event.target.style.minHeight = $event.target.scrollHeight+'px';"
+                    v-on:keydown.enter.prevent.stop="edit"
+                    v-on:keydown.esc.prevent.stop="editText = null"></textarea>
+          <p v-else v-html="message.html"></p>
+          <div class="reactions">
+            <a class="reaction"
+               v-for="reaction in message.reactions" 
+               v-bind:title="reaction.description"
+               v-on:click="react(reaction.text)">
+              <img v-if="reaction.image" v-bind:src="reaction.image">
+              <i v-else>{{reaction.text}}</i>
+              <span>{{reaction.count}}</span>
+            </a>
+          </div>
+        </div>
+        <nav>
+          <a class="edit"
+             v-if="message.author.isSelf && message.type == 'message' && message.channel.client.isAvailable('shirakumo-edit')">
+            <i class="fas fa-edit"></i>
+          </a>
+          <a class="reply"
+             v-if="!message.isVirtual && message.channel.client.isAvailable('shirakumo-replies')"
+             v-on:click="replyTo">
+            <i class="fas fa-reply"></i>
+          </a>
+          <emote-picker
+              v-bind:channel="message.channel"
+              v-bind:classes="['small']"
+              v-if="emotePicker"
+              v-on:close="react"></emote-picker>
+          <a class="react"
+             v-if="!message.isVirtual && message.channel.client.isAvailable('shirakumo-reactions')"
+             v-on:click.stop="emotePicker = true">
+            <i class="fas fa-surprise"></i>
+          </a>
+          <message-menu v-if="showSettings"
+                        v-on:close="showSettings = false"
+                        v-bind:message="message"></message-menu>
+          <a class="settings"
+             v-if="!message.isVirtual"
+             v-on:click.stop="showSettings = true">
+            <i class="fas fa-ellipsis-h"></i>
+          </a>
+        </nav>
       </div>
-      <audio class="lichat-notify">
-        <source src="notify.mp3" type="audio/mp3"/>
-      </audio>
-    </main>
-    <div class="settings popup">
-      <h3>Settings</h3>
-      <div><label>Notifications</label><input type="checkbox" name="notifyBy" value="desktop"/></div>
-      <div><label>Sounds</label><input type="checkbox" name="notifyBy" value="sound"/></div>
-      <div><label>Volume</label><input type="range" name="volume" min="0.0" max="1.0" step="0.1" /></div>
-      <button>Ok</button>
+    </script>
+  </head>
+  <body>
+    <div class="client" v-bind:class="{mobile: isMobile}">
+      <div class="side"
+           v-show="showSideBar"
+           v-bind:style="{width: options.sidebarWidth, minWidth: options.sidebarWidth, maxWidth: options.sidebarWidth}">
+        <nav v-show="0 < clients.length">
+          <section class="server" v-for="client in clients" v-bind:class="{connected: client._socket && client._reconnectAttempts == 0}">
+            <header>
+              <img class="icon" v-bind:src="client.icon">
+              <span class="name">{{client.name || client.servername}}</span>
+              <nav>
+                <client-menu v-if="client.showMenu"
+                             v-on:close="client.showMenu = false"
+                             v-bind:client="client"></client-menu>
+                <a class="menu"
+                   v-on:click.stop="client.showMenu = true">
+                  <i class="fas fa-ellipsis-h"></i>
+                </a>
+              </nav>
+            </header>
+            <ul class="channels">
+              <li class="channel"
+                  v-for="channel in client.channelList"
+                  v-bind:class="{current: channel == currentChannel, update: 0 < channel.unread, alert: channel.alerted, primary: channel.isPrimary}"
+                  v-on:click="switchChannel(channel)">
+                <header>
+                  <img class="icon" v-bind:src="channel.icon">
+                  <span class="name">{{channel.name}}</span>
+                </header>
+                <div class="unread-count"
+                     v-if="0 < channel.unread"
+                     v-on:click="channel.unread = 0; channel.alerted = false">
+                  {{channel.unread}}
+                </div>
+              </li>
+            </ul>
+          </section>
+        </nav>
+        <footer>
+          <nav>
+            <a class="create" title="Add client"
+               v-on:click.stop="showClientMenu = true">
+              <i class="fas fa-plus-circle"></i>
+            </a>
+            <a title="Settings"
+               v-on:click.stop="showSettings = true">
+              <i class="fas fa-cogs"></i>
+            </a>
+          </nav>
+        </footer>
+      </div>
+      <divider v-show="showSideBar"></divider>
+      <main v-if="currentChannel"
+            v-on:dragover.prevent=""
+            v-on:drop.capture="uploadFile"
+            v-on:paste.capture="uploadFile">
+        <header>
+          <img class="icon"
+               v-bind:src="currentChannel.icon"
+               v-on:click="showSideBar = true">
+          <span class="name">{{currentChannel.name}}</span>
+          <span class="topic" v-html="formatUserText(currentChannel.topic, currentChannel)"></span>
+          <nav>
+            <input type="text" placeholder="from:user something" ref="search"
+                   v-model="search"
+                   v-if="search !== null"
+                   v-on:keydown.enter.prevent.stop="performSearch">
+            <a class="search"
+               v-if="currentChannel.client.isAvailable('shirakumo-search')"
+               v-on:click="toggleSearch">
+              <i class="fas fa-search"></i>
+            </a>
+            <a class="close"
+               v-if="currentChannel.isVirtual"
+               v-on:click="currentChannel = currentChannel.previous">
+              <i class="fas fa-times-circle"></i>
+            </a>
+            <a class="settings"
+               v-else
+               v-on:click.stop="showChannelMenu = true">
+              <i class="fas fa-ellipsis-h"></i>
+            </a>
+            <channel-menu v-if="showChannelMenu"
+                          v-on:close="showChannelMenu = false"
+                          v-bind:channel="currentChannel"></channel-menu>
+          </nav>
+        </header>
+        <section class="output" ref="output"
+                 v-bind:style="{fontFamily: options.font, fontSize: options.fontSize+'pt'}"
+                 v-on:scroll="handleScroll">
+          <message v-for="message in currentChannel.uiMessageList"
+                   v-bind:message="message"
+                   v-bind:key="message.gid"></message>
+        </section>
+        <footer v-if="currentChannel.isPresent">
+          <div v-if="!embedded" class="user me">
+            <self-menu v-bind:client="currentChannel.client"
+                       v-if="showSelfMenu"
+                       v-on:close="showSelfMenu = false"></self-menu>
+            <img class="icon"
+                 v-bind:src="currentChannel.client.user.icon"
+                 v-on:click.stop="showSelfMenu = true">
+          </div>
+          <div class="content">
+            <a class="reply-to" v-if="currentChannel.currentMessage.replyTo" v-on:click="currentChannel.currentMessage.replyTo = null">
+              <span class="name" v-bind:class="{me: currentChannel.currentMessage.replyTo.author == currentChannel.client.user}">{{currentChannel.currentMessage.replyTo.author.name}}</span>
+              <p>{{currentChannel.currentMessage.replyTo.shortText}}</p>
+            </a>
+            <textarea placeholder="Write something..." autofocus ref="input"
+                      v-model="currentChannel.currentMessage.text"
+                      v-on:input="$event.target.style.minHeight = $event.target.scrollHeight+'px';"
+                      v-on:keydown="handleKeypress"
+                      v-on:keydown.enter.prevent.stop="submit"></textarea>
+            <div class="typing" v-show="currentChannel.hasTypers">
+              {{currentChannel.typingUsers.map(user=>user.name).join(", ")}}
+              <template v-if="1 == currentChannel.typingUsers.length">is typing</template>
+              <template v-else>are typing</template>
+              <div></div><div></div><div></div>
+            </div>
+          </div>
+          <nav>
+            <emote-picker
+                v-bind:channel="currentChannel"
+                v-bind:classes="['big']"
+                v-if="showEmotePicker"
+                v-on:close="addEmote"></emote-picker>
+            <a class="emote" v-on:click.stop="showEmotePicker = !showEmotePicker">
+              <i class="fas fa-smile"></i>
+            </a>
+            <input type="file" accept=".png,.jpg,.jpeg,.gif,.mp4,.webm,.mp3,.ogg" id="fileChooser" style="display:none" v-on:change="uploadFile">
+            <a class="upload" v-on:click="uploadFile">
+              <i class="fas fa-paperclip"></i>
+            </a>
+          </nav>
+        </footer>
+      </main>
+      <main v-else>
+      </main>
+      <ui-configure
+          v-bind:options="options"
+          v-if="showSettings"
+          v-on:close="showSettings = false"></ui-configure>
+      <client-configure
+          v-if="showClientMenu"
+          v-on:close="showClientMenu = false;">
+        Connect
+      </client-configure>
     </div>
-    <div class="about popup">
-      <h3>This is Lichat-JS, a JavaScript client for Lichat.</h3>
-      <p>
-        Lichat is a light-weight, text-based chat protocol. It is aimed at mid-sized group chats, with many simplifications and improvements over alternative protocols such as IRC and XMPP.
-      </p>
-      <p>
-        Lichat and Lichat-JS are developed and maintained by the Shirakumo collective. You can find more information on the following websites:
-      </p>
-      <ul>
-        <li><a href="http://shirakumo.org" target="_blank">http://shirakumo.org</a></li>
-        <li><a href="http://shirakumo.org/projects/lichat-protocol" target="_blank">http://shirakumo.org/projects/lichat-protocol</a></li>
-        <li><a href="http://shirakumo.org/projects/lichat-js" target="_blank">http://shirakumo.org/projects/lichat-js</a></li>
-      </ul>
-      <button>Ok</button>
-    </div>
-    <script type="text/javascript" src="lichat.js"></script>
-    <script type="text/javascript" src="index.js"></script>
+    <script>
+      const urlParams = new URLSearchParams(window.location.search);
+      const embedded = urlParams.get('channel') !== null;
+      const channel = urlParams.get('channel');
+      var lichat = new LichatUI(null, {
+          embedded: embedded,
+          connection: {
+              username: urlParams.get('username') || window.localStorage.getItem("username"),
+              password: window.sessionStorage.getItem("password"),
+              hostname: urlParams.get('hostname'),
+              port: urlParams.get('port'),
+              autoconnect: urlParams.get('autoconnect')
+          }
+      });
+      lichat.init()
+            .then((client)=>{
+                console.log("Embedded setup complete", client);
+                if(embedded){
+                    window.localStorage.setItem("username", client.username);
+                    window.sessionStorage.setItem("password", client.password);
+                    if(channel)
+                        lichat.invokeCommand(client.getEmergencyChannel(), "/join", [channel]);
+                }
+            });
+    </script>
   </body>
 </html>

@@ -1,43 +1,48 @@
+if(typeof module !== 'undefined'){
+    cl = module.require('./cl.js');
+    LichatStream = module.require('./stream.js');
+}
+
 var LichatPrinter = function(){
     var self = this;
 
     self.printSexprList = (list, stream)=>{
         stream.writeChar("(");
-        cl.unwindProtect(()=>{
+        try{
             for(var i=0; i<list.length; i++){
                 self.printSexpr(list[i], stream);
                 if(i+1 < list.length){
                     stream.writeChar(" ");
                 }
             }
-        },()=>{
+        }finally{
             stream.writeChar(")");
-        });
+        }
     };
 
     self.printSexprString = (string, stream)=>{
         stream.writeChar("\"");
-        cl.unwindProtect(()=>{
+        try{
             for(var character of string){
                 if(character === "\"" | character === "\\"){
                     stream.writeChar("\\");
                 }
                 stream.writeChar(character);
             }
-        },()=>{
+        }finally{
             stream.writeChar("\"");
-        });
+        }
     };
 
     self.printSexprNumber = (number, stream)=>{
         if(Math.abs(number) < 1.0){
-            var e = parseInt(number.toString().split('e-')[1]);
+            let e = parseInt(number.toString().split('e-')[1]);
             if(e){
                 number *= Math.pow(10,e-1);
                 number = '0.' + (new Array(e)).join('0') + number.toString().substring(2);
             }
         }else{
-            var e = parseInt(number.toString().split('+')[1]);
+            let e = parseInt(number.toString().split('+')[1]);
             if(e > 20){
                 e -= 20;
                 number /= Math.pow(10,e);
@@ -48,7 +53,7 @@ var LichatPrinter = function(){
     };
     
     self.printSexprToken = (token, stream)=>{
-        for(var character of token){
+        for(let character of token){
             if("\\\"():0123456789. #".indexOf(character) >= 0){
                 stream.writeChar("\\");
             }
@@ -58,14 +63,11 @@ var LichatPrinter = function(){
 
     self.printSexprSymbol = (symbol, stream)=>{
         switch(symbol.pkg){
-        case null:
-            stream.writeChar("#");
+        case "keyword":
             stream.writeChar(":");
             break;
-        case "KEYWORD":
-            stream.writeChar(":");
-            break;
-        case "LICHAT-PROTOCOL":
+        case "lichat":
+        case "shirakumo":
             break;
         default:
             self.printSexprToken(symbol.pkg, stream);
@@ -82,14 +84,17 @@ var LichatPrinter = function(){
                     "Number",  ()=> self.printSexprNumber(sexpr, stream),
                     "Symbol",  ()=> self.printSexprSymbol(sexpr, stream),
                     "Boolean", ()=> self.printSexprToken((sexpr)?"T":"NIL", stream),
-                    true, ()=> cl.error("UNPRINTABLE-OBJECT",{object: sexpr}));
+                    true, ()=>{
+                        console.error(sexpr);
+                        throw new Error(sexpr+" is unprintable");
+                    });
     };
 
     self.toWire = (wireable, stream)=>{
-        if(cl.typep(wireable, "WIRE-OBJECT")){
-            var list = [cl.findSymbol(wireable.type, "LICHAT-PROTOCOL")];
+        if(cl.typep(wireable, "object")){
+            var list = [wireable.type];
             for(var key of wireable.fields){
-                list.push(cl.findSymbol(key.toUpperCase(), "KEYWORD"));
+                list.push(cl.findSymbol(key, "keyword"));
                 list.push(wireable[key]);
             }
             self.printSexpr(list, stream);
@@ -106,3 +111,6 @@ LichatPrinter.toString = (wireable)=>{
     new LichatPrinter().toWire(wireable, stream);
     return stream.string;
 };
+
+if(typeof module !== 'undefined')
+    module.exports = LichatPrinter;
