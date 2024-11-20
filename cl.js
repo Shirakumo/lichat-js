@@ -160,8 +160,9 @@ var CL = function(){
                 return true;
             }
         }else if(window[type]){
-            if(window[type].prototype.isPrototypeOf(instance)
-               || instance.constructor === window[type].prototype.constructor){
+            if(instance !== null && instance !== undefined &&
+               (window[type].prototype.isPrototypeOf(instance)
+                || instance.constructor === window[type].prototype.constructor)){
                 return true;
             }
         }
