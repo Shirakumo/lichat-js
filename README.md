@@ -1,4 +1,4 @@
-## About Lichat-JS
-This is a JavaScript and HTML5 client for [Lichat](https://shirakumo.org/projects/lichat-protocol). It supports the full standard protocol including all of the currently available extensions. The client needs a WebSockets compatible server in order to connect.
+# This repository has [moved](https://shirakumo.org/projects/lichat-js)!
+Due to Microsoft's continued enshittification of the platform this repository has been moved to [Codeberg](https://shirakumo.org/projects/lichat-js) in August of 2025. It will not receive further updates or patches. **Issues and pull requests will not be looked at here either**, please submit your patches and issue tickets on Codeberg, or send them directly via good old email patches to [shirakumo@tymoon.eu](mailto:shirakumo@tymoon.eu).
 
-We make use of [Twemoji](https://twemoji.twitter.com) for Emoji display in reactions.
+Thanks.
